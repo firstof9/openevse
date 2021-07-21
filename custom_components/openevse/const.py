@@ -12,7 +12,7 @@ DEFAULT_NAME = "OpenEVSE"
 DOMAIN = "openevse"
 COORDINATOR = "coordinator"
 VERSION = "1.0.0"
-ISSUE_URL = "http://github.com/firstof9"
+ISSUE_URL = "http://github.com/firstof9/openevse/"
 PLATFORMS = ["sensor", "switch"]
 
 # Name, unit of measure, property, icon
