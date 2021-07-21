@@ -47,18 +47,18 @@ class OpenEVSESensor(CoordinatorEntity):
     @property
     def state(self):
         """Return the state of the sensor."""
-        self._data = self._coordinator.data
-        if self._data.data is None:
+        data = self._coordinator.data
+        if data is None:
             return None
-        if self._type in self._data.data.keys():
+        if self._type in data.keys():
             if self._type == "charge_time":
-                return self._data.data[self._type] / 60
+                return data[self._type] / 60
             elif self._type == "usage_session":
-                return self._data.data[self._type] / 1000
+                return round(data[self._type] / 1000, 2)
             elif self._type == "usage_total":
-                return self._data.data[self._type] / 1000
+                return round(data[self._type] / 1000, 2)
             else:
-                return self._data.data[self._type]
+                return data[self._type]
         return None
 
     @property

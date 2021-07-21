@@ -67,13 +67,18 @@ def get_sensors(hass, config) -> dict:
     for sensor in SENSOR_TYPES:
         _sensor = {}
         try:
-            sensor_name = SENSOR_TYPES[sensor]
             sensor_property = SENSOR_TYPES[sensor][2]
-            _sensor[sensor_name] = getattr(charger, sensor_property)
+            _sensor[sensor] = getattr(charger, sensor_property)
+            _LOGGER.debug(
+                "sensor: %s sensor_property: %s value: %s",
+                sensor,
+                sensor_property,
+                _sensor[sensor],
+            )
         except (RequestException, ValueError, KeyError):
-            _LOGGER.warning("Could not update status for %s", sensor_name)
+            _LOGGER.warning("Could not update status for %s", sensor)
         data.update(_sensor)
-    _LOGGER.warning("DEBUG: %s", data)
+    _LOGGER.debug("DEBUG: %s", data)
     return data
 
 

@@ -54,15 +54,17 @@ class OpenEVSESwitch(SwitchEntity):
     @property
     def is_on(self) -> bool:
         """Return True if switch is on."""
-        return self._state == STATE_ON
+        return self._state
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn the switch on."""
         await self.set_switch(True)
+        self._state = await self.get_switch()
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn the switch off."""
         await self.set_switch(False)
+        self._state = await self.get_switch()
 
     async def get_switch(self) -> bool:
         """ Get the current state of the switch."""
@@ -70,15 +72,27 @@ class OpenEVSESwitch(SwitchEntity):
         username = self._config.data.get(CONF_USERNAME)
         password = self._config.data.get(CONF_PASSWORD)
         charger = openevsewifi.Charger(host, username=username, password=password)
-        status = await self.hass.async_add_executor_job(send_command, charger, "$GS")
-        _LOGGER.warning("DEBUG: %s", status)
-
         try:
-            if status == 254:
-                return True
-            return False
-        except (RequestException, ValueError, KeyError):
-            _LOGGER.warning("Could not update status for %s", self._name)
+            status = int(
+                (await self.hass.async_add_executor_job(send_command, charger, "$GS"))[
+                    1
+                ]
+            )
+        except ValueError:
+            status = int(
+                (await self.hass.async_add_executor_job(send_command, charger, "$GS"))[
+                    1
+                ],
+                16,
+            )
+
+        _LOGGER.debug("get_switch: %s", status)
+
+        if status == 254:
+            _LOGGER.debug("get_switch_return: %s", True)
+            return True
+        _LOGGER.debug("get_switch_return: %s", False)
+        return False
 
     async def set_switch(self, status: bool) -> None:
         """ Get the current state of the switch."""
@@ -104,7 +118,7 @@ def connect(host: str, username: str = None, password: str = None) -> Any:
 
 def send_command(handler, command) -> Any:
     response = handler._send_command(command)
-    _LOGGER.warning("DEBUG: %s", response)
+    _LOGGER.debug("send_command: %s", response)
     return response
 
 
