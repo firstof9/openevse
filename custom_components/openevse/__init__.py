@@ -54,6 +54,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
         ISSUE_URL,
     )
 
+    config_entry.add_update_listener(update_listener)
     interval = 1
     coordinator = OpenEVSEUpdateCoordinator(hass, interval, config_entry)
 
@@ -70,6 +71,46 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
         )
 
     return True
+
+
+async def async_unload_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:
+    """Handle removal of an entry."""
+
+    _LOGGER.debug("Attempting to unload sensors from the %s integration", DOMAIN)
+
+    unload_ok = all(
+        await asyncio.gather(
+            *[
+                hass.config_entries.async_forward_entry_unload(config_entry, platform)
+                for platform in PLATFORMS
+            ]
+        )
+    )
+
+    if unload_ok:
+        _LOGGER.debug("Successfully removed sensors from the %s integration", DOMAIN)
+        hass.data[DOMAIN].pop(config_entry.entry_id)
+
+    return unload_ok
+
+
+async def update_listener(hass: HomeAssistant, config_entry: ConfigEntry) -> None:
+    """Update listener."""
+
+    _LOGGER.debug("Attempting to reload sensors from the %s integration", DOMAIN)
+
+    if config_entry.data == config_entry.options:
+        _LOGGER.debug("No changes detected not reloading sensors.")
+        return
+
+    new_data = config_entry.options.copy()
+
+    hass.config_entries.async_update_entry(
+        entry=config_entry,
+        data=new_data,
+    )
+
+    await hass.config_entries.async_reload(config_entry.entry_id)
 
 
 def get_sensors(hass, config) -> dict:
