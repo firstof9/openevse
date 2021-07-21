@@ -1,16 +1,13 @@
 """Support for OpenEVSE switches."""
 import logging
+from typing import Any
+
+import openevsewifi
 from homeassistant.components.switch import SwitchEntity
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import (
-    CONF_HOST,
-    CONF_USERNAME,
-    CONF_PASSWORD,
-    STATE_ON,
-)
-import openevsewifi
+from homeassistant.const import (CONF_HOST, CONF_PASSWORD, CONF_USERNAME,
+                                 STATE_ON)
 from requests import RequestException
-from typing import Any
 
 from .const import SWITCH_TYPES
 
@@ -67,7 +64,7 @@ class OpenEVSESwitch(SwitchEntity):
         self._state = await self.get_switch()
 
     async def get_switch(self) -> bool:
-        """ Get the current state of the switch."""
+        """Get the current state of the switch."""
         host = self._config.data.get(CONF_HOST)
         username = self._config.data.get(CONF_USERNAME)
         password = self._config.data.get(CONF_PASSWORD)
@@ -95,7 +92,7 @@ class OpenEVSESwitch(SwitchEntity):
         return False
 
     async def set_switch(self, status: bool) -> None:
-        """ Get the current state of the switch."""
+        """Get the current state of the switch."""
         host = self._config.data.get(CONF_HOST)
         username = self._config.data.get(CONF_USERNAME)
         password = self._config.data.get(CONF_PASSWORD)

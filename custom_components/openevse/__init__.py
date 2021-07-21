@@ -1,27 +1,19 @@
 """The openevse component."""
 import asyncio
-from typing import Any
-from .const import (
-    CONF_NAME,
-    SENSOR_TYPES,
-    VERSION,
-    ISSUE_URL,
-    DOMAIN,
-    COORDINATOR,
-    PLATFORMS,
-)
-from datetime import timedelta
 import logging
+from datetime import timedelta
+from typing import Any
+
 import openevsewifi
-from requests import RequestException
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import (
-    CONF_HOST,
-    CONF_USERNAME,
-    CONF_PASSWORD,
-)
+from homeassistant.const import CONF_HOST, CONF_PASSWORD, CONF_USERNAME
 from homeassistant.core import Config, HomeAssistant
+from homeassistant.helpers.update_coordinator import (DataUpdateCoordinator,
+                                                      UpdateFailed)
+from requests import RequestException
+
+from .const import (CONF_NAME, COORDINATOR, DOMAIN, ISSUE_URL, PLATFORMS,
+                    SENSOR_TYPES, VERSION)
 
 _LOGGER = logging.getLogger(__name__)
 states = {
@@ -144,7 +136,7 @@ def get_sensors(hass, config) -> dict:
 
 
 def workaround(handler: Any, sensor_property: str) -> Any:
-    """ Workaround for library issue. """
+    """Workaround for library issue."""
     status = handler._send_command("$GS")
     if sensor_property == "status":
         return states[int(status[1], 16)]

@@ -2,7 +2,8 @@
 import logging
 
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
-from .const import CONF_NAME, SENSOR_TYPES, COORDINATOR, DOMAIN
+
+from .const import CONF_NAME, COORDINATOR, DOMAIN, SENSOR_TYPES
 
 _LOGGER = logging.getLogger(__name__)
 

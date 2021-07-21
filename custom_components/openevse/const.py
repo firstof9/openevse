@@ -1,10 +1,6 @@
-from homeassistant.const import (
-    ELECTRICAL_CURRENT_AMPERE,
-    ENERGY_KILO_WATT_HOUR,
-    TEMP_CELSIUS,
-    TIME_MINUTES,
-    VOLT,
-)
+from homeassistant.const import (ELECTRICAL_CURRENT_AMPERE,
+                                 ENERGY_KILO_WATT_HOUR, TEMP_CELSIUS,
+                                 TIME_MINUTES, VOLT)
 
 CONF_NAME = "name"
 DEFAULT_HOST = "openevse.local"

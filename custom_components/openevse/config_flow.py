@@ -1,24 +1,15 @@
 """Adds config flow for OpenEVSE."""
 import logging
 from typing import Any, Dict, Optional, Union
-import voluptuous as vol
 
+import voluptuous as vol
 from homeassistant import config_entries
-from homeassistant.helpers import config_validation as cv
-from homeassistant.const import (
-    CONF_HOST,
-    CONF_USERNAME,
-    CONF_PASSWORD,
-)
+from homeassistant.const import CONF_HOST, CONF_PASSWORD, CONF_USERNAME
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers import config_validation as cv
 from homeassistant.util import slugify
 
-from .const import (
-    CONF_NAME,
-    DEFAULT_HOST,
-    DEFAULT_NAME,
-    DOMAIN,
-)
+from .const import CONF_NAME, DEFAULT_HOST, DEFAULT_NAME, DOMAIN
 
 
 @config_entries.HANDLERS.register(DOMAIN)
