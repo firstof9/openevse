@@ -1,0 +1,45 @@
+{
+    "config": {
+      "abort": {
+        "single_instance_allowed": "Only a single configuration of Mail and Packages is allowed."
+      },
+      "error": {
+        "communication": "Unable to connect to OpenEVSE charger. Please check the log for details."
+      },
+      "step": {
+        "user": {
+          "data": {
+            "name": "Alias",
+            "host": "Hostname/IP",
+            "password": "Password (optional)",
+            "username": "Username (optional)"
+          },
+          "description": "Please enter the connection information of OpenEVSE charger.",
+          "title": "OpenEVSE Setup"
+        }
+      }
+    },
+    "options": {
+      "error": {
+        "communication": "Unable to connect or login to the mail server. Please check the log for details.",
+        "invalid_path": "Please store the images in another directory.",
+        "ffmpeg_not_found": "Generate MP4 requires ffmpeg",
+        "amazon_domain": "Invalid forwarding email address.",
+        "file_not_found": "Image file not found",
+        "scan_too_low": "Scan interval too low (minimum 5)",
+        "timeout_too_low": "IMAP timeout too low (minumim 10)"      
+      },
+      "step": {
+        "init": {
+            "data": {
+                "name": "Alias",
+                "host": "Host/IP",
+                "password": "Password (optional)",
+                "username": "Username (optional)"
+            },
+            "description": "Please enter the connection information of OpenEVSE charger.",
+            "title": "OpenEVSE Setup"
+        }
+      }
+    }
+}
