@@ -1,4 +1,5 @@
 """The openevse component."""
+from typing import Any
 from .const import (
     CONF_NAME,
     SENSOR_TYPES,
@@ -22,6 +23,21 @@ from homeassistant.const import (
 from homeassistant.core import Config, HomeAssistant
 
 _LOGGER = logging.getLogger(__name__)
+states = {
+    0: "unknown",
+    1: "not connected",
+    2: "connected",
+    3: "charging",
+    4: "vent required",
+    5: "diode check failed",
+    6: "gfci fault",
+    7: "no ground",
+    8: "stuck relay",
+    9: "gfci self-test failure",
+    10: "over temperature",
+    254: "sleeping",
+    255: "disabled",
+}
 
 
 async def async_setup(hass: HomeAssistant, config: Config) -> bool:
@@ -68,7 +84,10 @@ def get_sensors(hass, config) -> dict:
         _sensor = {}
         try:
             sensor_property = SENSOR_TYPES[sensor][2]
-            _sensor[sensor] = getattr(charger, sensor_property)
+            if sensor == "status" or sensor == "charge_time":
+                _sensor[sensor] = workaround(charger, sensor_property)
+            else:
+                _sensor[sensor] = getattr(charger, sensor_property)
             _LOGGER.debug(
                 "sensor: %s sensor_property: %s value: %s",
                 sensor,
@@ -80,6 +99,18 @@ def get_sensors(hass, config) -> dict:
         data.update(_sensor)
     _LOGGER.debug("DEBUG: %s", data)
     return data
+
+
+def workaround(handler: Any, sensor_property: str) -> Any:
+    """ Workaround for library issue. """
+    status = handler._send_command("$GS")
+    if sensor_property == "status":
+        return states[int(status[1], 16)]
+    elif sensor_property == "charge_time_elapsed":
+        if int(status[1], 16) == 3:
+            return int(status[2], 16)
+        else:
+            return 0
 
 
 class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):

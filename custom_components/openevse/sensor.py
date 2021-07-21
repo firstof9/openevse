@@ -2,7 +2,7 @@
 import logging
 
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
-from .const import SENSOR_TYPES, COORDINATOR, DOMAIN
+from .const import CONF_NAME, SENSOR_TYPES, COORDINATOR, DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -14,7 +14,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
 
     sensors = []
     for sensor in SENSOR_TYPES:
-        sensors.append(OpenEVSESensor(sensor, unique_id, coordinator))
+        sensors.append(OpenEVSESensor(sensor, unique_id, coordinator, entry))
 
     async_add_entities(sensors, False)
 
@@ -22,9 +22,10 @@ async def async_setup_entry(hass, entry, async_add_entities):
 class OpenEVSESensor(CoordinatorEntity):
     """Implementation of an OpenEVSE sensor."""
 
-    def __init__(self, sensor_type, unique_id, coordinator):
+    def __init__(self, sensor_type, unique_id, coordinator, config):
         """Initialize the sensor."""
         super().__init__(coordinator)
+        self._config = config
         self._name = SENSOR_TYPES[sensor_type][0]
         self._type = sensor_type
         self._state = None
@@ -42,7 +43,7 @@ class OpenEVSESensor(CoordinatorEntity):
     @property
     def name(self):
         """Return the name of the sensor."""
-        return self._name
+        return f"{self._config.data[CONF_NAME]}_{self._name}"
 
     @property
     def state(self):
