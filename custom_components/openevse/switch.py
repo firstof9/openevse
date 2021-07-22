@@ -5,11 +5,10 @@ from typing import Any
 import openevsewifi
 from homeassistant.components.switch import SwitchEntity
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import (CONF_HOST, CONF_PASSWORD, CONF_USERNAME,
-                                 STATE_ON)
+from homeassistant.const import CONF_HOST, CONF_NAME, CONF_PASSWORD, CONF_USERNAME
 from requests import RequestException
 
-from .const import SWITCH_TYPES
+from .const import DOMAIN, SWITCH_TYPES
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -43,6 +42,17 @@ class OpenEVSESwitch(SwitchEntity):
     def name(self):
         """Return the name of the entity."""
         return self._name
+
+    @property
+    def device_info(self):
+        """Return a port description for device registry."""
+        info = {
+            "manufacturer": "OpenEVSE",
+            "name": self._config.data[CONF_NAME],
+            "connections": {(DOMAIN, self._unique_id)},
+        }
+
+        return info
 
     async def async_update(self):
         """Update the switch value."""

@@ -2,7 +2,6 @@
 import logging
 
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
-
 from .const import CONF_NAME, COORDINATOR, DOMAIN, SENSOR_TYPES
 
 _LOGGER = logging.getLogger(__name__)
@@ -34,7 +33,7 @@ class OpenEVSESensor(CoordinatorEntity):
         self._icon = SENSOR_TYPES[sensor_type][3]
         self._unique_id = unique_id
         self._data = coordinator.data
-        self._coordinator = coordinator
+        self.coordinator = coordinator
 
     @property
     def unique_id(self) -> str:
@@ -47,9 +46,20 @@ class OpenEVSESensor(CoordinatorEntity):
         return f"{self._config.data[CONF_NAME]}_{self._name}"
 
     @property
+    def device_info(self):
+        """Return a port description for device registry."""
+        info = {
+            "manufacturer": "OpenEVSE",
+            "name": self._config.data[CONF_NAME],
+            "connections": {(DOMAIN, self._unique_id)},
+        }
+
+        return info
+
+    @property
     def state(self):
         """Return the state of the sensor."""
-        data = self._coordinator.data
+        data = self.coordinator.data
         if data is None:
             return None
         if self._type in data.keys():
@@ -76,4 +86,4 @@ class OpenEVSESensor(CoordinatorEntity):
     @property
     def available(self) -> bool:
         """Return if entity is available."""
-        return self._coordinator.last_update_success
+        return self.coordinator.last_update_success
