@@ -1,10 +1,12 @@
 """The openevse component."""
+import aiohttp
 import asyncio
 import logging
 from datetime import timedelta
 from typing import Any
 
 import openevsewifi
+from awesomeversion import AwesomeVersion
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_HOST, CONF_PASSWORD, CONF_USERNAME
 from homeassistant.core import Config, HomeAssistant
@@ -20,6 +22,7 @@ from .const import (
     ISSUE_URL,
     PLATFORMS,
     SENSOR_TYPES,
+    USER_AGENT,
     VERSION,
 )
 
@@ -85,7 +88,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
     return True
 
 
-def get_firmware(hass, config) -> str:
+def get_firmware(hass, config: ConfigEntry) -> str:
     """Get firmware version."""
     host = config.data.get(CONF_HOST)
     username = config.data.get(CONF_USERNAME)
@@ -135,7 +138,9 @@ async def update_listener(hass: HomeAssistant, config_entry: ConfigEntry) -> Non
     await hass.config_entries.async_reload(config_entry.entry_id)
 
 
-def get_sensors(hass, config) -> dict:
+def get_sensors(
+    hass: HomeAssistant, config: ConfigEntry, wifi_version: str = None
+) -> dict:
 
     data = {}
     host = config.data.get(CONF_HOST)
@@ -148,9 +153,12 @@ def get_sensors(hass, config) -> dict:
         try:
             sensor_property = SENSOR_TYPES[sensor][2]
             if sensor == "status" or sensor == "charge_time":
-                _sensor[sensor] = workaround(charger, sensor_property)
+                _sensor[sensor] = workaround(charger, sensor_property, wifi_version)
+            elif sensor == "wifi_version":
+                _sensor[sensor] = wifi_version
             else:
-                _sensor[sensor] = getattr(charger, sensor_property)
+                status = getattr(charger, sensor_property)
+                _sensor[sensor] = status if status != -256.0 else None
             _LOGGER.debug(
                 "sensor: %s sensor_property: %s value: %s",
                 sensor,
@@ -164,16 +172,46 @@ def get_sensors(hass, config) -> dict:
     return data
 
 
-def workaround(handler: Any, sensor_property: str) -> Any:
+def workaround(handler: Any, sensor_property: str, wifi_version: str = None) -> Any:
     """Workaround for library issue."""
     status = handler._send_command("$GS")
+    base = 10
+    if wifi_version:
+        threshhold = AwesomeVersion("4.0.0")
+        current = AwesomeVersion(wifi_version)
+        if current >= threshhold:
+            base = 16
+
     if sensor_property == "status":
-        return states[int(status[1], 16)]
+        return states[int(status[1], base)]
     elif sensor_property == "charge_time_elapsed":
-        if int(status[1], 16) == 3:
-            return int(status[2], 16)
+        if int(status[1], base) == 3:
+            return int(status[2], base)
         else:
             return 0
+
+
+async def get_wifi_version(hass: HomeAssistant, config: ConfigEntry) -> Any:
+    url = f"http://{config.data.get(CONF_HOST)}/config"
+    user = config.data.get(CONF_USERNAME)
+    password = config.data.get(CONF_PASSWORD)
+    headers = {"User-Agent": USER_AGENT, "Accept": "application/ld+json"}
+    login = None
+
+    if user is not None:
+        login = aiohttp.BasicAuth(user, password)
+
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url, headers=headers, auth=login) as r:
+            _LOGGER.debug("getting data for from %s", url)
+            if r.status == 200:
+                data = await r.json()
+
+    if data is not None:
+        if "version" in data.keys():
+            return data["version"]
+    else:
+        return None
 
 
 class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
@@ -193,8 +231,11 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
     async def _async_update_data(self):
         """Fetch data"""
         try:
+            wifi_version = None
+            wifi_version = await get_wifi_version(self.hass, self.config)
+            _LOGGER.debug("Wifi Firmware: %s", wifi_version)
             data = await self.hass.async_add_executor_job(
-                get_sensors, self.hass, self.config
+                get_sensors, self.hass, self.config, wifi_version
             )
         except Exception as error:
             raise UpdateFailed(error) from error

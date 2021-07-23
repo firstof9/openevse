@@ -1,6 +1,10 @@
-from homeassistant.const import (ELECTRICAL_CURRENT_AMPERE,
-                                 ENERGY_KILO_WATT_HOUR, TEMP_CELSIUS,
-                                 TIME_MINUTES, VOLT)
+from homeassistant.const import (
+    ELECTRICAL_CURRENT_AMPERE,
+    ENERGY_KILO_WATT_HOUR,
+    TEMP_CELSIUS,
+    TIME_MINUTES,
+    VOLT,
+)
 
 CONF_NAME = "name"
 DEFAULT_HOST = "openevse.local"
@@ -10,6 +14,7 @@ COORDINATOR = "coordinator"
 VERSION = "1.0.0"
 ISSUE_URL = "http://github.com/firstof9/openevse/"
 PLATFORMS = ["sensor", "switch"]
+USER_AGENT = "Home Assistant"
 
 # Name, unit of measure, property, icon
 SENSOR_TYPES = {
@@ -25,7 +30,7 @@ SENSOR_TYPES = {
         None,
     ],
     "usage_total": ["Total Usage", ENERGY_KILO_WATT_HOUR, "usage_total", None],
-    "firmware_version": ["Firmware Version", None, "firmware_version", None],
+    "firmware_version": ["Controller Firmware", None, "firmware_version", None],
     "protocol_version": ["Protocol Version", None, "protocol_version", None],
     "ambient_threshold": ["Ambient Threshold", TEMP_CELSIUS, "ambient_threshold", None],
     "charging_voltage": ["Charging Voltage", VOLT, "charging_voltage", None],
@@ -45,6 +50,7 @@ SENSOR_TYPES = {
         None,
     ],
     "time_limit": ["Time Limit", None, "time_limit", None],
+    "wifi_version": ["Wifi Fimrware Version", None, "wifi_version", None],
 }
 
 SWITCH_TYPES = ["Sleep Mode"]
