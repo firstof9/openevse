@@ -69,7 +69,7 @@ SENSOR_TYPES = {
         "current_capacity",
         "mdi:sine-wave",
     ],
-    "time_limit": ["Time Limit", None, "time_limit", "mdi:camera-timer"],
+    "time_limit": ["Time Limit", TIME_MINUTES, "time_limit", "mdi:camera-timer"],
     "wifi_version": ["Wifi Fimrware Version", None, "wifi_version", "mdi:package-up"],
 }
 
