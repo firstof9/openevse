@@ -1,5 +1,6 @@
 """Support for monitoring an OpenEVSE Charger."""
 import logging
+from typing import Optional
 
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from .const import CONF_NAME, COORDINATOR, DOMAIN, SENSOR_TYPES
@@ -61,20 +62,21 @@ class OpenEVSESensor(CoordinatorEntity):
         """Return the state of the sensor."""
         data = self.coordinator.data
         if data is None:
-            return None
+            self._state = None
         if self._type in data.keys():
             if self._type == "charge_time":
-                return data[self._type] / 60
+                self._state = data[self._type] / 60
             elif self._type == "usage_session":
-                return round(data[self._type] / 1000, 2)
+                self._state = round(data[self._type] / 1000, 2)
             elif self._type == "usage_total":
-                return round(data[self._type] / 1000, 2)
+                self._state = round(data[self._type] / 1000, 2)
             else:
-                return data[self._type]
-        return None
+                self._state = data[self._type]
+        self.update_icon()
+        return self._state
 
     @property
-    def unit_of_measurement(self):
+    def unit_of_measurement(self) -> Optional[str]:
         """Return the unit of measurement of this sensor."""
         return self._unit_of_measurement
 
@@ -87,3 +89,26 @@ class OpenEVSESensor(CoordinatorEntity):
     def available(self) -> bool:
         """Return if entity is available."""
         return self.coordinator.last_update_success
+
+    @property
+    def should_poll(self) -> bool:
+        """No need to poll. Coordinator notifies entity of updates."""
+        return False
+
+    def update_icon(self) -> None:
+        """Update status icon based on state."""
+        if self._type == "status":
+            if self._state == "unknown":
+                self._icon = "mdi:help"
+            elif self._state == "not connected":
+                self._icon = "mdi:power-plug-off"
+            elif self._state == "connected":
+                self._icon = "mdi:power-plug"
+            elif self._state == "charging":
+                self._icon = "mdi:battery-charging"
+            elif self._state == "sleeping":
+                self._icon = "mdi:sleep"
+            elif self._state == "disabled":
+                self._icon = "mdi:car-off"
+            else:
+                self._icon = "mdi:alert-octagon"

@@ -1,5 +1,5 @@
 from homeassistant.const import (
-    ELECTRICAL_CURRENT_AMPERE,
+    ELECTRIC_CURRENT_AMPERE,
     ENERGY_KILO_WATT_HOUR,
     TEMP_CELSIUS,
     TIME_MINUTES,
@@ -57,15 +57,15 @@ SENSOR_TYPES = {
     ],
     "charging_current": [
         "Charging Current",
-        ELECTRICAL_CURRENT_AMPERE,
+        ELECTRIC_CURRENT_AMPERE,
         "charging_current",
         "mdi:sine-wave",
     ],
     "service_level": ["Service Level", None, "service_level", "mdi:leaf"],
-    "max_amps": ["Max Amps", ELECTRICAL_CURRENT_AMPERE, "max_amps", "mdi:sine-wave"],
+    "max_amps": ["Max Amps", ELECTRIC_CURRENT_AMPERE, "max_amps", "mdi:sine-wave"],
     "current_capacity": [
         "Current Capacity",
-        ELECTRICAL_CURRENT_AMPERE,
+        ELECTRIC_CURRENT_AMPERE,
         "current_capacity",
         "mdi:sine-wave",
     ],
