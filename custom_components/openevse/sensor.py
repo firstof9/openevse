@@ -1,8 +1,9 @@
 """Support for monitoring an OpenEVSE Charger."""
 import logging
-from typing import Optional
+from typing import Any, Optional
 
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
+from homeassistant.const import ATTR_DEVICE_CLASS
 from .const import CONF_NAME, COORDINATOR, DOMAIN, SENSOR_TYPES
 
 _LOGGER = logging.getLogger(__name__)
@@ -70,10 +71,18 @@ class OpenEVSESensor(CoordinatorEntity):
                 self._state = round(data[self._type] / 1000, 2)
             elif self._type == "usage_total":
                 self._state = round(data[self._type] / 1000, 2)
+            elif self._type == "current_power":
+                self._state = self.calc_watts()
             else:
                 self._state = data[self._type]
         self.update_icon()
         return self._state
+
+    @property
+    def device_state_attributes(self):
+        """Return the state message."""
+        attrs = {}
+        attrs[ATTR_DEVICE_CLASS] = SENSOR_TYPES[self._type][4]
 
     @property
     def unit_of_measurement(self) -> Optional[str]:
@@ -112,3 +121,7 @@ class OpenEVSESensor(CoordinatorEntity):
                 self._icon = "mdi:car-off"
             else:
                 self._icon = "mdi:alert-octagon"
+
+    def calc_watts(self) -> float:
+        """Calculate Watts based on V*I"""
+        return self._data["charging_voltage"] * self._data["charging_current"]

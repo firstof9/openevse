@@ -156,6 +156,8 @@ def get_sensors(
                 _sensor[sensor] = workaround(charger, sensor_property, wifi_version)
             elif sensor == "wifi_version":
                 _sensor[sensor] = wifi_version
+            elif sensor == "current_power":
+                _sensor[sensor] = None
             else:
                 status = getattr(charger, sensor_property)
                 _sensor[sensor] = status if status != -256.0 else None
