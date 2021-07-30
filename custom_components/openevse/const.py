@@ -11,6 +11,7 @@ from homeassistant.const import (
     ELECTRIC_POTENTIAL_VOLT,
     POWER_WATT,
 )
+from homeassistant.components.sensor import STATE_CLASS_MEASUREMENT
 
 CONF_NAME = "name"
 DEFAULT_HOST = "openevse.local"
@@ -22,7 +23,7 @@ ISSUE_URL = "http://github.com/firstof9/openevse/"
 PLATFORMS = ["sensor", "switch"]
 USER_AGENT = "Home Assistant"
 
-# Name, unit of measure, property, icon, device class
+# Name, unit of measure, property, icon, device class, state class
 SENSOR_TYPES = {
     "status": ["Charging Status", None, "status", "mdi:ev-station", None],
     "charge_time": [
@@ -31,6 +32,7 @@ SENSOR_TYPES = {
         "charge_time_elapsed",
         "mdi:camera-timer",
         None,
+        None,
     ],
     "ambient_temp": [
         "Ambient Temperature",
@@ -38,6 +40,7 @@ SENSOR_TYPES = {
         "ambient_temperature",
         None,
         DEVICE_CLASS_TEMPERATURE,
+        STATE_CLASS_MEASUREMENT,
     ],
     "ir_temp": [
         "IR Temperature",
@@ -45,6 +48,7 @@ SENSOR_TYPES = {
         "ir_temperature",
         None,
         DEVICE_CLASS_TEMPERATURE,
+        STATE_CLASS_MEASUREMENT,
     ],
     "rtc_temp": [
         "RTC Temperature",
@@ -52,6 +56,7 @@ SENSOR_TYPES = {
         "rtc_temperature",
         None,
         DEVICE_CLASS_TEMPERATURE,
+        STATE_CLASS_MEASUREMENT,
     ],
     "usage_session": [
         "Usage this Session",
@@ -59,6 +64,7 @@ SENSOR_TYPES = {
         "usage_session",
         "mdi:gauge",
         DEVICE_CLASS_ENERGY,
+        STATE_CLASS_MEASUREMENT,
     ],
     "usage_total": [
         "Total Usage",
@@ -66,12 +72,14 @@ SENSOR_TYPES = {
         "usage_total",
         "mdi:gauge",
         DEVICE_CLASS_ENERGY,
+        STATE_CLASS_MEASUREMENT,
     ],
     "firmware_version": [
         "Controller Firmware",
         None,
         "firmware_version",
         "mdi:package-up",
+        None,
         None,
     ],
     "protocol_version": [
@@ -80,6 +88,7 @@ SENSOR_TYPES = {
         "protocol_version",
         "mdi:package-up",
         None,
+        None,
     ],
     "ambient_threshold": [
         "Ambient Threshold",
@@ -87,6 +96,7 @@ SENSOR_TYPES = {
         "ambient_threshold",
         None,
         DEVICE_CLASS_TEMPERATURE,
+        None,
     ],
     "charging_voltage": [
         "Charging Voltage",
@@ -94,6 +104,7 @@ SENSOR_TYPES = {
         "charging_voltage",
         "mdi:sine-wave",
         DEVICE_CLASS_VOLTAGE,
+        STATE_CLASS_MEASUREMENT,
     ],
     "charge_limit": [
         "Charge Limit",
@@ -101,6 +112,7 @@ SENSOR_TYPES = {
         "charge_limit",
         "mdi:gauge",
         DEVICE_CLASS_ENERGY,
+        STATE_CLASS_MEASUREMENT,
     ],
     "charging_current": [
         "Charging Current",
@@ -108,14 +120,16 @@ SENSOR_TYPES = {
         "charging_current",
         "mdi:sine-wave",
         DEVICE_CLASS_CURRENT,
+        STATE_CLASS_MEASUREMENT,
     ],
-    "service_level": ["Service Level", None, "service_level", "mdi:leaf", None],
+    "service_level": ["Service Level", None, "service_level", "mdi:leaf", None, None],
     "max_amps": [
         "Max Amps",
         ELECTRIC_CURRENT_AMPERE,
         "max_amps",
         "mdi:sine-wave",
         DEVICE_CLASS_CURRENT,
+        STATE_CLASS_MEASUREMENT,
     ],
     "current_capacity": [
         "Current Capacity",
@@ -123,13 +137,22 @@ SENSOR_TYPES = {
         "current_capacity",
         "mdi:sine-wave",
         DEVICE_CLASS_CURRENT,
+        STATE_CLASS_MEASUREMENT,
     ],
-    "time_limit": ["Time Limit", TIME_MINUTES, "time_limit", "mdi:camera-timer", None],
+    "time_limit": [
+        "Time Limit",
+        TIME_MINUTES,
+        "time_limit",
+        "mdi:camera-timer",
+        None,
+        None,
+    ],
     "wifi_version": [
         "Wifi Fimrware Version",
         None,
         "wifi_version",
         "mdi:package-up",
+        None,
         None,
     ],
     "current_power": [
@@ -138,6 +161,7 @@ SENSOR_TYPES = {
         "current_power",
         "mdi:gauge",
         DEVICE_CLASS_POWER,
+        STATE_CLASS_MEASUREMENT,
     ],
 }
 

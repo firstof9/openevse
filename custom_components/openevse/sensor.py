@@ -1,9 +1,12 @@
 """Support for monitoring an OpenEVSE Charger."""
+from __future__ import annotations
 import logging
-from typing import Any, Optional
+from typing import Optional
+from datetime import datetime
 
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
-from homeassistant.const import ATTR_DEVICE_CLASS
+from homeassistant.util.dt import utc_from_timestamp
+from homeassistant.const import DEVICE_CLASS_ENERGY
 from .const import CONF_NAME, COORDINATOR, DOMAIN, SENSOR_TYPES
 
 _LOGGER = logging.getLogger(__name__)
@@ -33,6 +36,8 @@ class OpenEVSESensor(CoordinatorEntity):
         self._state = None
         self._unit_of_measurement = SENSOR_TYPES[sensor_type][1]
         self._icon = SENSOR_TYPES[sensor_type][3]
+        self._device_class = SENSOR_TYPES[sensor_type][4]
+        self._state_class = SENSOR_TYPES[self._type][5]
         self._unique_id = unique_id
         self._data = coordinator.data
         self.coordinator = coordinator
@@ -79,10 +84,21 @@ class OpenEVSESensor(CoordinatorEntity):
         return self._state
 
     @property
-    def device_state_attributes(self):
-        """Return the state message."""
-        attrs = {}
-        attrs[ATTR_DEVICE_CLASS] = SENSOR_TYPES[self._type][4]
+    def device_class(self):
+        """Return the device class of the sensor."""
+        return self._device_class
+
+    @property
+    def state_class(self):
+        """Return the state class of the sensor."""
+        return self._state_class
+
+    @property
+    def last_reset(self) -> datetime | None:
+        """Return the time when the sensor was last reset, if any."""
+        if self._device_class == DEVICE_CLASS_ENERGY:
+            return utc_from_timestamp(0)
+        return None
 
     @property
     def unit_of_measurement(self) -> Optional[str]:
