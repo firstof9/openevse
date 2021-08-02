@@ -41,6 +41,7 @@ class OpenEVSESensor(CoordinatorEntity):
         self._unique_id = unique_id
         self._data = coordinator.data
         self.coordinator = coordinator
+        self._last_reset = None
 
     @property
     def unique_id(self) -> str:
@@ -97,12 +98,12 @@ class OpenEVSESensor(CoordinatorEntity):
     def last_reset(self) -> datetime | None:
         """Return the time when the sensor was last reset, if any."""
         if self._type == "usage_session" and self._state == 0:
-            return utcnow()
+            self._last_reset = utcnow()
         elif (
             self._device_class == DEVICE_CLASS_ENERGY and self._type != "usage_session"
         ):
-            return utc_from_timestamp(0)
-        return None
+            self._last_reset = utc_from_timestamp(0)
+        return self._last_reset
 
     @property
     def unit_of_measurement(self) -> Optional[str]:
