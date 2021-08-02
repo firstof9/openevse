@@ -25,7 +25,7 @@ USER_AGENT = "Home Assistant"
 
 # Name, unit of measure, property, icon, device class, state class
 SENSOR_TYPES = {
-    "status": ["Charging Status", None, "status", "mdi:ev-station", None],
+    "status": ["Charging Status", None, "status", "mdi:ev-station", None, None],
     "charge_time": [
         "Charge Time Elapsed",
         TIME_MINUTES,

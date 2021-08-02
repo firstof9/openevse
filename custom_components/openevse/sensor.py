@@ -5,7 +5,7 @@ from typing import Optional
 from datetime import datetime
 
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
-from homeassistant.util.dt import utc_from_timestamp
+from homeassistant.util.dt import utc_from_timestamp, utcnow
 from homeassistant.const import DEVICE_CLASS_ENERGY
 from .const import CONF_NAME, COORDINATOR, DOMAIN, SENSOR_TYPES
 
@@ -96,7 +96,11 @@ class OpenEVSESensor(CoordinatorEntity):
     @property
     def last_reset(self) -> datetime | None:
         """Return the time when the sensor was last reset, if any."""
-        if self._device_class == DEVICE_CLASS_ENERGY:
+        if self._type == "usage_session" and self._state == 0:
+            return utcnow()
+        elif (
+            self._device_class == DEVICE_CLASS_ENERGY and self._type != "usage_session"
+        ):
             return utc_from_timestamp(0)
         return None
 
