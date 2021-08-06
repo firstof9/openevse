@@ -1,3 +1,4 @@
+from homeassistant.components.sensor import STATE_CLASS_MEASUREMENT
 from homeassistant.const import (
     DEVICE_CLASS_CURRENT,
     DEVICE_CLASS_ENERGY,
@@ -5,13 +6,12 @@ from homeassistant.const import (
     DEVICE_CLASS_TEMPERATURE,
     DEVICE_CLASS_VOLTAGE,
     ELECTRIC_CURRENT_AMPERE,
+    ELECTRIC_POTENTIAL_VOLT,
     ENERGY_KILO_WATT_HOUR,
+    POWER_WATT,
     TEMP_CELSIUS,
     TIME_MINUTES,
-    ELECTRIC_POTENTIAL_VOLT,
-    POWER_WATT,
 )
-from homeassistant.components.sensor import STATE_CLASS_MEASUREMENT
 
 CONF_NAME = "name"
 DEFAULT_HOST = "openevse.local"
@@ -20,7 +20,7 @@ DOMAIN = "openevse"
 COORDINATOR = "coordinator"
 VERSION = "1.0.0"
 ISSUE_URL = "http://github.com/firstof9/openevse/"
-PLATFORMS = ["sensor", "switch"]
+PLATFORMS = ["sensor", "select", "switch"]
 USER_AGENT = "Home Assistant"
 
 # Name, unit of measure, property, icon, device class, state class
@@ -166,3 +166,50 @@ SENSOR_TYPES = {
 }
 
 SWITCH_TYPES = ["Sleep Mode"]
+
+SERVICE_LEVELS = [1, 2, "A"]
+MAX_CURRENT = [
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30,
+    31,
+    32,
+    33,
+    34,
+    35,
+    36,
+    37,
+    38,
+    39,
+    40,
+    41,
+    42,
+    43,
+    44,
+    45,
+    46,
+    47,
+    48,
+]

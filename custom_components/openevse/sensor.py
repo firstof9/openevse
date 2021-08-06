@@ -1,13 +1,15 @@
 """Support for monitoring an OpenEVSE Charger."""
 from __future__ import annotations
+
 import logging
-from typing import Optional
 from datetime import datetime
+from typing import Optional
 
 from homeassistant.components.sensor import SensorEntity
+from homeassistant.const import DEVICE_CLASS_ENERGY
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util.dt import utc_from_timestamp, utcnow
-from homeassistant.const import DEVICE_CLASS_ENERGY
+
 from .const import CONF_NAME, COORDINATOR, DOMAIN, SENSOR_TYPES
 
 _LOGGER = logging.getLogger(__name__)

@@ -8,6 +8,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_HOST, CONF_NAME, CONF_PASSWORD, CONF_USERNAME
 from requests import RequestException
 
+from . import connect, send_command
 from .const import DOMAIN, SWITCH_TYPES
 
 _LOGGER = logging.getLogger(__name__)
@@ -117,18 +118,3 @@ class OpenEVSESwitch(SwitchEntity):
                 await self.hass.async_add_executor_job(send_command, charger, "$FE")
         except (RequestException, ValueError, KeyError):
             _LOGGER.warning("Could not set status for %s", self._name)
-
-
-def connect(host: str, username: str = None, password: str = None) -> Any:
-    return openevsewifi.Charger(host, username=username, password=password)
-
-
-def send_command(handler, command) -> Any:
-    response = handler._send_command(command)
-    _LOGGER.debug("send_command: %s", response)
-    return response
-
-
-def get_status(handler) -> Any:
-    status = handler.status
-    return status
