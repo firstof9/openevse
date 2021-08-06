@@ -4,6 +4,7 @@ import logging
 from typing import Optional
 from datetime import datetime
 
+from homeassistant.components.sensor import SensorEntity
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util.dt import utc_from_timestamp, utcnow
 from homeassistant.const import DEVICE_CLASS_ENERGY
@@ -24,7 +25,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
     async_add_entities(sensors, False)
 
 
-class OpenEVSESensor(CoordinatorEntity):
+class OpenEVSESensor(CoordinatorEntity, SensorEntity):
     """Implementation of an OpenEVSE sensor."""
 
     def __init__(self, sensor_type, unique_id, coordinator, config):
@@ -82,6 +83,7 @@ class OpenEVSESensor(CoordinatorEntity):
             else:
                 self._state = data[self._type]
         self.update_icon()
+        self.update_last_reset()
         return self._state
 
     @property
@@ -97,12 +99,6 @@ class OpenEVSESensor(CoordinatorEntity):
     @property
     def last_reset(self) -> datetime | None:
         """Return the time when the sensor was last reset, if any."""
-        if self._type == "usage_session" and self._state == 0:
-            self._last_reset = utcnow()
-        elif (
-            self._device_class == DEVICE_CLASS_ENERGY and self._type != "usage_session"
-        ):
-            self._last_reset = utc_from_timestamp(0)
         return self._last_reset
 
     @property
@@ -146,3 +142,14 @@ class OpenEVSESensor(CoordinatorEntity):
     def calc_watts(self) -> float:
         """Calculate Watts based on V*I"""
         return self._data["charging_voltage"] * self._data["charging_current"]
+
+    def update_last_reset(self) -> None:
+        """Update last reset attribute"""
+        if self._type == "usage_session" and self._state == 0.0:
+            self._last_reset = utcnow()
+        elif self._type == "usage_session":
+            self._last_reset = self._last_reset
+        elif self._device_class == DEVICE_CLASS_ENERGY:
+            self._last_reset = utc_from_timestamp(0)
+        else:
+            self._last_reset = None
