@@ -31,10 +31,11 @@ class OpenEVSESelect(CoordinatorEntity, SelectEntity):
         self.hass = hass
         self._config = config_entry
         self.coordinator = coordinator
+        self._type = name
         self._attr_name = f"{config_entry.data[CONF_NAME]} {SELECT_TYPES[name][0]}"
         self._attr_unique_id = f"{self._attr_name}_{config_entry.entry_id}"
         self._attr_current_option = self.coordinator.data[name]
-        self._attr_options = SELECT_TYPES[name][2]
+        self._attr_options = self.get_options()
         self._command = SELECT_TYPES[name][3]
         self._unit_of_measurement = SELECT_TYPES[name][1]
 
@@ -71,3 +72,10 @@ class OpenEVSESelect(CoordinatorEntity, SelectEntity):
     def unit_of_measurement(self) -> Optional[str]:
         """Return the unit of measurement of this sensor."""
         return self._unit_of_measurement
+
+    def get_options(self) -> list:
+        if self._type == "current_capacity":
+            min = self.coordinator.data["min_amps"]
+            max = self.coordinator.data["max_amps"]
+            return [item for item in range(min, max + 1)]
+        return SELECT_TYPES[self._type][2]

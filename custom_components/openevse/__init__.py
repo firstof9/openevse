@@ -1,4 +1,5 @@
 """The openevse component."""
+from __future__ import annotations
 import asyncio
 import logging
 from datetime import timedelta
@@ -70,6 +71,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
     }
 
     sw_version = await hass.async_add_executor_job(get_firmware, hass, config_entry)
+    model_info = await get_wifi_data(hass, config_entry, "version")
 
     device_registry = await dr.async_get_registry(hass)
     device_registry.async_get_or_create(
@@ -77,6 +79,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
         connections={(DOMAIN, config_entry.entry_id)},
         name=config_entry.data[CONF_NAME],
         manufacturer="OpenEVSE",
+        model=f"Wifi version {model_info}",
         sw_version=sw_version,
     )
 
@@ -174,7 +177,9 @@ def get_sensors(
     return data
 
 
-def workaround(handler: Any, sensor_property: str, wifi_version: str = None) -> Any:
+def workaround(
+    handler: Any, sensor_property: str, wifi_version: str = None
+) -> str | int:
     """Workaround for library issue."""
     status = handler._send_command("$GS")
     if status[1].isnumeric():
@@ -191,7 +196,9 @@ def workaround(handler: Any, sensor_property: str, wifi_version: str = None) -> 
             return 0
 
 
-async def get_wifi_data(hass: HomeAssistant, config: ConfigEntry, info: str) -> Any:
+async def get_wifi_data(
+    hass: HomeAssistant, config: ConfigEntry, info: str
+) -> str | None:
     url = f"http://{config.data.get(CONF_HOST)}/config"
     user = config.data.get(CONF_USERNAME)
     password = config.data.get(CONF_PASSWORD)
