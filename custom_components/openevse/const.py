@@ -79,7 +79,7 @@ SENSOR_TYPES = {
     "firmware_version": [
         "Controller Firmware",
         None,
-        "firmware_version",
+        "openevse_firmware",
         "mdi:package-up",
         None,
         None,
@@ -92,14 +92,6 @@ SENSOR_TYPES = {
         None,
         None,
     ],
-    "ambient_threshold": [
-        "Ambient Threshold",
-        TEMP_CELSIUS,
-        "ambient_threshold",
-        None,
-        DEVICE_CLASS_TEMPERATURE,
-        None,
-    ],
     "charging_voltage": [
         "Charging Voltage",
         ELECTRIC_POTENTIAL_VOLT,
@@ -107,14 +99,6 @@ SENSOR_TYPES = {
         "mdi:sine-wave",
         DEVICE_CLASS_VOLTAGE,
         STATE_CLASS_MEASUREMENT,
-    ],
-    "charge_limit": [
-        "Charge Limit",
-        ENERGY_KILO_WATT_HOUR,
-        "charge_limit",
-        "mdi:gauge",
-        DEVICE_CLASS_ENERGY,
-        None,
     ],
     "charging_current": [
         "Charging Current",
@@ -149,18 +133,10 @@ SENSOR_TYPES = {
         DEVICE_CLASS_CURRENT,
         None,
     ],
-    "time_limit": [
-        "Time Limit",
-        TIME_MINUTES,
-        "time_limit",
-        "mdi:camera-timer",
-        None,
-        None,
-    ],
-    "wifi_version": [
+    "wifi_firmware": [
         "Wifi Fimrware Version",
         None,
-        "wifi_version",
+        "wifi_firmware",
         "mdi:package-up",
         None,
         None,

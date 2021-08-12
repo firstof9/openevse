@@ -2,14 +2,13 @@
 import logging
 from typing import Any
 
-import openevsewifi
 from homeassistant.components.switch import SwitchEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_HOST, CONF_NAME, CONF_PASSWORD, CONF_USERNAME
 from requests import RequestException
 
 from . import connect, send_command
-from .const import DOMAIN, SWITCH_TYPES
+from .const import COORDINATOR, DOMAIN, SWITCH_TYPES
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -28,6 +27,7 @@ class OpenEVSESwitch(SwitchEntity):
     """Representation of the value of a OpenEVSE Switch."""
 
     def __init__(self, hass, name, config_entry: ConfigEntry) -> None:
+        self._coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
         self.hass = hass
         self._config = config_entry
         self._name = name
@@ -79,28 +79,10 @@ class OpenEVSESwitch(SwitchEntity):
         host = self._config.data.get(CONF_HOST)
         username = self._config.data.get(CONF_USERNAME)
         password = self._config.data.get(CONF_PASSWORD)
-        charger = openevsewifi.Charger(host, username=username, password=password)
-        try:
-            status = int(
-                (await self.hass.async_add_executor_job(send_command, charger, "$GS"))[
-                    1
-                ]
-            )
-        except ValueError:
-            status = int(
-                (await self.hass.async_add_executor_job(send_command, charger, "$GS"))[
-                    1
-                ],
-                16,
-            )
-
-        _LOGGER.debug("get_switch: %s", status)
-
-        if status == 254:
-            _LOGGER.debug("get_switch_return: %s", True)
-            return True
-        _LOGGER.debug("get_switch_return: %s", False)
-        return False
+        charger = await self.hass.async_add_executor_job(
+            connect, host, username, password
+        )
+        return await self.hass.async_add_executor_job(update_switch, charger)
 
     async def set_switch(self, status: bool) -> None:
         """Get the current state of the switch."""
@@ -118,3 +100,10 @@ class OpenEVSESwitch(SwitchEntity):
                 await self.hass.async_add_executor_job(send_command, charger, "$FE")
         except (RequestException, ValueError, KeyError):
             _LOGGER.warning("Could not set status for %s", self._name)
+
+
+def update_switch(handler) -> bool:
+    handler.update()
+    _LOGGER.debug("update_switch: %s", handler.status)
+    state = True if handler.status == "sleeping" else False
+    return state

@@ -7,7 +7,7 @@ from homeassistant.const import CONF_HOST, CONF_NAME, CONF_PASSWORD, CONF_USERNA
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from requests import RequestException
 
-from . import connect, get_wifi_data, send_command
+from . import connect, send_command
 from .const import COORDINATOR, DOMAIN, SELECT_TYPES
 
 _LOGGER = logging.getLogger(__name__)
