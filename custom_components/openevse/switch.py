@@ -4,20 +4,13 @@ from __future__ import annotations
 import logging
 from typing import Any, cast
 
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.components.switch import SwitchEntity
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_NAME
+from homeassistant.const import CONF_HOST, CONF_NAME, CONF_PASSWORD, CONF_USERNAME
+from requests import RequestException
 
-from . import (
-    CommandFailed,
-    InvalidValue,
-    OpenEVSEManager,
-    OpenEVSEUpdateCoordinator,
-    send_command,
-)
-from .const import COORDINATOR, DOMAIN, MANAGER, SWITCH_TYPES
-from .entity import OpenEVSESwitchEntityDescription
+from . import connect, send_command
+from .const import COORDINATOR, DOMAIN, SWITCH_TYPES
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -39,15 +32,8 @@ async def async_setup_entry(hass, entry, async_add_entities):
 class OpenEVSESwitch(CoordinatorEntity, SwitchEntity):
     """Representation of the value of a OpenEVSE Switch."""
 
-    def __init__(
-        self,
-        hass,
-        config_entry: ConfigEntry,
-        coordinator: OpenEVSEUpdateCoordinator,
-        description: OpenEVSESwitchEntityDescription,
-        manager: OpenEVSEManager,
-    ) -> None:
-        super().__init__(coordinator)
+    def __init__(self, hass, name, config_entry: ConfigEntry) -> None:
+        self._coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
         self.hass = hass
         self._config = config_entry
         self.coordinator = coordinator
@@ -101,7 +87,39 @@ class OpenEVSESwitch(CoordinatorEntity, SwitchEntity):
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn the switch off."""
-        if self.toggle_command is not None:
-            await getattr(self._manager, self.toggle_command)()
-        else:
-            return
+        await self.set_switch(False)
+        self._state = await self.get_switch()
+
+    async def get_switch(self) -> bool:
+        """Get the current state of the switch."""
+        host = self._config.data.get(CONF_HOST)
+        username = self._config.data.get(CONF_USERNAME)
+        password = self._config.data.get(CONF_PASSWORD)
+        charger = await self.hass.async_add_executor_job(
+            connect, host, username, password
+        )
+        return await self.hass.async_add_executor_job(update_switch, charger)
+
+    async def set_switch(self, status: bool) -> None:
+        """Get the current state of the switch."""
+        host = self._config.data.get(CONF_HOST)
+        username = self._config.data.get(CONF_USERNAME)
+        password = self._config.data.get(CONF_PASSWORD)
+        charger = await self.hass.async_add_executor_job(
+            connect, host, username, password
+        )
+
+        try:
+            if status:
+                await self.hass.async_add_executor_job(send_command, charger, "$FS")
+            else:
+                await self.hass.async_add_executor_job(send_command, charger, "$FE")
+        except (RequestException, ValueError, KeyError):
+            _LOGGER.warning("Could not set status for %s", self._name)
+
+
+def update_switch(handler) -> bool:
+    handler.update()
+    _LOGGER.debug("update_switch: %s", handler.status)
+    state = True if handler.status == "sleeping" else False
+    return state

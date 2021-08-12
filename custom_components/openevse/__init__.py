@@ -6,6 +6,7 @@ import logging
 from datetime import timedelta
 
 import homeassistant.helpers.device_registry as dr
+import openevsehttp
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_HOST, CONF_PASSWORD, CONF_USERNAME
 from homeassistant.core import Config, HomeAssistant, callback
@@ -73,7 +74,9 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
         MANAGER: manager,
     }
 
-    model_info, sw_version = await get_firmware(manager)
+    model_info, sw_version = await hass.async_add_executor_job(
+        get_firmware, config_entry
+    )
 
     device_registry = await dr.async_get_registry(hass)
     device_registry.async_get_or_create(
@@ -98,16 +101,15 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
     return True
 
 
-async def get_firmware(manager: OpenEVSEManager) -> tuple:
+def get_firmware(config: ConfigEntry) -> tuple:
     """Get firmware version."""
-    _LOGGER.debug("Getting firmware versions...")
-    try:
-        await manager.update()
-    except Exception as error:
-        _LOGGER.error("Problem retreiving firmware data: %s", error)
-        return "", ""
+    host = config.data.get(CONF_HOST)
+    username = config.data.get(CONF_USERNAME)
+    password = config.data.get(CONF_PASSWORD)
+    charger = openevsehttp.OpenEVSE(host, user=username, pwd=password)
+    charger.update()
 
-    return manager.wifi_firmware, manager.openevse_firmware
+    return charger.wifi_firmware, charger.openevse_firmware
 
 
 async def async_unload_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:
@@ -156,6 +158,36 @@ async def update_listener(hass: HomeAssistant, config_entry: ConfigEntry) -> Non
     await hass.config_entries.async_reload(config_entry.entry_id)
 
 
+def get_sensors(hass: HomeAssistant, config: ConfigEntry) -> dict:
+
+    data = {}
+    host = config.data.get(CONF_HOST)
+    username = config.data.get(CONF_USERNAME)
+    password = config.data.get(CONF_PASSWORD)
+    charger = openevsehttp.OpenEVSE(host, user=username, pwd=password)
+    charger.update()
+
+    for sensor in SENSOR_TYPES:
+        _sensor = {}
+        try:
+            sensor_property = SENSOR_TYPES[sensor][2]
+            if sensor == "current_power":
+                _sensor[sensor] = None
+            else:
+                _sensor[sensor] = getattr(charger, sensor_property)
+            _LOGGER.debug(
+                "sensor: %s sensor_property: %s value: %s",
+                sensor,
+                sensor_property,
+                _sensor[sensor],
+            )
+        except (RequestException, ValueError, KeyError):
+            _LOGGER.warning("Could not update status for %s", sensor)
+        data.update(_sensor)
+    _LOGGER.debug("DEBUG: %s", data)
+    return data
+
+
 class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
     """Class to manage fetching OpenEVSE data."""
 
@@ -181,9 +213,9 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
     async def update_sensors(self) -> dict:
         """Update sensor data."""
         try:
-            await self._manager.update()
-        except RuntimeError:
-            pass
+            data = await self.hass.async_add_executor_job(
+                get_sensors, self.hass, self.config
+            )
         except Exception as error:
             _LOGGER.debug(
                 "Error updating sensors [%s]: %s", type(error).__name__, error
@@ -279,9 +311,11 @@ class OpenEVSEManager:
         self.charger = OpenEVSE(self._host, user=self._username, pwd=self._password)
 
 
-class InvalidValue(Exception):
-    """Exception for invalid value errors."""
+def send_command(handler, command) -> Any:
+    response = handler.send_command(command)
+    _LOGGER.debug("send_command: %s", response)
+    return response
 
 
-class CommandFailed(Exception):
-    """Exception for invalid command errors."""
+def connect(host: str, username: str = None, password: str = None) -> Any:
+    return openevsehttp.OpenEVSE(host, user=username, pwd=password)

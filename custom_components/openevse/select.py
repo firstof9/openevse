@@ -9,15 +9,8 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_NAME
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from . import (
-    CommandFailed,
-    InvalidValue,
-    OpenEVSEManager,
-    OpenEVSEUpdateCoordinator,
-    send_command,
-)
-from .const import COORDINATOR, DOMAIN, MANAGER, SELECT_TYPES
-from .entity import OpenEVSESelectEntityDescription
+from . import connect, send_command
+from .const import COORDINATOR, DOMAIN, SELECT_TYPES
 
 _LOGGER = logging.getLogger(__name__)
 
