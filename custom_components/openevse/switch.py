@@ -6,8 +6,8 @@ from homeassistant.components.switch import SwitchEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_NAME
 
-from . import send_command, CommandFailed, InvalidValue, OpenEVSEManager
-from .const import COORDINATOR, DOMAIN, MANAGER, SWITCH_TYPES
+from . import connect, send_command
+from .const import COORDINATOR, DOMAIN, SWITCH_TYPES
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -26,9 +26,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
 class OpenEVSESwitch(SwitchEntity):
     """Representation of the value of a OpenEVSE Switch."""
 
-    def __init__(
-        self, hass, name: str, config_entry: ConfigEntry, manager: OpenEVSEManager
-    ) -> None:
+    def __init__(self, hass, name, config_entry: ConfigEntry) -> None:
         self._coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
         self.hass = hass
         self._config = config_entry
@@ -79,7 +77,13 @@ class OpenEVSESwitch(SwitchEntity):
 
     async def get_switch(self) -> bool:
         """Get the current state of the switch."""
-        return await self.update_switch()
+        host = self._config.data.get(CONF_HOST)
+        username = self._config.data.get(CONF_USERNAME)
+        password = self._config.data.get(CONF_PASSWORD)
+        charger = await self.hass.async_add_executor_job(
+            connect, host, username, password
+        )
+        return await self.hass.async_add_executor_job(update_switch, charger)
 
     async def set_switch(self, status: bool) -> None:
         """Get the current state of the switch."""
@@ -91,17 +95,10 @@ class OpenEVSESwitch(SwitchEntity):
                 await send_command(self._manager, "$FE")
         except (ValueError, KeyError):
             _LOGGER.warning("Could not set status for %s", self._name)
-        except InvalidValue:
-            _LOGGER.error(f"Value {status} invalid for switch.")
-        except CommandFailed:
-            _LOGGER.error("Switch command failed.")
 
-    async def update_switch(self) -> bool:
-        try:
-            await self._manager.update()
-        except TimeoutError:
-            _LOGGER.warning("Connecting timeout while updating switch entity.")
-            return self._state
-        _LOGGER.debug("update_switch: %s", self._manager.state)
-        state = True if self._manager.state == "sleeping" else False
-        return state
+
+def update_switch(handler) -> bool:
+    handler.update()
+    _LOGGER.debug("update_switch: %s", handler.status)
+    state = True if handler.status == "sleeping" else False
+    return state
