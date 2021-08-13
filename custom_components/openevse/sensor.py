@@ -77,7 +77,7 @@ class OpenEVSESensor(CoordinatorEntity, SensorEntity):
             elif self._type == "usage_total":
                 self._state = round(data[self._type] / 1000, 2)
             elif self._type == "charging_current":
-                self._state = round(data[self._type] / 1000, 2)
+                self._state == round(data[self._type] / 1000, 2)
             elif self._type == "current_power":
                 self._state = self.calc_watts()
             else:
