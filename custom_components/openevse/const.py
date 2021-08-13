@@ -9,6 +9,7 @@ from homeassistant.const import (
     ELECTRIC_POTENTIAL_VOLT,
     ENERGY_KILO_WATT_HOUR,
     POWER_WATT,
+    SIGNAL_STRENGTH_DECIBELS,
     TEMP_CELSIUS,
     TIME_MINUTES,
 )
@@ -56,6 +57,14 @@ SENSOR_TYPES = {
         "RTC Temperature",
         TEMP_CELSIUS,
         "rtc_temperature",
+        None,
+        DEVICE_CLASS_TEMPERATURE,
+        STATE_CLASS_MEASUREMENT,
+    ],
+    "esp_temperature": [
+        "ESP32 Temperature",
+        TEMP_CELSIUS,
+        "esp_temperature",
         None,
         DEVICE_CLASS_TEMPERATURE,
         STATE_CLASS_MEASUREMENT,
@@ -148,6 +157,14 @@ SENSOR_TYPES = {
         "mdi:gauge",
         DEVICE_CLASS_POWER,
         STATE_CLASS_MEASUREMENT,
+    ],
+    "wifi_signal": [
+        "Wifi Signal Strength",
+        SIGNAL_STRENGTH_DECIBELS,
+        "wifi_signal",
+        "mdi:wifi",
+        None,
+        None,
     ],
 }
 
