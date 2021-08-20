@@ -1,8 +1,7 @@
 {
     "name": "OpenEVSE",
-    "domains": ["select","sensor", "switch"],
+    "hacs": "1.6.0",
+    "domains": ["sensor"],
     "iot_class": "Local Polling",
-    "homeassistant": "0.118.0",
-    "zip_release": true,
-    "filename": "openevse.zip"   
+    "homeassistant": "0.118.0"
 }
