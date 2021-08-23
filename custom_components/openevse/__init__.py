@@ -10,7 +10,7 @@ import openevsehttp
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_HOST, CONF_PASSWORD, CONF_USERNAME
 from homeassistant.core import Config, HomeAssistant
-from homeassistant.helpers.entity import Entity
+from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from requests import RequestException
 
@@ -21,7 +21,6 @@ from .const import (
     ISSUE_URL,
     PLATFORMS,
     SENSOR_TYPES,
-    USER_AGENT,
     VERSION,
 )
 
@@ -63,6 +62,9 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
 
     # Fetch initial data so we have data when entities subscribe
     await coordinator.async_refresh()
+
+    if not coordinator.last_update_success:
+        raise ConfigEntryNotReady
 
     hass.data[DOMAIN][config_entry.entry_id] = {
         COORDINATOR: coordinator,
