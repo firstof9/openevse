@@ -32,7 +32,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
 class OpenEVSESwitch(CoordinatorEntity, SwitchEntity):
     """Representation of the value of a OpenEVSE Switch."""
 
-    def __init__(self, hass, name, config_entry: ConfigEntry) -> None:
+    def __init__(self, hass, name: str, config_entry: ConfigEntry) -> None:
         self._coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
         self.hass = hass
         self._config = config_entry
@@ -65,6 +65,10 @@ class OpenEVSESwitch(CoordinatorEntity, SwitchEntity):
         }
 
         return info
+
+    async def async_update(self) -> None:
+        """Update the switch value."""
+        self._state = await self.get_switch()
 
     @property
     def is_on(self) -> bool:
