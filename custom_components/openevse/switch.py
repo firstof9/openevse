@@ -26,7 +26,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
 class OpenEVSESwitch(SwitchEntity):
     """Representation of the value of a OpenEVSE Switch."""
 
-    def __init__(self, hass, name, config_entry: ConfigEntry) -> None:
+    def __init__(self, hass, name: str, config_entry: ConfigEntry) -> None:
         self._coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
         self.hass = hass
         self._config = config_entry
@@ -40,12 +40,12 @@ class OpenEVSESwitch(SwitchEntity):
         return f"{self._name}_{self._unique_id}"
 
     @property
-    def name(self):
+    def name(self) -> str:
         """Return the name of the entity."""
         return self._name
 
     @property
-    def device_info(self):
+    def device_info(self) -> dict:
         """Return a port description for device registry."""
         info = {
             "manufacturer": "OpenEVSE",
@@ -55,7 +55,7 @@ class OpenEVSESwitch(SwitchEntity):
 
         return info
 
-    async def async_update(self):
+    async def async_update(self) -> None:
         """Update the switch value."""
         self._state = await self.get_switch()
 
