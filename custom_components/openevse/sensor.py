@@ -2,10 +2,12 @@
 from __future__ import annotations
 
 import logging
+from datetime import datetime
 from typing import Any
 
-from homeassistant.components.sensor import SensorEntity, SensorEntityDescription
+from homeassistant.components.sensor import SensorEntity
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import DEVICE_CLASS_ENERGY
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import (
@@ -36,18 +38,18 @@ class OpenEVSESensor(CoordinatorEntity, SensorEntity):
     """Implementation of an OpenEVSE sensor."""
 
     def __init__(
-        self,
-        sensor_description: SensorEntityDescription,
-        unique_id: str,
-        coordinator: str,
-        config: ConfigEntry,
+        self, sensor_type: str, unique_id: str, coordinator: str, config: ConfigEntry
     ) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator)
         self._config = config
-        self.entity_description = sensor_description
-        self._name = sensor_description.name
-        self._type = sensor_description.key
+        self._name = SENSOR_TYPES[sensor_type][0]
+        self._type = sensor_type
+        self._state = None
+        self._attr_unit_of_measurement = SENSOR_TYPES[sensor_type][1]
+        self._icon = SENSOR_TYPES[sensor_type][3]
+        self._attr_device_class = SENSOR_TYPES[sensor_type][4]
+        self._attr_state_class = SENSOR_TYPES[self._type][5]
         self._unique_id = unique_id
         self._data = coordinator.data
         self.coordinator = coordinator
@@ -56,6 +58,11 @@ class OpenEVSESensor(CoordinatorEntity, SensorEntity):
 
         self._attr_name = f"{self._config.data[CONF_NAME]}_{self._name}"
         self._attr_unique_id = f"{self._name}_{self._unique_id}"
+
+    @property
+    def name(self) -> str:
+        """Return the name of the sensor."""
+        return f"{self._config.data[CONF_NAME]}_{self._name}"
 
     @property
     def device_info(self) -> dict:
@@ -69,7 +76,7 @@ class OpenEVSESensor(CoordinatorEntity, SensorEntity):
         return info
 
     @property
-    def native_value(self) -> Any:
+    def state(self) -> Any:
         """Return the state of the sensor."""
         data = self.coordinator.data
         if data is None:
@@ -91,6 +98,11 @@ class OpenEVSESensor(CoordinatorEntity, SensorEntity):
         _LOGGER.debug("Sensor [%s] updated value: %s", self._type, self._state)
         self.update_icon()
         return self._state
+
+    @property
+    def last_reset(self) -> datetime | None:
+        """Return the time when the sensor was last reset, if any."""
+        return self._last_reset
 
     @property
     def icon(self) -> str:
