@@ -7,12 +7,8 @@ from datetime import timedelta
 import homeassistant.helpers.device_registry as dr
 import openevsehttp
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import (
-    CONF_HOST,
-    CONF_PASSWORD,
-    CONF_USERNAME,
-)
-from homeassistant.core import callback, Config, HomeAssistant
+from homeassistant.const import CONF_HOST, CONF_PASSWORD, CONF_USERNAME
+from homeassistant.core import Config, HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
@@ -70,8 +66,6 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
 
     if not coordinator.last_update_success:
         raise ConfigEntryNotReady
-
-    manager.coordinator = coordinator
 
     hass.data[DOMAIN][config_entry.entry_id] = {
         COORDINATOR: coordinator,
