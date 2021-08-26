@@ -138,13 +138,15 @@ class OpenEVSESensor(CoordinatorEntity, SensorEntity):
 
     def calc_watts(self) -> float:
         """Calculate Watts based on V*I"""
-        power = round(
-            self._data["charging_voltage"] * (self._data["charging_current"] / 1000), 2
-        )
-        _LOGGER.debug(
-            "Power calculation V[%s] * A[%s]: %s",
-            self._data["charging_voltage"],
-            self._data["charging_current"],
-            power,
-        )
-        return power
+        return self._data["charging_voltage"] * self._data["charging_current"]
+
+    def update_last_reset(self) -> None:
+        """Update last reset attribute"""
+        if self._type == "usage_session" and self._state == 0.0:
+            self._last_reset = utcnow()
+        elif self._type == "usage_session":
+            self._last_reset = self._last_reset
+        elif self._attr_device_class == DEVICE_CLASS_ENERGY:
+            self._last_reset = utc_from_timestamp(0)
+        else:
+            self._last_reset = None
