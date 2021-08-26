@@ -46,7 +46,6 @@ class OpenEVSESensor(CoordinatorEntity, SensorEntity):
         self._name = SENSOR_TYPES[sensor_type][0]
         self._type = sensor_type
         self._state = None
-        self._attr_unit_of_measurement = SENSOR_TYPES[sensor_type][1]
         self._icon = SENSOR_TYPES[sensor_type][3]
         self._attr_device_class = SENSOR_TYPES[sensor_type][4]
         self._attr_state_class = SENSOR_TYPES[self._type][5]
@@ -76,7 +75,7 @@ class OpenEVSESensor(CoordinatorEntity, SensorEntity):
         return info
 
     @property
-    def state(self) -> Any:
+    def native_value(self) -> Any:
         """Return the state of the sensor."""
         data = self.coordinator.data
         if data is None:
@@ -98,6 +97,11 @@ class OpenEVSESensor(CoordinatorEntity, SensorEntity):
         _LOGGER.debug("Sensor [%s] updated value: %s", self._type, self._state)
         self.update_icon()
         return self._state
+
+    @property
+    def native_unit_of_measurement(self):
+        """Return the unit this state is expressed in."""
+        return SENSOR_TYPES[self._type][1]
 
     @property
     def last_reset(self) -> datetime | None:
