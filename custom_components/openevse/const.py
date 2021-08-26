@@ -1,20 +1,7 @@
-from __future__ import annotations
-
-from typing import Final
-
 from homeassistant.components.sensor import (
     STATE_CLASS_MEASUREMENT,
-    STATE_CLASS_TOTAL,
     STATE_CLASS_TOTAL_INCREASING,
-    SensorEntityDescription,
 )
-from homeassistant.components.binary_sensor import (
-    DEVICE_CLASS_CONNECTIVITY,
-    DEVICE_CLASS_PLUG,
-    DEVICE_CLASS_UPDATE,
-    BinarySensorEntityDescription,
-)
-
 
 from homeassistant.const import (
     DEVICE_CLASS_CURRENT,
@@ -98,7 +85,7 @@ SENSOR_TYPES = {
         "usage_session",
         "mdi:gauge",
         DEVICE_CLASS_ENERGY,
-        STATE_CLASS_MEASUREMENT,
+        STATE_CLASS_TOTAL_INCREASING,
     ],
     "usage_total": [
         "Total Usage",
@@ -106,7 +93,7 @@ SENSOR_TYPES = {
         "usage_total",
         "mdi:gauge",
         DEVICE_CLASS_ENERGY,
-        STATE_CLASS_MEASUREMENT,
+        STATE_CLASS_TOTAL_INCREASING,
     ],
     "firmware_version": [
         "Controller Firmware",
