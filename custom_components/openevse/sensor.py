@@ -145,7 +145,7 @@ class OpenEVSESensor(CoordinatorEntity, SensorEntity):
             self._last_reset = utcnow()
         elif self._type == "usage_session":
             self._last_reset = self._last_reset
-        elif self._device_class == DEVICE_CLASS_ENERGY:
+        elif self._attr_device_class == DEVICE_CLASS_ENERGY:
             self._last_reset = utc_from_timestamp(0)
         else:
             self._last_reset = None
