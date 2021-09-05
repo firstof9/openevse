@@ -101,8 +101,13 @@ def get_firmware(config: ConfigEntry) -> tuple:
     host = config.data.get(CONF_HOST)
     username = config.data.get(CONF_USERNAME)
     password = config.data.get(CONF_PASSWORD)
+    _LOGGER.debug("Connecting to %s, with username %s", host, username)
     charger = openevsehttp.OpenEVSE(host, user=username, pwd=password)
-    charger.update()
+    try:
+        charger.update()
+    except Exception as error:
+        _LOGGER.error("Problem retreiving firmware data: %s", error)
+        return "", ""
 
     return charger.wifi_firmware, charger.openevse_firmware
 
@@ -160,7 +165,11 @@ def get_sensors(hass: HomeAssistant, config: ConfigEntry) -> dict:
     username = config.data.get(CONF_USERNAME)
     password = config.data.get(CONF_PASSWORD)
     charger = openevsehttp.OpenEVSE(host, user=username, pwd=password)
-    charger.update()
+    try:
+        charger.update()
+    except Exception as error:
+        _LOGGER.error("Error updating sesnors: %s", error)
+        return {}
 
     for sensor in SENSOR_TYPES:
         _sensor = {}
