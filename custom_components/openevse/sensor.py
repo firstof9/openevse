@@ -3,9 +3,10 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
-from typing import Optional
+from typing import Any
 
 from homeassistant.components.sensor import SensorEntity
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import DEVICE_CLASS_ENERGY
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util.dt import utc_from_timestamp, utcnow
@@ -30,17 +31,18 @@ async def async_setup_entry(hass, entry, async_add_entities):
 class OpenEVSESensor(CoordinatorEntity, SensorEntity):
     """Implementation of an OpenEVSE sensor."""
 
-    def __init__(self, sensor_type, unique_id, coordinator, config):
+    def __init__(
+        self, sensor_type: str, unique_id: str, coordinator: str, config: ConfigEntry
+    ) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator)
         self._config = config
         self._name = SENSOR_TYPES[sensor_type][0]
         self._type = sensor_type
         self._state = None
-        self._unit_of_measurement = SENSOR_TYPES[sensor_type][1]
         self._icon = SENSOR_TYPES[sensor_type][3]
-        self._device_class = SENSOR_TYPES[sensor_type][4]
-        self._state_class = SENSOR_TYPES[self._type][5]
+        self._attr_device_class = SENSOR_TYPES[sensor_type][4]
+        self._attr_state_class = SENSOR_TYPES[self._type][5]
         self._unique_id = unique_id
         self._data = coordinator.data
         self.coordinator = coordinator
@@ -52,12 +54,12 @@ class OpenEVSESensor(CoordinatorEntity, SensorEntity):
         return f"{self._name}_{self._unique_id}"
 
     @property
-    def name(self):
+    def name(self) -> str:
         """Return the name of the sensor."""
         return f"{self._config.data[CONF_NAME]}_{self._name}"
 
     @property
-    def device_info(self):
+    def device_info(self) -> dict:
         """Return a port description for device registry."""
         info = {
             "manufacturer": "OpenEVSE",
@@ -68,17 +70,19 @@ class OpenEVSESensor(CoordinatorEntity, SensorEntity):
         return info
 
     @property
-    def state(self):
+    def native_value(self) -> Any:
         """Return the state of the sensor."""
         data = self.coordinator.data
         if data is None:
             self._state = None
         if self._type in data.keys():
             if self._type == "charge_time":
-                self._state = data[self._type] / 60
+                self._state = round(data[self._type] / 60, 2)
             elif self._type == "usage_session":
                 self._state = round(data[self._type] / 1000, 2)
             elif self._type == "usage_total":
+                self._state = round(data[self._type] / 1000, 2)
+            elif self._type == "charging_current":
                 self._state = round(data[self._type] / 1000, 2)
             elif self._type == "current_power":
                 self._state = self.calc_watts()
@@ -89,24 +93,14 @@ class OpenEVSESensor(CoordinatorEntity, SensorEntity):
         return self._state
 
     @property
-    def device_class(self):
-        """Return the device class of the sensor."""
-        return self._device_class
-
-    @property
-    def state_class(self):
-        """Return the state class of the sensor."""
-        return self._state_class
+    def native_unit_of_measurement(self):
+        """Return the unit this state is expressed in."""
+        return SENSOR_TYPES[self._type][1]
 
     @property
     def last_reset(self) -> datetime | None:
         """Return the time when the sensor was last reset, if any."""
         return self._last_reset
-
-    @property
-    def unit_of_measurement(self) -> Optional[str]:
-        """Return the unit of measurement of this sensor."""
-        return self._unit_of_measurement
 
     @property
     def icon(self) -> str:
@@ -151,7 +145,7 @@ class OpenEVSESensor(CoordinatorEntity, SensorEntity):
             self._last_reset = utcnow()
         elif self._type == "usage_session":
             self._last_reset = self._last_reset
-        elif self._device_class == DEVICE_CLASS_ENERGY:
+        elif self._attr_device_class == DEVICE_CLASS_ENERGY:
             self._last_reset = utc_from_timestamp(0)
         else:
             self._last_reset = None

@@ -1,4 +1,9 @@
-from homeassistant.components.sensor import STATE_CLASS_MEASUREMENT
+from homeassistant.components.sensor import (
+    STATE_CLASS_MEASUREMENT,
+    STATE_CLASS_TOTAL,
+    STATE_CLASS_TOTAL_INCREASING,
+)
+
 from homeassistant.const import (
     DEVICE_CLASS_CURRENT,
     DEVICE_CLASS_ENERGY,
@@ -9,6 +14,7 @@ from homeassistant.const import (
     ELECTRIC_POTENTIAL_VOLT,
     ENERGY_KILO_WATT_HOUR,
     POWER_WATT,
+    SIGNAL_STRENGTH_DECIBELS,
     TEMP_CELSIUS,
     TIME_MINUTES,
 )
@@ -60,13 +66,21 @@ SENSOR_TYPES = {
         DEVICE_CLASS_TEMPERATURE,
         STATE_CLASS_MEASUREMENT,
     ],
+    "esp_temperature": [
+        "ESP32 Temperature",
+        TEMP_CELSIUS,
+        "esp_temperature",
+        None,
+        DEVICE_CLASS_TEMPERATURE,
+        STATE_CLASS_MEASUREMENT,
+    ],
     "usage_session": [
         "Usage this Session",
         ENERGY_KILO_WATT_HOUR,
         "usage_session",
         "mdi:gauge",
         DEVICE_CLASS_ENERGY,
-        STATE_CLASS_MEASUREMENT,
+        STATE_CLASS_TOTAL,
     ],
     "usage_total": [
         "Total Usage",
@@ -74,12 +88,12 @@ SENSOR_TYPES = {
         "usage_total",
         "mdi:gauge",
         DEVICE_CLASS_ENERGY,
-        STATE_CLASS_MEASUREMENT,
+        STATE_CLASS_TOTAL_INCREASING,
     ],
     "firmware_version": [
         "Controller Firmware",
         None,
-        "firmware_version",
+        "openevse_firmware",
         "mdi:package-up",
         None,
         None,
@@ -92,14 +106,6 @@ SENSOR_TYPES = {
         None,
         None,
     ],
-    "ambient_threshold": [
-        "Ambient Threshold",
-        TEMP_CELSIUS,
-        "ambient_threshold",
-        None,
-        DEVICE_CLASS_TEMPERATURE,
-        None,
-    ],
     "charging_voltage": [
         "Charging Voltage",
         ELECTRIC_POTENTIAL_VOLT,
@@ -107,14 +113,6 @@ SENSOR_TYPES = {
         "mdi:sine-wave",
         DEVICE_CLASS_VOLTAGE,
         STATE_CLASS_MEASUREMENT,
-    ],
-    "charge_limit": [
-        "Charge Limit",
-        ENERGY_KILO_WATT_HOUR,
-        "charge_limit",
-        "mdi:gauge",
-        DEVICE_CLASS_ENERGY,
-        None,
     ],
     "charging_current": [
         "Charging Current",
@@ -149,18 +147,10 @@ SENSOR_TYPES = {
         DEVICE_CLASS_CURRENT,
         None,
     ],
-    "time_limit": [
-        "Time Limit",
-        TIME_MINUTES,
-        "time_limit",
-        "mdi:camera-timer",
-        None,
-        None,
-    ],
-    "wifi_version": [
+    "wifi_firmware": [
         "Wifi Fimrware Version",
         None,
-        "wifi_version",
+        "wifi_firmware",
         "mdi:package-up",
         None,
         None,
@@ -172,6 +162,14 @@ SENSOR_TYPES = {
         "mdi:gauge",
         DEVICE_CLASS_POWER,
         STATE_CLASS_MEASUREMENT,
+    ],
+    "wifi_signal": [
+        "Wifi Signal Strength",
+        SIGNAL_STRENGTH_DECIBELS,
+        "wifi_signal",
+        "mdi:wifi",
+        None,
+        None,
     ],
 }
 

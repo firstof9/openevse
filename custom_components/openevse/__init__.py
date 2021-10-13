@@ -5,14 +5,12 @@ import logging
 from datetime import timedelta
 from typing import Any
 
-import aiohttp
 import homeassistant.helpers.device_registry as dr
-import openevsewifi
-from awesomeversion import AwesomeVersion
+import openevsehttp
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_HOST, CONF_PASSWORD, CONF_USERNAME
 from homeassistant.core import Config, HomeAssistant
-from homeassistant.helpers.entity import Entity
+from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from requests import RequestException
 
@@ -23,7 +21,6 @@ from .const import (
     ISSUE_URL,
     PLATFORMS,
     SENSOR_TYPES,
-    USER_AGENT,
     VERSION,
 )
 
@@ -66,12 +63,16 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
     # Fetch initial data so we have data when entities subscribe
     await coordinator.async_refresh()
 
+    if not coordinator.last_update_success:
+        raise ConfigEntryNotReady
+
     hass.data[DOMAIN][config_entry.entry_id] = {
         COORDINATOR: coordinator,
     }
 
-    sw_version = await hass.async_add_executor_job(get_firmware, hass, config_entry)
-    model_info = await get_wifi_data(hass, config_entry, "version")
+    model_info, sw_version = await hass.async_add_executor_job(
+        get_firmware, config_entry
+    )
 
     device_registry = await dr.async_get_registry(hass)
     device_registry.async_get_or_create(
@@ -91,14 +92,20 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
     return True
 
 
-def get_firmware(hass, config: ConfigEntry) -> str:
+def get_firmware(config: ConfigEntry) -> tuple:
     """Get firmware version."""
     host = config.data.get(CONF_HOST)
     username = config.data.get(CONF_USERNAME)
     password = config.data.get(CONF_PASSWORD)
-    charger = openevsewifi.Charger(host, username=username, password=password)
+    _LOGGER.debug("Connecting to %s, with username %s", host, username)
+    charger = openevsehttp.OpenEVSE(host, user=username, pwd=password)
+    try:
+        charger.update()
+    except Exception as error:
+        _LOGGER.error("Problem retreiving firmware data: %s", error)
+        return "", ""
 
-    return charger.firmware_version
+    return charger.wifi_firmware, charger.openevse_firmware
 
 
 async def async_unload_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:
@@ -141,29 +148,27 @@ async def update_listener(hass: HomeAssistant, config_entry: ConfigEntry) -> Non
     await hass.config_entries.async_reload(config_entry.entry_id)
 
 
-def get_sensors(
-    hass: HomeAssistant, config: ConfigEntry, wifi_version: str = None
-) -> dict:
+def get_sensors(hass: HomeAssistant, config: ConfigEntry) -> dict:
 
     data = {}
     host = config.data.get(CONF_HOST)
     username = config.data.get(CONF_USERNAME)
     password = config.data.get(CONF_PASSWORD)
-    charger = openevsewifi.Charger(host, username=username, password=password)
+    charger = openevsehttp.OpenEVSE(host, user=username, pwd=password)
+    try:
+        charger.update()
+    except Exception as error:
+        _LOGGER.error("Error updating sesnors: %s", error)
+        return {}
 
     for sensor in SENSOR_TYPES:
         _sensor = {}
         try:
             sensor_property = SENSOR_TYPES[sensor][2]
-            if sensor == "status" or sensor == "charge_time":
-                _sensor[sensor] = workaround(charger, sensor_property, wifi_version)
-            elif sensor == "wifi_version":
-                _sensor[sensor] = wifi_version
-            elif sensor == "current_power":
+            if sensor == "current_power":
                 _sensor[sensor] = None
             else:
-                status = getattr(charger, sensor_property)
-                _sensor[sensor] = status if status != -256.0 else None
+                _sensor[sensor] = getattr(charger, sensor_property)
             _LOGGER.debug(
                 "sensor: %s sensor_property: %s value: %s",
                 sensor,
@@ -175,50 +180,6 @@ def get_sensors(
         data.update(_sensor)
     _LOGGER.debug("DEBUG: %s", data)
     return data
-
-
-def workaround(
-    handler: Any, sensor_property: str, wifi_version: str = None
-) -> str | int:
-    """Workaround for library issue."""
-    status = handler._send_command("$GS")
-    if status[1].isnumeric():
-        base = 10
-    else:
-        base = 16
-
-    if sensor_property == "status":
-        return states[int(status[1], base)]
-    elif sensor_property == "charge_time_elapsed":
-        if int(status[1], base) == 3:
-            return int(status[2], base)
-        else:
-            return 0
-
-
-async def get_wifi_data(
-    hass: HomeAssistant, config: ConfigEntry, info: str
-) -> str | None:
-    url = f"http://{config.data.get(CONF_HOST)}/config"
-    user = config.data.get(CONF_USERNAME)
-    password = config.data.get(CONF_PASSWORD)
-    headers = {"User-Agent": USER_AGENT, "Accept": "application/ld+json"}
-    login = None
-
-    if user is not None:
-        login = aiohttp.BasicAuth(user, password)
-
-    async with aiohttp.ClientSession() as session:
-        async with session.get(url, headers=headers, auth=login) as r:
-            _LOGGER.debug("getting data for from %s", url)
-            if r.status == 200:
-                data = await r.json()
-
-    if data is not None:
-        if info in data.keys():
-            return data[info]
-    else:
-        return None
 
 
 class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
@@ -238,11 +199,8 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
     async def _async_update_data(self):
         """Fetch data"""
         try:
-            wifi_version = None
-            wifi_version = await get_wifi_data(self.hass, self.config, "version")
-            _LOGGER.debug("Wifi Firmware: %s", wifi_version)
             data = await self.hass.async_add_executor_job(
-                get_sensors, self.hass, self.config, wifi_version
+                get_sensors, self.hass, self.config
             )
         except Exception as error:
             raise UpdateFailed(error) from error
@@ -250,10 +208,10 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
 
 
 def send_command(handler, command) -> Any:
-    response = handler._send_command(command)
+    response = handler.send_command(command)
     _LOGGER.debug("send_command: %s", response)
     return response
 
 
 def connect(host: str, username: str = None, password: str = None) -> Any:
-    return openevsewifi.Charger(host, username=username, password=password)
+    return openevsehttp.OpenEVSE(host, user=username, pwd=password)

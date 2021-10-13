@@ -7,7 +7,7 @@ from homeassistant.const import CONF_HOST, CONF_NAME, CONF_PASSWORD, CONF_USERNA
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from requests import RequestException
 
-from . import connect, get_wifi_data, send_command
+from . import connect, send_command
 from .const import COORDINATOR, DOMAIN, SELECT_TYPES
 
 _LOGGER = logging.getLogger(__name__)
@@ -77,5 +77,5 @@ class OpenEVSESelect(CoordinatorEntity, SelectEntity):
         if self._type == "current_capacity":
             min = self.coordinator.data["min_amps"]
             max = self.coordinator.data["max_amps"]
-            return [item for item in range(min, max + 1)]
+            return list([item for item in range(min, max + 1)])
         return SELECT_TYPES[self._type][2]
