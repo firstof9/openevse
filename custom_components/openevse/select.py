@@ -95,8 +95,5 @@ class OpenEVSESelect(CoordinatorEntity, SelectEntity):
         if self._type == "current_capacity":
             min = self.coordinator.data["min_amps"]
             max = self.coordinator.data["max_amps"]
-            _LOGGER.debug(
-                "Max Amps: %s", list([str(item) for item in range(min, max + 1)])
-            )
-            return list([str(item) for item in range(min, max + 1)])
-        return SELECT_TYPES[self._type][1]
+            return list([item for item in range(min, max + 1)])
+        return SELECT_TYPES[self._type][2]
