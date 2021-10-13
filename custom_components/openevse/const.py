@@ -1,5 +1,6 @@
 from homeassistant.components.sensor import (
     STATE_CLASS_MEASUREMENT,
+    STATE_CLASS_TOTAL,
     STATE_CLASS_TOTAL_INCREASING,
 )
 
@@ -85,7 +86,7 @@ SENSOR_TYPES = {
         "usage_session",
         "mdi:gauge",
         DEVICE_CLASS_ENERGY,
-        STATE_CLASS_TOTAL_INCREASING,
+        STATE_CLASS_TOTAL,
     ],
     "usage_total": [
         "Total Usage",

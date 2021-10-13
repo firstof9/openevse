@@ -39,11 +39,11 @@ categories:
   - title: ":mortar_board: Code Quality :mortar_board:"
     labels:
       - "code-quality"
+
 template: |
   [![Downloads for this release](https://img.shields.io/github/downloads/firstof9/openevse/$RESOLVED_VERSION/total.svg)](https://github.com/firstof9/openevse/releases/$RESOLVED_VERSION)
 
   $CHANGES
 
   ## Links
-  - [Wiki](https://github.com/firstof9/openevse/wiki)
   - [Submit bugs/feature requests](https://github.com/firstof9/openevse/issues)
