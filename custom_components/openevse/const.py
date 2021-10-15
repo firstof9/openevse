@@ -171,6 +171,14 @@ SENSOR_TYPES = {
         None,
         None,
     ],
+    "sensor_scale": [
+        "Sensor Scale",
+        None,
+        "scale",
+        "mdi:scale",
+        None,
+        None,
+    ],
 }
 
 SWITCH_TYPES = ["Sleep Mode"]
