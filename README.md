@@ -11,7 +11,7 @@
 [![Discord][discord-shield]][discord]
 [![Community Forum][forum-shield]][forum]
 
-_Component to integrate with [OpenEVSE][http://https://www.openevse.com/] chargers._
+_Component to integrate with [openevse.com][OpenEVSE] chargers._
 
 **This component will set up the following platforms.**
 
