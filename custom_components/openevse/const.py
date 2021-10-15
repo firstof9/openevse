@@ -172,6 +172,14 @@ SENSOR_TYPES = {
         None,
         None,
     ],
+    "sensor_scale": [
+        "Sensor Scale",
+        None,
+        "scale",
+        "mdi:scale",
+        None,
+        None,
+    ],
 }
 
 # Name, options, command, entity category
