@@ -143,7 +143,7 @@ class OpenEVSESensor(CoordinatorEntity, SensorEntity):
 
     def calc_watts(self) -> float:
         """Calculate Watts based on V*I"""
-        return self._data["charging_voltage"] * self._data["charging_current"]
+        return self._data["scale"] * self._data["charging_current"]
 
     def update_last_reset(self) -> None:
         """Update last reset attribute"""

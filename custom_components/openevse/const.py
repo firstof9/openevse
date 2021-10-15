@@ -175,6 +175,14 @@ SENSOR_TYPES = {
         None,
         None,
     ],
+    "sensor_scale": [
+        "Sensor Scale",
+        None,
+        "scale",
+        "mdi:scale",
+        None,
+        None,
+    ],
 }
 
 # key: name
