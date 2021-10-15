@@ -19,7 +19,7 @@ Platform | Description
 -- | --
 `sensor` | Show info from an OpenEVSE charger's API.
 `switch` | Switch to toggle "Sleep Mode".
-
+`select` | Select the ampers limit and service level.
 
 ## Installation
 
