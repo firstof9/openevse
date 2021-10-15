@@ -11,7 +11,7 @@
 [![Discord][discord-shield]][discord]
 [![Community Forum][forum-shield]][forum]
 
-_Component to integrate with [openevse.com][OpenEVSE] chargers._
+_Component to integrate with [OpenEVSE][openevse] chargers._
 
 **This component will set up the following platforms.**
 
@@ -43,6 +43,7 @@ If you want to contribute to this please read the [Contribution guidelines](CONT
 
 ***
 
+[openevse]: https://openevse.com/
 [integration_blueprint]: https://github.com/firstof9/openevse
 [buymecoffee]: https://www.buymeacoffee.com/firstof9
 [buymecoffeebadge]: https://img.shields.io/badge/buy%20me%20a%20coffee-donate-yellow.svg?style=for-the-badge
