@@ -11,15 +11,16 @@
 [![Discord][discord-shield]][discord]
 [![Community Forum][forum-shield]][forum]
 
-_Component to integrate with [OpenEVSE][openevse] chargers._
+_Component to integrate with [OpenEVSE][http://https://www.openevse.com/] chargers._
 
 **This component will set up the following platforms.**
 
 Platform | Description
 -- | --
 `sensor` | Show info from an OpenEVSE charger's API.
-`switch` | Switch to toggle various charger modes.
-`select` | Select the ampers limit and service level.
+`switch` | Switch to toggle "Sleep Mode".
+
+![example][exampleimg]
 
 ## Installation
 
@@ -42,31 +43,6 @@ If you want to contribute to this please read the [Contribution guidelines](CONT
 
 ***
 
-## TODO
-
-- [ ] Add tests
-- [x] Current
-- [x] Voltage
-- [x] Power
-- [x] Session Energy
-- [x] Total Energy
-- [x] Status
-- [x] Temps
-- [x] Vehicle connected
-- [x] Rssi
-- [ ] Max current
-- [x] Charge current
-- [X] Manual Override
-- [ ] Schedule
-- [X] Divert mode
-- [ ] Auto discovery
-- [x] Setup via Home Assistant UI
-- [x] Real time updates via web socket
-- [x] Support energy integration
-- [x] Use newer OpenEVSE APIs
-
-
-[openevse]: https://openevse.com/
 [integration_blueprint]: https://github.com/firstof9/openevse
 [buymecoffee]: https://www.buymeacoffee.com/firstof9
 [buymecoffeebadge]: https://img.shields.io/badge/buy%20me%20a%20coffee-donate-yellow.svg?style=for-the-badge
