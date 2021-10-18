@@ -179,7 +179,7 @@ def get_sensors(hass: HomeAssistant, config: ConfigEntry) -> dict:
     for sensor in SENSOR_TYPES:
         _sensor = {}
         try:
-            sensor_property = SENSOR_TYPES[sensor][2]
+            sensor_property = SENSOR_TYPES[sensor].key
             if sensor == "current_power":
                 _sensor[sensor] = None
             else:
