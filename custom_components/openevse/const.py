@@ -23,7 +23,6 @@ from homeassistant.const import (
     POWER_WATT,
     SIGNAL_STRENGTH_DECIBELS,
     TEMP_CELSIUS,
-    TIME_MINUTES,
 )
 
 CONF_NAME = "name"
