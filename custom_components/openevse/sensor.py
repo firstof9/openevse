@@ -48,7 +48,6 @@ class OpenEVSESensor(CoordinatorEntity, SensorEntity):
         self._unique_id = unique_id
         self._data = coordinator.data
         self.coordinator = coordinator
-        self._last_reset = None
         self._state = None
         self._icon = sensor_description.icon
 
@@ -91,11 +90,6 @@ class OpenEVSESensor(CoordinatorEntity, SensorEntity):
         return self._state
 
     @property
-    def last_reset(self) -> datetime | None:
-        """Return the time when the sensor was last reset, if any."""
-        return self._last_reset
-
-    @property
     def icon(self) -> str:
         """Return the icon."""
         return self._icon
@@ -131,10 +125,3 @@ class OpenEVSESensor(CoordinatorEntity, SensorEntity):
     def calc_watts(self) -> float:
         """Calculate Watts based on V*I"""
         return self._data["ammeter_scale_factor"] * self._data["charging_current"]
-
-    def update_last_reset(self) -> None:
-        """Update last reset attribute"""
-        if self._type == "usage_session" and self._state == 0.0:
-            self._last_reset = utcnow()
-        elif self._type == "usage_session":
-            self._last_reset = self._last_reset

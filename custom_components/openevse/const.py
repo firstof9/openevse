@@ -25,7 +25,6 @@ from homeassistant.const import (
     POWER_WATT,
     SIGNAL_STRENGTH_DECIBELS,
     TEMP_CELSIUS,
-    TIME_MINUTES,
 )
 
 from .entity import OpenEVSESelectEntityDescription, OpenEVSESwitchEntityDescription
