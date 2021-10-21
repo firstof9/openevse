@@ -18,6 +18,7 @@ from homeassistant.const import (
     DEVICE_CLASS_VOLTAGE,
     ELECTRIC_CURRENT_AMPERE,
     ELECTRIC_POTENTIAL_VOLT,
+    ENTITY_CATEGORY_CONFIG,
     ENTITY_CATEGORY_DIAGNOSTIC,
     ENERGY_KILO_WATT_HOUR,
     ENTITY_CATEGORY_CONFIG,
@@ -115,7 +116,6 @@ SENSOR_TYPES: Final[dict[str, SensorEntityDescription]] = {
         native_unit_of_measurement=ELECTRIC_POTENTIAL_VOLT,
         state_class=STATE_CLASS_MEASUREMENT,
         device_class=DEVICE_CLASS_VOLTAGE,
-        entity_category=ENTITY_CATEGORY_DIAGNOSTIC,
     ),
     "charging_current": SensorEntityDescription(
         key="charging_current",
@@ -124,13 +124,12 @@ SENSOR_TYPES: Final[dict[str, SensorEntityDescription]] = {
         native_unit_of_measurement=ELECTRIC_CURRENT_AMPERE,
         state_class=STATE_CLASS_MEASUREMENT,
         device_class=DEVICE_CLASS_CURRENT,
-        entity_category=ENTITY_CATEGORY_DIAGNOSTIC,
     ),
     "service_level": SensorEntityDescription(
         key="service_level",
         name="Service Level",
         icon="mdi:leaf",
-        entity_category=ENTITY_CATEGORY_DIAGNOSTIC,
+        entity_category=ENTITY_CATEGORY_CONFIG,
     ),
     "max_amps": SensorEntityDescription(
         key="max_amps",
@@ -154,7 +153,7 @@ SENSOR_TYPES: Final[dict[str, SensorEntityDescription]] = {
         icon="mdi:sine-wave",
         native_unit_of_measurement=ELECTRIC_CURRENT_AMPERE,
         device_class=DEVICE_CLASS_CURRENT,
-        entity_category=ENTITY_CATEGORY_DIAGNOSTIC,
+        entity_category=ENTITY_CATEGORY_CONFIG,
     ),
     "wifi_firmware": SensorEntityDescription(
         key="wifi_firmware",
