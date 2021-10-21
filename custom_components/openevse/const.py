@@ -24,6 +24,7 @@ from homeassistant.const import (
     POWER_WATT,
     SIGNAL_STRENGTH_DECIBELS,
     TEMP_CELSIUS,
+    TIME_MINUTES,
 )
 
 CONF_NAME = "name"
@@ -47,7 +48,7 @@ SENSOR_TYPES: Final[dict[str, SensorEntityDescription]] = {
         key="charge_time_elapsed",
         name="Charge Time Elapsed",
         icon="mdi:camera-timer",
-        device_class=DEVICE_CLASS_TIMESTAMP,
+        native_unit_of_measurement=TIME_MINUTES,
     ),
     "ambient_temperature": SensorEntityDescription(
         key="ambient_temperature",
