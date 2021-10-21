@@ -9,7 +9,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_HOST, CONF_NAME, CONF_PASSWORD, CONF_USERNAME
 from requests import RequestException
 
-from . import connect, send_command
+from . import connect, send_command, CommandFailed, InvalidValue
 from .const import COORDINATOR, DOMAIN, SWITCH_TYPES
 
 _LOGGER = logging.getLogger(__name__)
@@ -120,6 +120,10 @@ class OpenEVSESwitch(CoordinatorEntity, SwitchEntity):
                 await self.hass.async_add_executor_job(send_command, charger, "$FE")
         except (RequestException, ValueError, KeyError):
             _LOGGER.warning("Could not set status for %s", self._name)
+        except InvalidValue:
+            _LOGGER.error(f"Value {status} invalid for switch.")
+        except CommandFailed:
+            _LOGGER.error("Switch command failed.")
 
 
 def update_switch(handler) -> bool:

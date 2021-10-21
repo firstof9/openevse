@@ -320,11 +320,24 @@ class OpenEVSEManager:
         self.charger = OpenEVSE(self._host, user=self._username, pwd=self._password)
 
 
-def send_command(handler, command) -> Any:
-    response = handler.send_command(command)
-    _LOGGER.debug("send_command: %s", response)
-    return response
+def send_command(handler, command) -> None:
+    cmd, response = handler.send_command(command)
+    _LOGGER.debug("send_command: %s, %s", cmd, response)
+    if cmd == command:
+        if response == "$NK^21":
+            raise InvalidValue
+        return None
+
+    raise CommandFailed
 
 
 def connect(host: str, username: str = None, password: str = None) -> Any:
     return openevsehttp.OpenEVSE(host, user=username, pwd=password)
+
+
+class InvalidValue(Exception):
+    """Exception for invalid value errors."""
+
+
+class CommandFailed(Exception):
+    """Exception for invalid command errors."""
