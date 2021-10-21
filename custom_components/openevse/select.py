@@ -1,3 +1,5 @@
+"""Support for OpenEVSE controls using the select platform."""
+from __future__ import annotations
 import logging
 from typing import Any, Optional
 
@@ -7,7 +9,7 @@ from homeassistant.const import CONF_HOST, CONF_NAME, CONF_PASSWORD, CONF_USERNA
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from requests import RequestException
 
-from . import connect, send_command
+from . import connect, send_command, CommandFailed, InvalidValue
 from .const import COORDINATOR, DOMAIN, SELECT_TYPES
 
 _LOGGER = logging.getLogger(__name__)
@@ -49,6 +51,11 @@ class OpenEVSESelect(CoordinatorEntity, SelectEntity):
         }
         return info
 
+    @property
+    def current_option(self) -> str | None:
+        """Return the selected entity option to represent the entity state."""
+        return str(self.coordinator.data[self._type])
+
     async def async_select_option(self, option: Any) -> None:
         """Change the selected option."""
         host = self._config.data.get(CONF_HOST)
@@ -58,10 +65,17 @@ class OpenEVSESelect(CoordinatorEntity, SelectEntity):
             connect, host, username, password
         )
         command = f"{self._command} {option}"
+        _LOGGER.debug("Command: %s", command)
         try:
             await self.hass.async_add_executor_job(send_command, charger, command)
-        except (RequestException, ValueError, KeyError):
-            _LOGGER.warning("Could not set status for %s", self._attr_name)
+        except (RequestException, ValueError, KeyError) as err:
+            _LOGGER.warning(
+                "Could not set status for %s error: %s", self._attr_name, err
+            )
+        except InvalidValue:
+            _LOGGER.error(f"Value {option} invalid for command {self._command}.")
+        except CommandFailed:
+            _LOGGER.error(f"Command {self._command} failed.")
 
     @property
     def available(self) -> bool:
@@ -73,9 +87,13 @@ class OpenEVSESelect(CoordinatorEntity, SelectEntity):
         """Return the unit of measurement of this sensor."""
         return self._unit_of_measurement
 
-    def get_options(self) -> list:
+    def get_options(self) -> list[str]:
+        """Return a set of selectable options."""
         if self._type == "current_capacity":
             min = self.coordinator.data["min_amps"]
             max = self.coordinator.data["max_amps"]
-            return list([item for item in range(min, max + 1)])
+            _LOGGER.debug(
+                "Max Amps: %s", list([str(item) for item in range(min, max + 1)])
+            )
+            return list([str(item) for item in range(min, max + 1)])
         return SELECT_TYPES[self._type][2]
