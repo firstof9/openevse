@@ -2,15 +2,18 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timedelta
 from typing import Any
 
 from homeassistant.components.sensor import SensorEntity, SensorEntityDescription
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
-from homeassistant.util.dt import utcnow
 
-from .const import CONF_NAME, COORDINATOR, DOMAIN, SENSOR_TYPES
+from .const import (
+    CONF_NAME,
+    COORDINATOR,
+    DOMAIN,
+    SENSOR_TYPES,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -124,4 +127,4 @@ class OpenEVSESensor(CoordinatorEntity, SensorEntity):
 
     def calc_watts(self) -> float:
         """Calculate Watts based on V*I"""
-        return self._data["ammeter_scale_factor"] * self._data["charging_current"]
+        return self._data["charging_voltage"] * self._data["charging_current"]

@@ -6,25 +6,21 @@ from typing import Any, cast
 
 from homeassistant.components.switch import SwitchEntity
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_HOST, CONF_NAME, CONF_PASSWORD, CONF_USERNAME
-from requests import RequestException
+from homeassistant.const import CONF_NAME
 
-from . import connect, send_command, CommandFailed, InvalidValue
-from .const import COORDINATOR, DOMAIN, SWITCH_TYPES
+from . import send_command, CommandFailed, InvalidValue, OpenEVSEManager
+from .const import COORDINATOR, DOMAIN, MANAGER, SWITCH_TYPES
 
 _LOGGER = logging.getLogger(__name__)
 
 
 async def async_setup_entry(hass, entry, async_add_entities):
     """Set up the OpenEVSE switches."""
-    coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
     manager = hass.data[DOMAIN][entry.entry_id][MANAGER]
 
     switches = []
     for switch in SWITCH_TYPES:
-        switches.append(
-            OpenEVSESwitch(hass, entry, coordinator, SWITCH_TYPES[switch], manager)
-        )
+        switches.append(OpenEVSESwitch(hass, switch, entry, manager))
 
     async_add_entities(switches, False)
 
@@ -32,7 +28,9 @@ async def async_setup_entry(hass, entry, async_add_entities):
 class OpenEVSESwitch(CoordinatorEntity, SwitchEntity):
     """Representation of the value of a OpenEVSE Switch."""
 
-    def __init__(self, hass, name: str, config_entry: ConfigEntry) -> None:
+    def __init__(
+        self, hass, name: str, config_entry: ConfigEntry, manager: OpenEVSEManager
+    ) -> None:
         self._coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
         self.hass = hass
         self._config = config_entry
@@ -43,7 +41,7 @@ class OpenEVSESwitch(CoordinatorEntity, SwitchEntity):
         self._attr_unique_id = f"{self._attr_name}_{config_entry.entry_id}"
         self._manager = manager
         self._state = None
-        self.toggle_command = description.toggle_command
+        self._manager = manager
 
     @property
     def unique_id(self) -> str:
@@ -96,29 +94,19 @@ class OpenEVSESwitch(CoordinatorEntity, SwitchEntity):
 
     async def get_switch(self) -> bool:
         """Get the current state of the switch."""
-        host = self._config.data.get(CONF_HOST)
-        username = self._config.data.get(CONF_USERNAME)
-        password = self._config.data.get(CONF_PASSWORD)
-        charger = await self.hass.async_add_executor_job(
-            connect, host, username, password
-        )
-        return await self.hass.async_add_executor_job(update_switch, charger)
+        charger = self._manager
+        return await update_switch(charger)
 
     async def set_switch(self, status: bool) -> None:
         """Get the current state of the switch."""
-        host = self._config.data.get(CONF_HOST)
-        username = self._config.data.get(CONF_USERNAME)
-        password = self._config.data.get(CONF_PASSWORD)
-        charger = await self.hass.async_add_executor_job(
-            connect, host, username, password
-        )
+        charger = self._manager
 
         try:
             if status:
-                await self.hass.async_add_executor_job(send_command, charger, "$FS")
+                await send_command(charger, "$FS")
             else:
-                await self.hass.async_add_executor_job(send_command, charger, "$FE")
-        except (RequestException, ValueError, KeyError):
+                await send_command(charger, "$FE")
+        except (ValueError, KeyError):
             _LOGGER.warning("Could not set status for %s", self._name)
         except InvalidValue:
             _LOGGER.error(f"Value {status} invalid for switch.")
@@ -126,8 +114,8 @@ class OpenEVSESwitch(CoordinatorEntity, SwitchEntity):
             _LOGGER.error("Switch command failed.")
 
 
-def update_switch(handler) -> bool:
-    handler.update()
-    _LOGGER.debug("update_switch: %s", handler.status)
-    state = True if handler.status == "sleeping" else False
+async def update_switch(handler) -> bool:
+    await handler.update()
+    _LOGGER.debug("update_switch: %s", handler.state)
+    state = True if handler.state == "sleeping" else False
     return state

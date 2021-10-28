@@ -8,6 +8,13 @@ from homeassistant.components.sensor import (
     STATE_CLASS_TOTAL_INCREASING,
     SensorEntityDescription,
 )
+from homeassistant.components.binary_sensor import (
+    DEVICE_CLASS_CONNECTIVITY,
+    DEVICE_CLASS_PLUG,
+    DEVICE_CLASS_UPDATE,
+    BinarySensorEntityDescription,
+)
+
 
 from homeassistant.const import (
     DEVICE_CLASS_CURRENT,
@@ -29,7 +36,7 @@ from homeassistant.const import (
     TIME_MINUTES,
 )
 
-from .entity import OpenEVSESelectEntityDescription, OpenEVSESwitchEntityDescription
+from homeassistant.components.select import SelectEntityDescription
 
 CONF_NAME = "name"
 DEFAULT_HOST = "openevse.local"
@@ -48,13 +55,15 @@ DIVERT_MODE = ["normal", "eco"]
 # Name, unit of measure, property, icon, device class, state class
 SENSOR_TYPES: Final[dict[str, SensorEntityDescription]] = {
     "status": SensorEntityDescription(
-        key="status", name="Charging Status", icon="mdi:ev-station"
+        key="status", name="Station Status", icon="mdi:ev-station"
     ),
+    "state": SensorEntityDescription(key="state", name="Charging Status"),
     "charge_time_elapsed": SensorEntityDescription(
         key="charge_time_elapsed",
         name="Charge Time Elapsed",
         icon="mdi:camera-timer",
         native_unit_of_measurement=TIME_MINUTES,
+        entity_category=ENTITY_CATEGORY_DIAGNOSTIC,
     ),
     "ambient_temperature": SensorEntityDescription(
         key="ambient_temperature",
@@ -210,33 +219,37 @@ SELECT_TYPES: Final[dict[str, OpenEVSESelectEntityDescription]] = {
     ),
 }
 
+# Name, options, command, entity category
+SELECT_TYPES = {
+    "service_level": [
+        "Service Level",
+        SERVICE_LEVELS,
+        "$SL",
+        ENTITY_CATEGORY_CONFIG,
+    ],
+    "current_capacity": [
+        "Max Current",
+        None,
+        "$SC",
+        ENTITY_CATEGORY_CONFIG,
+    ],
+}
+
 # key: name
 BINARY_SENSORS: Final[dict[str, BinarySensorEntityDescription]] = {
     "ota_update": BinarySensorEntityDescription(
         name="OTA Update",
         key="ota_update",
-        device_class=BinarySensorDeviceClass.UPDATE,
+        device_class=DEVICE_CLASS_UPDATE,
         entity_category=ENTITY_CATEGORY_DIAGNOSTIC,
     ),
     "vehicle": BinarySensorEntityDescription(
-        name="Vehicle Connected",
-        key="vehicle",
-        device_class=BinarySensorDeviceClass.PLUG,
-    ),
-    "manual_override": BinarySensorEntityDescription(
-        name="Manual Override",
-        key="manual_override",
-        device_class=BinarySensorDeviceClass.POWER,
-    ),
-    "divert_active": BinarySensorEntityDescription(
-        name="Divert Active",
-        key="divert_active",
-        device_class=BinarySensorDeviceClass.POWER,
+        name="Vehicle Connected", key="vehicle", device_class=DEVICE_CLASS_PLUG
     ),
     "using_ethernet": BinarySensorEntityDescription(
         name="Ethernet Connected",
         key="using_ethernet",
-        device_class=BinarySensorDeviceClass.CONNECTIVITY,
+        device_class=DEVICE_CLASS_CONNECTIVITY,
         entity_category=ENTITY_CATEGORY_DIAGNOSTIC,
     ),
 }
