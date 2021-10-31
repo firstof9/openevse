@@ -79,18 +79,16 @@ class OpenEVSESwitch(SwitchEntity):
 
     async def get_switch(self) -> bool:
         """Get the current state of the switch."""
-        charger = self._manager
-        return await update_switch(charger)
+        return await self.update_switch()
 
     async def set_switch(self, status: bool) -> None:
         """Get the current state of the switch."""
-        charger = self._manager
 
         try:
             if status:
-                await send_command(charger, "$FS")
+                await send_command(self._manager, "$FS")
             else:
-                await send_command(charger, "$FE")
+                await send_command(self._manager, "$FE")
         except (ValueError, KeyError):
             _LOGGER.warning("Could not set status for %s", self._name)
         except InvalidValue:
@@ -98,9 +96,12 @@ class OpenEVSESwitch(SwitchEntity):
         except CommandFailed:
             _LOGGER.error("Switch command failed.")
 
-
-async def update_switch(handler) -> bool:
-    await handler.update()
-    _LOGGER.debug("update_switch: %s", handler.state)
-    state = True if handler.state == "sleeping" else False
-    return state
+    async def update_switch(self) -> bool:
+        try:
+            await self._manager.update()
+        except TimeoutError:
+            _LOGGER.warning("Connecting timeout while updating switch entity.")
+            return self._state
+        _LOGGER.debug("update_switch: %s", self._manager.state)
+        state = True if self._manager.state == "sleeping" else False
+        return state
