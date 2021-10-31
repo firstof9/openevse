@@ -225,6 +225,24 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
             except (ValueError, KeyError):
                 _LOGGER.warning("Could not update status for %s", sensor)
             data.update(_sensor)
+
+        for binary_sensor in BINARY_SENSORS:
+            _sensor = {}
+            try:
+                sensor_property = BINARY_SENSORS[binary_sensor].key
+                _sensor[binary_sensor] = getattr(self._manager, sensor_property)
+                _LOGGER.debug(
+                    "binary sensor: %s sensor_property: %s value %s",
+                    binary_sensor,
+                    sensor_property,
+                    _sensor[binary_sensor],
+                )
+            except (ValueError, KeyError):
+                _LOGGER.warning(
+                    "Could not update status for %s",
+                    binary_sensor,
+                )
+            data.update(_sensor)
         _LOGGER.debug("DEBUG: %s", data)
         self._data = data
 
