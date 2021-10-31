@@ -127,4 +127,13 @@ class OpenEVSESensor(CoordinatorEntity, SensorEntity):
 
     def calc_watts(self) -> float:
         """Calculate Watts based on V*I"""
-        return self._data["charging_voltage"] * self._data["charging_current"]
+        power = round(
+            self._data["charging_voltage"] * (self._data["charging_current"] / 1000), 2
+        )
+        _LOGGER.debug(
+            "Power calculation V[%s] * A[%s]: %s",
+            self._data["charging_voltage"],
+            self._data["charging_current"],
+            power,
+        )
+        return power
