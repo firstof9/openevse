@@ -42,6 +42,29 @@ If you want to contribute to this please read the [Contribution guidelines](CONT
 
 ***
 
+## TODO
+
+~~1. Current~~
+~~2. Voltage~~
+~~3. Power~~
+~~4. Session Energy~~
+~~5. Total Energy~~
+~~6. Status~~
+~~7. Temps~~
+~~8. Vehicle connected~~
+~~9. Rssi~~
+10. Max current
+~~11. Charge current~~
+12. Manual Override
+13. Schedule
+14. Divert mode
+15. Auto discovery
+~~16. Setup via Home Assistant UI~~
+~~17. Real time updates via web socket~~
+~~18. Support energy API~~
+~~19. Use newer OpenEVSE APIs~~
+
+
 [openevse]: https://openevse.com/
 [integration_blueprint]: https://github.com/firstof9/openevse
 [buymecoffee]: https://www.buymeacoffee.com/firstof9
