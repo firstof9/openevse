@@ -53,12 +53,12 @@ If you want to contribute to this please read the [Contribution guidelines](CONT
 - [x] Temps
 - [x] Vehicle connected
 - [x] Rssi
-- [] Max current
+- [ ] Max current
 - [x] Charge current
-- [] Manual Override
-- [] Schedule
-- [] Divert mode
-- [] Auto discovery
+- [ ] Manual Override
+- [ ] Schedule
+- [ ] Divert mode
+- [ ] Auto discovery
 - [x] Setup via Home Assistant UI
 - [x] Real time updates via web socket
 - [x] Support energy API
