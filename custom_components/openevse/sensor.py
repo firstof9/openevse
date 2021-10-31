@@ -87,6 +87,8 @@ class OpenEVSESensor(CoordinatorEntity, SensorEntity):
                 self._state = self.calc_watts()
             else:
                 self._state = data[self._type]
+
+        _LOGGER.debug("Sensor [%s] updated value: %s", self._type, self._state)
         self.update_icon()
         return self._state
 
