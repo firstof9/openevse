@@ -61,7 +61,7 @@ If you want to contribute to this please read the [Contribution guidelines](CONT
 - [ ] Auto discovery
 - [x] Setup via Home Assistant UI
 - [x] Real time updates via web socket
-- [x] Support energy API
+- [x] Support energy integration
 - [x] Use newer OpenEVSE APIs
 
 
