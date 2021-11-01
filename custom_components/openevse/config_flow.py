@@ -1,23 +1,29 @@
 """Adds config flow for OpenEVSE."""
+from __future__ import annotations
 import logging
 from typing import Any, Dict, Optional, Union
 
 import voluptuous as vol
-from homeassistant import config_entries
+from homeassistant.config_entries import (
+    SOURCE_ZEROCONF,
+    ConfigEntry,
+    ConfigFlow,
+    OptionsFlow,
+)
 from homeassistant.const import CONF_HOST, CONF_PASSWORD, CONF_USERNAME
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers.typing import DiscoveryInfoType
 from homeassistant.util import slugify
 
-from .const import CONF_NAME, DEFAULT_HOST, DEFAULT_NAME, DOMAIN
+from .const import CONF_NAME, CONF_ID, DEFAULT_HOST, DEFAULT_NAME, DOMAIN
 
 
-@config_entries.HANDLERS.register(DOMAIN)
-class OpenEVSEFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
+class OpenEVSEFlowHandler(ConfigFlow, domain=DOMAIN):
     """Config flow for KeyMaster."""
 
     VERSION = 1
-    CONNECTION_CLASS = config_entries.CONN_CLASS_LOCAL_POLL
     DEFAULTS = {CONF_HOST: DEFAULT_HOST, CONF_NAME: DEFAULT_NAME}
 
     async def async_step_user(
@@ -32,16 +38,61 @@ class OpenEVSEFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             self.DEFAULTS,
         )
 
+    async def async_step_zeroconf(
+        self, discovery_info: DiscoveryInfoType
+    ) -> FlowResult:
+        """Handle zeroconf discovery."""
+
+        # Hostname is format: wled-livingroom.local.
+        host = discovery_info["hostname"].rstrip(".")
+        name, _ = host.rsplit(".")
+
+        self.context.update(
+            {
+                CONF_HOST: discovery_info["hostname"],
+                CONF_NAME: name,
+                CONF_ID: discovery_info["properties"].get(CONF_ID),
+                "title_placeholders": {"name": name},
+            }
+        )
+
+        # Prepare configuration flow
+        return await _start_config_flow(
+            self,
+            SOURCE_ZEROCONF,
+            self.context.get(CONF_NAME),
+            discovery_info,
+            None,
+            True,
+        )
+
+    async def async_step_zeroconf_confirm(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Handle a flow initiated by zeroconf."""
+        return await _start_config_flow(
+            self, SOURCE_ZEROCONF, user_input[CONF_NAME], user_input
+        )
+
+    def _show_confirm_dialog(self, errors: dict | None = None) -> FlowResult:
+        """Show the confirm dialog to the user."""
+        name = self.context.get(CONF_NAME)
+        return self.async_show_form(
+            step_id="zeroconf_confirm",
+            description_placeholders={"name": name},
+            errors=errors or {},
+        )
+
     @staticmethod
     @callback
-    def async_get_options_flow(config_entry: config_entries.ConfigEntry):
+    def async_get_options_flow(config_entry: ConfigEntry):
         return OpenEVSEOptionsFlow(config_entry)
 
 
-class OpenEVSEOptionsFlow(config_entries.OptionsFlow):
+class OpenEVSEOptionsFlow(OptionsFlow):
     """Options flow for KeyMaster."""
 
-    def __init__(self, config_entry: config_entries.ConfigEntry):
+    def __init__(self, config_entry: ConfigEntry):
         """Initialize."""
         self.config_entry = config_entry
 
@@ -116,12 +167,41 @@ async def _start_config_flow(
     user_input: Dict[str, Any],
     defaults: Dict[str, Any] = None,
     entry_id: str = None,
-):
+    prepare: bool = False,
+) -> FlowResult:
     """Start a config flow."""
     errors = {}
     description_placeholders = {}
+    source = cls.context.get("source")
+
+    if user_input is None and not prepare:
+        if source == SOURCE_ZEROCONF:
+            return cls._show_confirm_dialog()
+        return _show_config_form(
+            cls,
+            step_id,
+            user_input,
+            errors,
+            description_placeholders,
+            defaults,
+            entry_id,
+        )
 
     if user_input is not None:
+        if source == SOURCE_ZEROCONF:
+            user_input[CONF_HOST] = cls.context.get(CONF_HOST)
+            user_input[CONF_ID] = cls.context.get(CONF_ID)
+            user_input[CONF_NAME] = cls.context.get(CONF_NAME)
+
+            # Check if already configured
+            await cls.async_set_unique_id(user_input[CONF_ID])
+            cls._abort_if_unique_id_configured(
+                updates={CONF_HOST: user_input[CONF_HOST]}
+            )
+
+        if prepare:
+            return await cls.async_step_zeroconf_confirm()
+
         user_input[CONF_NAME] = slugify(user_input[CONF_NAME].lower())
 
         # TODO: Insert openevse connection check here

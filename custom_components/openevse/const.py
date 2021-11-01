@@ -36,9 +36,8 @@ from homeassistant.const import (
     TIME_MINUTES,
 )
 
-from homeassistant.components.select import SelectEntityDescription
-
 CONF_NAME = "name"
+CONF_ID = "id"
 DEFAULT_HOST = "openevse.local"
 DEFAULT_NAME = "OpenEVSE"
 DOMAIN = "openevse"
