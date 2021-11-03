@@ -8,8 +8,14 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_NAME
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from . import connect, send_command
-from .const import COORDINATOR, DOMAIN, SELECT_TYPES
+from . import (
+    send_command,
+    CommandFailed,
+    InvalidValue,
+    OpenEVSEManager,
+    OpenEVSEUpdateCoordinator,
+)
+from .const import COORDINATOR, DOMAIN, MANAGER, SELECT_TYPES
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -95,5 +101,8 @@ class OpenEVSESelect(CoordinatorEntity, SelectEntity):
         if self._type == "current_capacity":
             min = self.coordinator.data["min_amps"]
             max = self.coordinator.data["max_amps"]
-            return list([item for item in range(min, max + 1)])
-        return SELECT_TYPES[self._type][2]
+            _LOGGER.debug(
+                "Max Amps: %s", list([str(item) for item in range(min, max + 1)])
+            )
+            return list([str(item) for item in range(min, max + 1)])
+        return SELECT_TYPES[self._type][1]
