@@ -207,6 +207,14 @@ SELECT_TYPES = {
         "$SC",
         ENTITY_CATEGORY_CONFIG,
     ],
+    "sensor_scale": [
+        "Sensor Scale",
+        None,
+        "scale",
+        "mdi:scale",
+        None,
+        None,
+    ],
 }
 
 # key: name
