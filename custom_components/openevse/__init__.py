@@ -3,22 +3,26 @@ from __future__ import annotations
 import asyncio
 import logging
 from datetime import timedelta
-from typing import Any
 
 import homeassistant.helpers.device_registry as dr
-import openevsehttp
+from openevsehttp import OpenEVSE
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_HOST, CONF_PASSWORD, CONF_USERNAME
-from homeassistant.core import Config, HomeAssistant
+from homeassistant.const import (
+    CONF_HOST,
+    CONF_PASSWORD,
+    CONF_USERNAME,
+)
+from homeassistant.core import callback, Config, HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
-from requests import RequestException
 
 from .const import (
+    BINARY_SENSORS,
     CONF_NAME,
     COORDINATOR,
     DOMAIN,
     ISSUE_URL,
+    MANAGER,
     PLATFORMS,
     SENSOR_TYPES,
     VERSION,
@@ -57,8 +61,9 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
     )
 
     config_entry.add_update_listener(update_listener)
-    interval = 10
-    coordinator = OpenEVSEUpdateCoordinator(hass, interval, config_entry)
+    manager = OpenEVSEManager(hass, config_entry).charger
+    interval = 300
+    coordinator = OpenEVSEUpdateCoordinator(hass, interval, config_entry, manager)
 
     # Fetch initial data so we have data when entities subscribe
     await coordinator.async_refresh()
@@ -66,13 +71,14 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
     if not coordinator.last_update_success:
         raise ConfigEntryNotReady
 
+    manager.coordinator = coordinator
+
     hass.data[DOMAIN][config_entry.entry_id] = {
         COORDINATOR: coordinator,
+        MANAGER: manager,
     }
 
-    model_info, sw_version = await hass.async_add_executor_job(
-        get_firmware, config_entry
-    )
+    model_info, sw_version = await get_firmware(manager)
 
     device_registry = await dr.async_get_registry(hass)
     device_registry.async_get_or_create(
@@ -84,6 +90,8 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
         sw_version=sw_version,
     )
 
+    await coordinator.async_refresh()
+
     for platform in PLATFORMS:
         hass.async_create_task(
             hass.config_entries.async_forward_entry_setup(config_entry, platform)
@@ -92,20 +100,16 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
     return True
 
 
-def get_firmware(config: ConfigEntry) -> tuple:
+async def get_firmware(manager: OpenEVSEManager) -> tuple:
     """Get firmware version."""
-    host = config.data.get(CONF_HOST)
-    username = config.data.get(CONF_USERNAME)
-    password = config.data.get(CONF_PASSWORD)
-    _LOGGER.debug("Connecting to %s, with username %s", host, username)
-    charger = openevsehttp.OpenEVSE(host, user=username, pwd=password)
+    _LOGGER.debug("Getting firmware versions...")
     try:
-        charger.update()
+        await manager.update()
     except Exception as error:
         _LOGGER.error("Problem retreiving firmware data: %s", error)
         return "", ""
 
-    return charger.wifi_firmware, charger.openevse_firmware
+    return manager.wifi_firmware, manager.openevse_firmware
 
 
 async def async_unload_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:
@@ -121,6 +125,12 @@ async def async_unload_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> 
             ]
         )
     )
+
+    _LOGGER.debug("Checking websocket...")
+    manager = hass.data[DOMAIN][config_entry.entry_id][MANAGER]
+    if manager.ws_state != "stopped":
+        _LOGGER.debug("Closing websocket")
+        manager.ws_disconnect()
 
     if unload_ok:
         _LOGGER.debug("Successfully removed entities from the %s integration", DOMAIN)
@@ -148,70 +158,131 @@ async def update_listener(hass: HomeAssistant, config_entry: ConfigEntry) -> Non
     await hass.config_entries.async_reload(config_entry.entry_id)
 
 
-def get_sensors(hass: HomeAssistant, config: ConfigEntry) -> dict:
-
-    data = {}
-    host = config.data.get(CONF_HOST)
-    username = config.data.get(CONF_USERNAME)
-    password = config.data.get(CONF_PASSWORD)
-    charger = openevsehttp.OpenEVSE(host, user=username, pwd=password)
-    try:
-        charger.update()
-    except Exception as error:
-        _LOGGER.error("Error updating sesnors: %s", error)
-        return {}
-
-    for sensor in SENSOR_TYPES:
-        _sensor = {}
-        try:
-            sensor_property = SENSOR_TYPES[sensor][2]
-            if sensor == "current_power":
-                _sensor[sensor] = None
-            else:
-                _sensor[sensor] = getattr(charger, sensor_property)
-            _LOGGER.debug(
-                "sensor: %s sensor_property: %s value: %s",
-                sensor,
-                sensor_property,
-                _sensor[sensor],
-            )
-        except (RequestException, ValueError, KeyError):
-            _LOGGER.warning("Could not update status for %s", sensor)
-        data.update(_sensor)
-    _LOGGER.debug("DEBUG: %s", data)
-    return data
-
-
 class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
-    """Class to manage fetching mail data."""
+    """Class to manage fetching OpenEVSE data."""
 
-    def __init__(self, hass, interval, config):
+    def __init__(self, hass, interval, config, manager):
         """Initialize."""
         self.interval = timedelta(seconds=interval)
         self.name = f"OpenEVSE ({config.data.get(CONF_NAME)})"
         self.config = config
         self.hass = hass
+        self._manager = manager
+        self._data = {}
+        self._manager.callback = self.websocket_update
 
         _LOGGER.debug("Data will be update every %s", self.interval)
 
         super().__init__(hass, _LOGGER, name=self.name, update_interval=self.interval)
 
     async def _async_update_data(self):
-        """Fetch data"""
+        """Return data"""
+        await self.update_sensors()
+        return self._data
+
+    async def update_sensors(self) -> dict:
+        """Update sensor data."""
         try:
-            data = await self.hass.async_add_executor_job(
-                get_sensors, self.hass, self.config
-            )
+            await self._manager.update()
+        except RuntimeError:
+            pass
         except Exception as error:
+            _LOGGER.debug(
+                "Error updating sensors [%s]: %s", type(error).__name__, error
+            )
             raise UpdateFailed(error) from error
-        return data
+
+        self.parse_sensors()
+        return self._data
+
+    @callback
+    def websocket_update(self):
+        """Trigger processing updated websocket data."""
+        _LOGGER.debug("Websocket update!")
+        self.parse_sensors()
+        coordinator = self.hass.data[DOMAIN][self.config.entry_id][COORDINATOR]
+        coordinator.async_set_updated_data(self._data)
+
+    def parse_sensors(self) -> None:
+        """Parse updated sensor data."""
+        data = {}
+        for sensor in SENSOR_TYPES:
+            _sensor = {}
+            try:
+                sensor_property = SENSOR_TYPES[sensor].key
+                if sensor == "current_power":
+                    _sensor[sensor] = None
+                else:
+                    _sensor[sensor] = getattr(self._manager, sensor_property)
+                _LOGGER.debug(
+                    "sensor: %s sensor_property: %s value: %s",
+                    sensor,
+                    sensor_property,
+                    _sensor[sensor],
+                )
+            except (ValueError, KeyError):
+                _LOGGER.warning("Could not update status for %s", sensor)
+            data.update(_sensor)
+
+        for binary_sensor in BINARY_SENSORS:
+            _sensor = {}
+            try:
+                sensor_property = BINARY_SENSORS[binary_sensor].key
+                _sensor[binary_sensor] = getattr(self._manager, sensor_property)
+                _LOGGER.debug(
+                    "binary sensor: %s sensor_property: %s value %s",
+                    binary_sensor,
+                    sensor_property,
+                    _sensor[binary_sensor],
+                )
+            except (ValueError, KeyError):
+                _LOGGER.warning(
+                    "Could not update status for %s",
+                    binary_sensor,
+                )
+            data.update(_sensor)
+        _LOGGER.debug("DEBUG: %s", data)
+        self._data = data
+
+    async def get_sensors(self) -> dict:
+        """Trigger sensor data update."""
+        try:
+            await self._manager.update()
+        except RuntimeError:
+            pass
+        except Exception as error:
+            _LOGGER.error(
+                "Error updating sesnors [%s]: %s", type(error).__name__, error
+            )
+
+        self.parse_sensors()
 
 
-def send_command(handler, command) -> Any:
-    response = handler.send_command(command)
-    _LOGGER.debug("send_command: %s", response)
-    return response
+async def send_command(handler, command) -> None:
+    cmd, response = await handler.send_command(command)
+    _LOGGER.debug("send_command: %s, %s", cmd, response)
+    if cmd == command:
+        if response == "$NK^21":
+            raise InvalidValue
+        return None
+
+    raise CommandFailed
 
 
-def connect(host: str, username: str = None, password: str = None) -> Any:
-    return openevsehttp.OpenEVSE(host, user=username, pwd=password)
+class OpenEVSEManager:
+    """OpenEVSE connection manager."""
+
+    def __init__(self, hass: HomeAssistant, config_entry: ConfigEntry) -> None:
+        """Initialize."""
+        self._host = config_entry.data.get(CONF_HOST)
+        self._username = config_entry.data.get(CONF_USERNAME)
+        self._password = config_entry.data.get(CONF_PASSWORD)
+        self.charger = OpenEVSE(self._host, user=self._username, pwd=self._password)
+
+
+class InvalidValue(Exception):
+    """Exception for invalid value errors."""
+
+
+class CommandFailed(Exception):
+    """Exception for invalid command errors."""
