@@ -34,7 +34,7 @@ from homeassistant.const import (
     TIME_MINUTES,
 )
 
-from homeassistant.components.select import SelectEntityDescription
+from .entity import OpenEVSESelectEntityDescription
 
 CONF_NAME = "name"
 DEFAULT_HOST = "openevse.local"
@@ -194,35 +194,21 @@ SENSOR_TYPES: Final[dict[str, SensorEntityDescription]] = {
 SWITCH_TYPES = ["Sleep Mode"]
 
 # Name, options, command, entity category
-SELECT_TYPES = {
-    "service_level": [
-        "Service Level",
-        SERVICE_LEVELS,
-        "$SL",
-        ENTITY_CATEGORY_CONFIG,
-    ],
-    "current_capacity": [
-        "Max Current",
-        None,
-        "$SC",
-        ENTITY_CATEGORY_CONFIG,
-    ],
-    "sensor_scale": [
-        "Sensor Scale",
-        None,
-        "scale",
-        "mdi:scale",
-        None,
-        None,
-    ],
-    "sensor_scale": [
-        "Sensor Scale",
-        None,
-        "scale",
-        "mdi:scale",
-        None,
-        None,
-    ],
+SELECT_TYPES: Final[dict[str, OpenEVSESelectEntityDescription]] = {
+    "service_level": OpenEVSESelectEntityDescription(
+        name="Service Level",
+        key="service_level",
+        default_options=SERVICE_LEVELS,
+        command="$SL",
+        entity_category=ENTITY_CATEGORY_CONFIG,
+    ),
+    "current_capacity": OpenEVSESelectEntityDescription(
+        name="Max Current",
+        key="current_capacity",
+        default_options=None,
+        command="$SC",
+        entity_category=ENTITY_CATEGORY_CONFIG,
+    ),
 }
 
 # key: name
