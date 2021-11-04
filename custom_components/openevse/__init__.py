@@ -88,6 +88,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
         manufacturer="OpenEVSE",
         model=f"Wifi version {model_info}",
         sw_version=sw_version,
+        configuration_url=manager.url,
     )
 
     await coordinator.async_refresh()
