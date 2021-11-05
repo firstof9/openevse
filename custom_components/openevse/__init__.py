@@ -91,7 +91,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
 
     await coordinator.async_refresh()
     # Start the websocket listener
-    await manager.ws_start()
+    manager.ws_start()
 
     for platform in PLATFORMS:
         hass.async_create_task(
