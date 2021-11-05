@@ -71,8 +71,6 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
     if not coordinator.last_update_success:
         raise ConfigEntryNotReady
 
-    manager.coordinator = coordinator
-
     hass.data[DOMAIN][config_entry.entry_id] = {
         COORDINATOR: coordinator,
         MANAGER: manager,
@@ -92,6 +90,8 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
     )
 
     await coordinator.async_refresh()
+    # Start the websocket listener
+    await manager.ws_start()
 
     for platform in PLATFORMS:
         hass.async_create_task(
