@@ -62,7 +62,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
 
     config_entry.add_update_listener(update_listener)
     manager = OpenEVSEManager(hass, config_entry).charger
-    interval = 300
+    interval = 60
     coordinator = OpenEVSEUpdateCoordinator(hass, interval, config_entry, manager)
 
     # Fetch initial data so we have data when entities subscribe
