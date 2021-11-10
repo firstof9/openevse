@@ -62,7 +62,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
 
     config_entry.add_update_listener(update_listener)
     manager = OpenEVSEManager(hass, config_entry).charger
-    interval = 300
+    interval = 60
     coordinator = OpenEVSEUpdateCoordinator(hass, interval, config_entry, manager)
 
     # Fetch initial data so we have data when entities subscribe
@@ -70,8 +70,6 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
 
     if not coordinator.last_update_success:
         raise ConfigEntryNotReady
-
-    manager.coordinator = coordinator
 
     hass.data[DOMAIN][config_entry.entry_id] = {
         COORDINATOR: coordinator,
@@ -88,9 +86,12 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
         manufacturer="OpenEVSE",
         model=f"Wifi version {model_info}",
         sw_version=sw_version,
+        configuration_url=manager.url,
     )
 
     await coordinator.async_refresh()
+    # Start the websocket listener
+    manager.ws_start()
 
     for platform in PLATFORMS:
         hass.async_create_task(

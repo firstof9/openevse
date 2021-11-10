@@ -67,5 +67,8 @@ class OpenEVSEBinarySensor(CoordinatorEntity, BinarySensorEntity):
     def is_on(self) -> bool:
         """Return True if the service is on."""
         data = self.coordinator.data
+        if self._type not in data.keys():
+            _LOGGER.info("binary_sensor [%s] not supported.")
+            return None
         _LOGGER.debug("binary_sensor [%s]: %s", self._name, data[self._type])
         return cast(bool, data[self._type] == 1)

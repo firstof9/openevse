@@ -2,6 +2,7 @@
 from __future__ import annotations
 import logging
 from typing import Any, Optional
+from .entity import OpenEVSESelectEntityDescription
 
 from homeassistant.components.select import SelectEntity
 from homeassistant.config_entries import ConfigEntry
@@ -26,7 +27,9 @@ async def async_setup_entry(hass, entry, async_add_entities):
     manager = hass.data[DOMAIN][entry.entry_id][MANAGER]
     selects = []
     for select in SELECT_TYPES:
-        selects.append(OpenEVSESelect(hass, entry, coordinator, select, manager))
+        selects.append(
+            OpenEVSESelect(hass, entry, coordinator, SELECT_TYPES[select], manager)
+        )
 
     async_add_entities(selects, False)
 
@@ -39,21 +42,21 @@ class OpenEVSESelect(CoordinatorEntity, SelectEntity):
         hass,
         config_entry: ConfigEntry,
         coordinator: OpenEVSEUpdateCoordinator,
-        name: str,
+        description: OpenEVSESelectEntityDescription,
         manager: OpenEVSEManager,
     ) -> None:
         super().__init__(coordinator)
         self.hass = hass
         self._config = config_entry
         self.coordinator = coordinator
-        self._type = name
-        self._attr_name = f"{config_entry.data[CONF_NAME]} {SELECT_TYPES[name][0]}"
+        self._type = description.key
+        self._attr_name = f"{config_entry.data[CONF_NAME]} {description.name}"
         self._attr_unique_id = f"{self._attr_name}_{config_entry.entry_id}"
         self._attr_current_option = self.coordinator.data[self._type]
-        self._attr_options = self.get_options()
-        self._command = SELECT_TYPES[name][2]
+        self._command = description.command
         self._manager = manager
-        self._entity_category = SELECT_TYPES[name][3]
+        self._default_options = description.default_options
+        self._attr_options = self.get_options()
 
     @property
     def device_info(self):
@@ -91,11 +94,6 @@ class OpenEVSESelect(CoordinatorEntity, SelectEntity):
         """Return if entity is available."""
         return self.coordinator.last_update_success
 
-    @property
-    def entity_category(self) -> str | None:
-        """Return the category of the entity, if any."""
-        return self._entity_category
-
     def get_options(self) -> list[str]:
         """Return a set of selectable options."""
         if self._type == "current_capacity":
@@ -105,4 +103,4 @@ class OpenEVSESelect(CoordinatorEntity, SelectEntity):
                 "Max Amps: %s", list([str(item) for item in range(min, max + 1)])
             )
             return list([str(item) for item in range(min, max + 1)])
-        return SELECT_TYPES[self._type][1]
+        return self._default_options
