@@ -229,7 +229,8 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
             _sensor = {}
             try:
                 sensor_property = BINARY_SENSORS[binary_sensor].key
-                _sensor[binary_sensor] = getattr(self._manager, sensor_property)
+                # Data can be sent as boolean or as 1/0
+                _sensor[binary_sensor] = bool(getattr(self._manager, sensor_property))
                 _LOGGER.debug(
                     "binary sensor: %s sensor_property: %s value %s",
                     binary_sensor,
