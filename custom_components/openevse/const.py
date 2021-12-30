@@ -180,6 +180,37 @@ SENSOR_TYPES: Final[dict[str, SensorEntityDescription]] = {
         icon="mdi:scale",
         entity_category=ENTITY_CATEGORY_DIAGNOSTIC,
     ),
+    "divertmode": SensorEntityDescription(
+        name="Divert Mode",
+        key="divertmode",
+        icon="mdi:solar-power",
+        device_class=DEVICE_CLASS_POWER,
+        entity_category=ENTITY_CATEGORY_CONFIG,
+    ),
+    "available_current": SensorEntityDescription(
+        name="PV Available Current",
+        key="available_current",
+        icon="mdi:sine-wave",
+        native_unit_of_measurement=ELECTRIC_CURRENT_AMPERE,
+        state_class=STATE_CLASS_MEASUREMENT,
+        device_class=DEVICE_CLASS_CURRENT,
+    ),
+    "smoothed_available_current": SensorEntityDescription(
+        name="PV Smoothed Available Current",
+        key="smoothed_available_current",
+        icon="mdi:sine-wave",
+        native_unit_of_measurement=ELECTRIC_CURRENT_AMPERE,
+        state_class=STATE_CLASS_MEASUREMENT,
+        device_class=DEVICE_CLASS_CURRENT,
+    ),
+    "charge_rate": SensorEntityDescription(
+        name="PV Charge Rate",
+        key="charge_rate",
+        icon="mdi:sine-wave",
+        native_unit_of_measurement=ELECTRIC_CURRENT_AMPERE,
+        state_class=STATE_CLASS_MEASUREMENT,
+        device_class=DEVICE_CLASS_CURRENT,
+    ),
 }
 
 SWITCH_TYPES = ["Sleep Mode"]
@@ -214,6 +245,16 @@ BINARY_SENSORS: Final[dict[str, BinarySensorEntityDescription]] = {
         name="Vehicle Connected",
         key="vehicle",
         device_class=BinarySensorDeviceClass.PLUG,
+    ),
+    "manual_override": BinarySensorEntityDescription(
+        name="Manual Override",
+        key="manual_override",
+        device_class=DEVICE_CLASS_POWER,
+    ),
+    "divert_active": BinarySensorEntityDescription(
+        name="Divert Active",
+        key="divert_active",
+        device_class=DEVICE_CLASS_POWER,
     ),
     "using_ethernet": BinarySensorEntityDescription(
         name="Ethernet Connected",
