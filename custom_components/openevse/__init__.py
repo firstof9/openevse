@@ -222,7 +222,7 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
                     _sensor[sensor],
                 )
             except (ValueError, KeyError):
-                _LOGGER.warning("Could not update status for %s", sensor)
+                _LOGGER.info("Could not update status for %s", sensor)
             data.update(_sensor)
 
         for binary_sensor in BINARY_SENSORS:
