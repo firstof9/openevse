@@ -44,6 +44,7 @@ If you want to contribute to this please read the [Contribution guidelines](CONT
 
 ## TODO
 
+- [ ] Add tests
 - [x] Current
 - [x] Voltage
 - [x] Power
