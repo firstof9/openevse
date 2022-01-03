@@ -13,6 +13,11 @@ from homeassistant.components.binary_sensor import (
     BinarySensorEntityDescription,
 )
 
+from homeassistant.components.switch import (
+    SwitchDeviceClass,
+    SwitchEntityDescription,
+)
+
 from homeassistant.const import (
     ELECTRIC_CURRENT_AMPERE,
     ELECTRIC_POTENTIAL_VOLT,
@@ -25,7 +30,10 @@ from homeassistant.const import (
     TIME_MINUTES,
 )
 
-from .entity import OpenEVSESelectEntityDescription
+from .entity import (
+    OpenEVSESelectEntityDescription, 
+    OpenEVSESwitchEntityDescription,
+)
 
 CONF_NAME = "name"
 DEFAULT_HOST = "openevse.local"
@@ -213,7 +221,21 @@ SENSOR_TYPES: Final[dict[str, SensorEntityDescription]] = {
     ),
 }
 
-SWITCH_TYPES = ["Sleep Mode"]
+SWITCH_TYPES: Final[dict[str, OpenEVSESwitchEntityDescription]] = {
+    "sleep_mode": OpenEVSESwitchEntityDescription(
+        name="Sleep Mode",
+        key="state",
+        on_command="$FE",
+        off_command="$FS",
+        device_class=SwitchDeviceClass.SWITCH,
+    ),
+    "manual_override": OpenEVSESwitchEntityDescription(
+        name="Manual Override",
+        key="manual_override",
+        toggle_command="toggle_override",
+        device_class=SwitchDeviceClass.SWITCH,        
+    ),
+}
 
 # Name, options, command, entity category
 SELECT_TYPES: Final[dict[str, OpenEVSESelectEntityDescription]] = {
