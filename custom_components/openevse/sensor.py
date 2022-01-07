@@ -8,12 +8,7 @@ from homeassistant.components.sensor import SensorEntity, SensorEntityDescriptio
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import (
-    CONF_NAME,
-    COORDINATOR,
-    DOMAIN,
-    SENSOR_TYPES,
-)
+from .const import CONF_NAME, COORDINATOR, DOMAIN, SENSOR_TYPES
 
 _LOGGER = logging.getLogger(__name__)
 

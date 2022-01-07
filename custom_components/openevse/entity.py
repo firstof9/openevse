@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+
 from homeassistant.components.select import SelectEntityDescription
 from homeassistant.components.switch import SwitchEntityDescription
 
@@ -12,6 +13,7 @@ class OpenEVSESelectEntityDescription(SelectEntityDescription):
 
     command: str | None = None
     default_options: list | None = None
+
 
 @dataclass
 class OpenEVSESwitchEntityDescription(SwitchEntityDescription):

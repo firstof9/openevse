@@ -1,6 +1,5 @@
 """Binary sensors for OpenEVSE Charger."""
 import logging
-
 from typing import cast
 
 from homeassistant.components.binary_sensor import (
@@ -13,7 +12,7 @@ from homeassistant.helpers.update_coordinator import (
     DataUpdateCoordinator,
 )
 
-from .const import CONF_NAME, COORDINATOR, DOMAIN, BINARY_SENSORS
+from .const import BINARY_SENSORS, CONF_NAME, COORDINATOR, DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 

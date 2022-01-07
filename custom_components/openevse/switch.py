@@ -2,19 +2,16 @@
 import logging
 from typing import Any, cast
 
-from homeassistant.components.switch import (
-    SwitchEntity, 
-    SwitchEntityDescription,
-)
+from homeassistant.components.switch import SwitchEntity, SwitchEntityDescription
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_NAME
 
 from . import (
-    send_command,
     CommandFailed,
     InvalidValue,
     OpenEVSEManager,
     OpenEVSEUpdateCoordinator,
+    send_command,
 )
 from .const import COORDINATOR, DOMAIN, MANAGER, SWITCH_TYPES
 from .entity import OpenEVSESwitchEntityDescription
@@ -29,7 +26,9 @@ async def async_setup_entry(hass, entry, async_add_entities):
 
     switches = []
     for switch in SWITCH_TYPES:
-        switches.append(OpenEVSESwitch(hass, entry, coordinator, SWITCH_TYPES[switch], manager))
+        switches.append(
+            OpenEVSESwitch(hass, entry, coordinator, SWITCH_TYPES[switch], manager)
+        )
 
     async_add_entities(switches, False)
 
@@ -45,7 +44,7 @@ class OpenEVSESwitch(SwitchEntity):
         description: OpenEVSESwitchEntityDescription,
         manager: OpenEVSEManager,
     ) -> None:
-        super().__init__(coordinator)    
+        super().__init__(coordinator)
         self.hass = hass
         self._config = config_entry
         self.coordinator = coordinator
@@ -57,7 +56,6 @@ class OpenEVSESwitch(SwitchEntity):
         self.on_command = description.on_command | None
         self.off_command = description.off_command | None
         self.toggle_command = description.toggle_command | None
-
 
     @property
     def unique_id(self) -> str:
@@ -98,11 +96,11 @@ class OpenEVSESwitch(SwitchEntity):
             try:
                 await send_command(self._manager, self.on_command)
             except (ValueError, KeyError):
-                    _LOGGER.warning("Could not set status for %s", self._attr_name)     
+                _LOGGER.warning("Could not set status for %s", self._attr_name)
             except InvalidValue:
                 _LOGGER.error(f"Value {self.on_command} invalid for switch.")
             except CommandFailed:
-                _LOGGER.error("Switch command failed.")                               
+                _LOGGER.error("Switch command failed.")
         elif self.toggle_command is not None:
             await getattr(self._manager, self.toggle_command)
         else:
@@ -114,11 +112,11 @@ class OpenEVSESwitch(SwitchEntity):
             try:
                 await send_command(self._manager, self.off_command)
             except (ValueError, KeyError):
-                    _LOGGER.warning("Could not set status for %s", self._attr_name)                    
+                _LOGGER.warning("Could not set status for %s", self._attr_name)
             except InvalidValue:
                 _LOGGER.error(f"Value {self.off_command} invalid for switch.")
             except CommandFailed:
-                _LOGGER.error("Switch command failed.")                     
+                _LOGGER.error("Switch command failed.")
         elif self.toggle_command is not None:
             await getattr(self._manager, self.toggle_command)
         else:
