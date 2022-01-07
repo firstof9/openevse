@@ -18,7 +18,7 @@ _Component to integrate with [OpenEVSE][openevse] chargers._
 Platform | Description
 -- | --
 `sensor` | Show info from an OpenEVSE charger's API.
-`switch` | Switch to toggle "Sleep Mode".
+`switch` | Switch to toggle various charger modes.
 `select` | Select the ampers limit and service level.
 
 ## Installation
