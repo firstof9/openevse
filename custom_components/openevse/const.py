@@ -217,8 +217,7 @@ SWITCH_TYPES: Final[dict[str, OpenEVSESwitchEntityDescription]] = {
     "sleep_mode": OpenEVSESwitchEntityDescription(
         name="Sleep Mode",
         key="state",
-        on_command="$FS",
-        off_command="$FE",
+        toggle_command="toggle_override",
         device_class=SwitchDeviceClass.SWITCH,
     ),
     "manual_override": OpenEVSESwitchEntityDescription(
