@@ -102,7 +102,7 @@ class OpenEVSESwitch(SwitchEntity):
             except CommandFailed:
                 _LOGGER.error("Switch command failed.")
         elif self.toggle_command is not None:
-            await getattr(self._manager, self.toggle_command)
+            await getattr(self._manager, self.toggle_command)()
         else:
             return
 
@@ -118,6 +118,6 @@ class OpenEVSESwitch(SwitchEntity):
             except CommandFailed:
                 _LOGGER.error("Switch command failed.")
         elif self.toggle_command is not None:
-            await getattr(self._manager, self.toggle_command)
+            await getattr(self._manager, self.toggle_command)()
         else:
             return

@@ -19,6 +19,4 @@ class OpenEVSESelectEntityDescription(SelectEntityDescription):
 class OpenEVSESwitchEntityDescription(SwitchEntityDescription):
     """Class describing OpenEVSE select entities."""
 
-    on_command: str | None = None
-    off_command: str | None = None
     toggle_command: str | None = None
