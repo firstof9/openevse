@@ -5,4 +5,5 @@
     "homeassistant": "0.118.0",
     "zip_release": true,
     "filename": "openevse.zip"   
+    "render_readme": true
 }
