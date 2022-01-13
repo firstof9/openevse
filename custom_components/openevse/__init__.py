@@ -1,20 +1,17 @@
 """The openevse component."""
 from __future__ import annotations
+
 import asyncio
 import logging
 from datetime import timedelta
 
 import homeassistant.helpers.device_registry as dr
-from openevsehttp import OpenEVSE
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import (
-    CONF_HOST,
-    CONF_PASSWORD,
-    CONF_USERNAME,
-)
-from homeassistant.core import callback, Config, HomeAssistant
+from homeassistant.const import CONF_HOST, CONF_PASSWORD, CONF_USERNAME
+from homeassistant.core import Config, HomeAssistant, callback
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
+from openevsehttp import OpenEVSE
 
 from .const import (
     BINARY_SENSORS,

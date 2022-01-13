@@ -2,30 +2,29 @@ from __future__ import annotations
 
 from typing import Final
 
+from homeassistant.components.binary_sensor import (
+    BinarySensorDeviceClass,
+    BinarySensorEntityDescription,
+)
 from homeassistant.components.sensor import (
     SensorDeviceClass,
     SensorEntityDescription,
     SensorStateClass,
 )
-
-from homeassistant.components.binary_sensor import (
-    BinarySensorDeviceClass,
-    BinarySensorEntityDescription,
-)
-
+from homeassistant.components.switch import SwitchDeviceClass
 from homeassistant.const import (
     ELECTRIC_CURRENT_AMPERE,
     ELECTRIC_POTENTIAL_VOLT,
+    ENERGY_KILO_WATT_HOUR,
     ENTITY_CATEGORY_CONFIG,
     ENTITY_CATEGORY_DIAGNOSTIC,
-    ENERGY_KILO_WATT_HOUR,
     POWER_WATT,
     SIGNAL_STRENGTH_DECIBELS,
     TEMP_CELSIUS,
     TIME_MINUTES,
 )
 
-from .entity import OpenEVSESelectEntityDescription
+from .entity import OpenEVSESelectEntityDescription, OpenEVSESwitchEntityDescription
 
 CONF_NAME = "name"
 DEFAULT_HOST = "openevse.local"
@@ -39,6 +38,7 @@ USER_AGENT = "Home Assistant"
 MANAGER = "manager"
 
 SERVICE_LEVELS = ["1", "2", "A"]
+DIVERT_MODE = ["normal", "eco"]
 
 # Name, unit of measure, property, icon, device class, state class
 SENSOR_TYPES: Final[dict[str, SensorEntityDescription]] = {
@@ -213,7 +213,20 @@ SENSOR_TYPES: Final[dict[str, SensorEntityDescription]] = {
     ),
 }
 
-SWITCH_TYPES = ["Sleep Mode"]
+SWITCH_TYPES: Final[dict[str, OpenEVSESwitchEntityDescription]] = {
+    "sleep_mode": OpenEVSESwitchEntityDescription(
+        name="Sleep Mode",
+        key="state",
+        toggle_command="toggle_override",
+        device_class=SwitchDeviceClass.SWITCH,
+    ),
+    "manual_override": OpenEVSESwitchEntityDescription(
+        name="Manual Override",
+        key="manual_override",
+        toggle_command="toggle_override",
+        device_class=SwitchDeviceClass.SWITCH,
+    ),
+}
 
 # Name, options, command, entity category
 SELECT_TYPES: Final[dict[str, OpenEVSESelectEntityDescription]] = {
@@ -229,6 +242,13 @@ SELECT_TYPES: Final[dict[str, OpenEVSESelectEntityDescription]] = {
         key="current_capacity",
         default_options=None,
         command="$SC",
+        entity_category=ENTITY_CATEGORY_CONFIG,
+    ),
+    "divertmode": OpenEVSESelectEntityDescription(
+        name="Divert Mode",
+        key="divertmode",
+        default_options=DIVERT_MODE,
+        command="divert_mode",
         entity_category=ENTITY_CATEGORY_CONFIG,
     ),
 }
