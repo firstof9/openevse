@@ -1,8 +1,11 @@
 """Support for OpenEVSE switches."""
+from __future__ import annotations
+
 import logging
 from typing import Any, cast
 
-from homeassistant.components.switch import SwitchEntity, SwitchEntityDescription
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
+from homeassistant.components.switch import SwitchEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_NAME
 
@@ -33,7 +36,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
     async_add_entities(switches, False)
 
 
-class OpenEVSESwitch(SwitchEntity):
+class OpenEVSESwitch(CoordinatorEntity, SwitchEntity):
     """Representation of the value of a OpenEVSE Switch."""
 
     def __init__(
@@ -49,13 +52,12 @@ class OpenEVSESwitch(SwitchEntity):
         self._config = config_entry
         self.coordinator = coordinator
         self._type = description.key
+        self._unique_id = config_entry.entry_id
         self._attr_name = f"{config_entry.data[CONF_NAME]} {description.name}"
         self._attr_unique_id = f"{self._attr_name}_{config_entry.entry_id}"
         self._manager = manager
         self._state = None
-        self.on_command = description.on_command | None
-        self.off_command = description.off_command | None
-        self.toggle_command = description.toggle_command | None
+        self.toggle_command = description.toggle_command
 
     @property
     def unique_id(self) -> str:
@@ -73,7 +75,7 @@ class OpenEVSESwitch(SwitchEntity):
         info = {
             "manufacturer": "OpenEVSE",
             "name": self._config.data[CONF_NAME],
-            "connections": {(DOMAIN, self._attr_unique_id)},
+            "connections": {(DOMAIN, self._unique_id)},
         }
 
         return info

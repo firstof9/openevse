@@ -38,7 +38,7 @@ USER_AGENT = "Home Assistant"
 MANAGER = "manager"
 
 SERVICE_LEVELS = ["1", "2", "A"]
-DIVERT_MODE = ["Normal", "Eco"]
+DIVERT_MODE = ["normal", "eco"]
 
 # Name, unit of measure, property, icon, device class, state class
 SENSOR_TYPES: Final[dict[str, SensorEntityDescription]] = {
