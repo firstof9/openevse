@@ -94,32 +94,14 @@ class OpenEVSESwitch(CoordinatorEntity, SwitchEntity):
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn the switch on."""
-        if self.on_command is not None:
-            try:
-                await send_command(self._manager, self.on_command)
-            except (ValueError, KeyError):
-                _LOGGER.warning("Could not set status for %s", self._attr_name)
-            except InvalidValue:
-                _LOGGER.error(f"Value {self.on_command} invalid for switch.")
-            except CommandFailed:
-                _LOGGER.error("Switch command failed.")
-        elif self.toggle_command is not None:
+        if self.toggle_command is not None:
             await getattr(self._manager, self.toggle_command)()
         else:
             return
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn the switch off."""
-        if self.off_command is not None:
-            try:
-                await send_command(self._manager, self.off_command)
-            except (ValueError, KeyError):
-                _LOGGER.warning("Could not set status for %s", self._attr_name)
-            except InvalidValue:
-                _LOGGER.error(f"Value {self.off_command} invalid for switch.")
-            except CommandFailed:
-                _LOGGER.error("Switch command failed.")
-        elif self.toggle_command is not None:
+        if self.toggle_command is not None:
             await getattr(self._manager, self.toggle_command)()
         else:
             return
