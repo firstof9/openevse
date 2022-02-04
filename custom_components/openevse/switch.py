@@ -85,7 +85,7 @@ class OpenEVSESwitch(CoordinatorEntity, SwitchEntity):
         """Return True if switch is on."""
         data = self.coordinator.data
         if self._type not in data.keys():
-            _LOGGER.info("switch [%s] not supported.")
+            _LOGGER.info("switch [%s] not supported.", self._type)
             return None
         _LOGGER.debug("switch [%s]: %s", self._attr_name, data[self._type])
         if self._type == "state":
