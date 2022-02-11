@@ -56,9 +56,9 @@ If you want to contribute to this please read the [Contribution guidelines](CONT
 - [x] Rssi
 - [ ] Max current
 - [x] Charge current
-- [ ] Manual Override
+- [X] Manual Override
 - [ ] Schedule
-- [ ] Divert mode
+- [X] Divert mode
 - [ ] Auto discovery
 - [x] Setup via Home Assistant UI
 - [x] Real time updates via web socket
