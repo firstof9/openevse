@@ -241,7 +241,7 @@ SELECT_TYPES: Final[dict[str, OpenEVSESelectEntityDescription]] = {
         name="Max Current",
         key="current_capacity",
         default_options=None,
-        command="$SC",
+        command="set_current",
         entity_category=ENTITY_CATEGORY_CONFIG,
     ),
     "divertmode": OpenEVSESelectEntityDescription(
