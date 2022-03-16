@@ -2,7 +2,7 @@
   "domain": "openevse",
   "name": "OpenEVSE",
   "documentation": "https://www.home-assistant.io/integrations/openevse",
-  "requirements": ["python-openevse-http==0.1.19"],
+  "requirements": ["python-openevse-http==0.1.20"],
   "codeowners": [],
   "iot_class": "local_polling",
   "config_flow": true,
