@@ -1,6 +1,5 @@
 """Binary sensors for OpenEVSE Charger."""
 import logging
-
 from typing import cast
 
 from homeassistant.components.binary_sensor import (
@@ -13,7 +12,7 @@ from homeassistant.helpers.update_coordinator import (
     DataUpdateCoordinator,
 )
 
-from .const import CONF_NAME, COORDINATOR, DOMAIN, BINARY_SENSORS
+from .const import BINARY_SENSORS, CONF_NAME, COORDINATOR, DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -68,7 +67,7 @@ class OpenEVSEBinarySensor(CoordinatorEntity, BinarySensorEntity):
         """Return True if the service is on."""
         data = self.coordinator.data
         if self._type not in data.keys():
-            _LOGGER.info("binary_sensor [%s] not supported.")
+            _LOGGER.info("binary_sensor [%s] not supported.", self._type)
             return None
         _LOGGER.debug("binary_sensor [%s]: %s", self._name, data[self._type])
         return cast(bool, data[self._type] == 1)

@@ -18,7 +18,7 @@ _Component to integrate with [OpenEVSE][openevse] chargers._
 Platform | Description
 -- | --
 `sensor` | Show info from an OpenEVSE charger's API.
-`switch` | Switch to toggle "Sleep Mode".
+`switch` | Switch to toggle various charger modes.
 `select` | Select the ampers limit and service level.
 
 ## Installation
@@ -44,6 +44,7 @@ If you want to contribute to this please read the [Contribution guidelines](CONT
 
 ## TODO
 
+- [ ] Add tests
 - [x] Current
 - [x] Voltage
 - [x] Power
@@ -55,9 +56,9 @@ If you want to contribute to this please read the [Contribution guidelines](CONT
 - [x] Rssi
 - [ ] Max current
 - [x] Charge current
-- [ ] Manual Override
+- [X] Manual Override
 - [ ] Schedule
-- [ ] Divert mode
+- [X] Divert mode
 - [ ] Auto discovery
 - [x] Setup via Home Assistant UI
 - [x] Real time updates via web socket

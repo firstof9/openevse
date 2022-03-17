@@ -1,8 +1,8 @@
 """Support for OpenEVSE controls using the select platform."""
 from __future__ import annotations
+
 import logging
 from typing import Any, Optional
-from .entity import OpenEVSESelectEntityDescription
 
 from homeassistant.components.select import SelectEntity
 from homeassistant.config_entries import ConfigEntry
@@ -10,13 +10,14 @@ from homeassistant.const import CONF_NAME
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from . import (
-    send_command,
     CommandFailed,
     InvalidValue,
     OpenEVSEManager,
     OpenEVSEUpdateCoordinator,
+    send_command,
 )
 from .const import COORDINATOR, DOMAIN, MANAGER, SELECT_TYPES
+from .entity import OpenEVSESelectEntityDescription
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -76,10 +77,14 @@ class OpenEVSESelect(CoordinatorEntity, SelectEntity):
     async def async_select_option(self, option: Any) -> None:
         """Change the selected option."""
         charger = self._manager
-        command = f"{self._command} {option}"
-        _LOGGER.debug("Command: %s", command)
+
         try:
-            await send_command(charger, command)
+            if self._command.startswith("$"):
+                command = f"{self._command} {option}"
+                _LOGGER.debug("Command: %s", command)
+                await send_command(charger, command)
+            else:
+                await getattr(self._manager, self._command)(option)
         except (ValueError, KeyError) as err:
             _LOGGER.warning(
                 "Could not set status for %s error: %s", self._attr_name, err

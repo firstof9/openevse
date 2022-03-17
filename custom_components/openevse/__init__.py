@@ -1,20 +1,17 @@
 """The openevse component."""
 from __future__ import annotations
+
 import asyncio
 import logging
 from datetime import timedelta
 
 import homeassistant.helpers.device_registry as dr
-from openevsehttp import OpenEVSE
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import (
-    CONF_HOST,
-    CONF_PASSWORD,
-    CONF_USERNAME,
-)
-from homeassistant.core import callback, Config, HomeAssistant
+from homeassistant.const import CONF_HOST, CONF_PASSWORD, CONF_USERNAME
+from homeassistant.core import Config, HomeAssistant, callback
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
+from openevsehttp import OpenEVSE
 
 from .const import (
     BINARY_SENSORS,
@@ -222,14 +219,15 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
                     _sensor[sensor],
                 )
             except (ValueError, KeyError):
-                _LOGGER.warning("Could not update status for %s", sensor)
+                _LOGGER.info("Could not update status for %s", sensor)
             data.update(_sensor)
 
         for binary_sensor in BINARY_SENSORS:
             _sensor = {}
             try:
                 sensor_property = BINARY_SENSORS[binary_sensor].key
-                _sensor[binary_sensor] = getattr(self._manager, sensor_property)
+                # Data can be sent as boolean or as 1/0
+                _sensor[binary_sensor] = bool(getattr(self._manager, sensor_property))
                 _LOGGER.debug(
                     "binary sensor: %s sensor_property: %s value %s",
                     binary_sensor,
@@ -237,7 +235,7 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
                     _sensor[binary_sensor],
                 )
             except (ValueError, KeyError):
-                _LOGGER.warning(
+                _LOGGER.info(
                     "Could not update status for %s",
                     binary_sensor,
                 )
