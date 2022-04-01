@@ -16,13 +16,12 @@ from homeassistant.const import (
     ELECTRIC_CURRENT_AMPERE,
     ELECTRIC_POTENTIAL_VOLT,
     ENERGY_KILO_WATT_HOUR,
-    ENTITY_CATEGORY_CONFIG,
-    ENTITY_CATEGORY_DIAGNOSTIC,
     POWER_WATT,
     SIGNAL_STRENGTH_DECIBELS,
     TEMP_CELSIUS,
     TIME_MINUTES,
 )
+from homeassistant.helpers.entity import EntityCategory
 
 from .entity import OpenEVSESelectEntityDescription, OpenEVSESwitchEntityDescription
 
@@ -51,7 +50,7 @@ SENSOR_TYPES: Final[dict[str, SensorEntityDescription]] = {
         name="Charge Time Elapsed",
         icon="mdi:camera-timer",
         native_unit_of_measurement=TIME_MINUTES,
-        entity_category=ENTITY_CATEGORY_DIAGNOSTIC,
+        entity_category=EntityCategory.DIAGNOSTIC,
     ),
     "ambient_temperature": SensorEntityDescription(
         key="ambient_temperature",
@@ -99,13 +98,13 @@ SENSOR_TYPES: Final[dict[str, SensorEntityDescription]] = {
         key="openevse_firmware",
         name="Controller Firmware",
         icon="mdi:package-up",
-        entity_category=ENTITY_CATEGORY_DIAGNOSTIC,
+        entity_category=EntityCategory.DIAGNOSTIC,
     ),
     "protocol_version": SensorEntityDescription(
         key="protocol_version",
         name="Protocol Version",
         icon="mdi:package-up",
-        entity_category=ENTITY_CATEGORY_DIAGNOSTIC,
+        entity_category=EntityCategory.DIAGNOSTIC,
     ),
     "charging_voltage": SensorEntityDescription(
         key="charging_voltage",
@@ -127,7 +126,7 @@ SENSOR_TYPES: Final[dict[str, SensorEntityDescription]] = {
         key="service_level",
         name="Service Level",
         icon="mdi:leaf",
-        entity_category=ENTITY_CATEGORY_CONFIG,
+        entity_category=EntityCategory.CONFIG,
     ),
     "max_amps": SensorEntityDescription(
         key="max_amps",
@@ -135,7 +134,7 @@ SENSOR_TYPES: Final[dict[str, SensorEntityDescription]] = {
         icon="mdi:sine-wave",
         native_unit_of_measurement=ELECTRIC_CURRENT_AMPERE,
         device_class=SensorDeviceClass.CURRENT,
-        entity_category=ENTITY_CATEGORY_DIAGNOSTIC,
+        entity_category=EntityCategory.DIAGNOSTIC,
     ),
     "min_amps": SensorEntityDescription(
         key="min_amps",
@@ -143,7 +142,7 @@ SENSOR_TYPES: Final[dict[str, SensorEntityDescription]] = {
         icon="mdi:sine-wave",
         native_unit_of_measurement=ELECTRIC_CURRENT_AMPERE,
         device_class=SensorDeviceClass.CURRENT,
-        entity_category=ENTITY_CATEGORY_DIAGNOSTIC,
+        entity_category=EntityCategory.DIAGNOSTIC,
     ),
     "current_capacity": SensorEntityDescription(
         key="current_capacity",
@@ -151,13 +150,13 @@ SENSOR_TYPES: Final[dict[str, SensorEntityDescription]] = {
         icon="mdi:sine-wave",
         native_unit_of_measurement=ELECTRIC_CURRENT_AMPERE,
         device_class=SensorDeviceClass.CURRENT,
-        entity_category=ENTITY_CATEGORY_CONFIG,
+        entity_category=EntityCategory.CONFIG,
     ),
     "wifi_firmware": SensorEntityDescription(
         key="wifi_firmware",
         name="Wifi Fimrware Version",
         icon="mdi:package-up",
-        entity_category=ENTITY_CATEGORY_DIAGNOSTIC,
+        entity_category=EntityCategory.DIAGNOSTIC,
     ),
     "current_power": SensorEntityDescription(
         key="current_power",
@@ -172,20 +171,20 @@ SENSOR_TYPES: Final[dict[str, SensorEntityDescription]] = {
         name="Wifi Signal Strength",
         icon="mdi:wifi",
         native_unit_of_measurement=SIGNAL_STRENGTH_DECIBELS,
-        entity_category=ENTITY_CATEGORY_DIAGNOSTIC,
+        entity_category=EntityCategory.DIAGNOSTIC,
     ),
     "ammeter_scale_factor": SensorEntityDescription(
         key="ammeter_scale_factor",
         name="Sensor Scale",
         icon="mdi:scale",
-        entity_category=ENTITY_CATEGORY_DIAGNOSTIC,
+        entity_category=EntityCategory.DIAGNOSTIC,
     ),
     "divertmode": SensorEntityDescription(
         name="Divert Mode",
         key="divertmode",
         icon="mdi:solar-power",
         device_class=SensorDeviceClass.POWER,
-        entity_category=ENTITY_CATEGORY_CONFIG,
+        entity_category=EntityCategory.CONFIG,
     ),
     "available_current": SensorEntityDescription(
         name="PV Available Current",
@@ -235,21 +234,21 @@ SELECT_TYPES: Final[dict[str, OpenEVSESelectEntityDescription]] = {
         key="service_level",
         default_options=SERVICE_LEVELS,
         command="$SL",
-        entity_category=ENTITY_CATEGORY_CONFIG,
+        entity_category=EntityCategory.CONFIG,
     ),
     "current_capacity": OpenEVSESelectEntityDescription(
         name="Max Current",
         key="current_capacity",
         default_options=None,
         command="set_current",
-        entity_category=ENTITY_CATEGORY_CONFIG,
+        entity_category=EntityCategory.CONFIG,
     ),
     "divertmode": OpenEVSESelectEntityDescription(
         name="Divert Mode",
         key="divertmode",
         default_options=DIVERT_MODE,
         command="divert_mode",
-        entity_category=ENTITY_CATEGORY_CONFIG,
+        entity_category=EntityCategory.CONFIG,
     ),
 }
 
@@ -259,7 +258,7 @@ BINARY_SENSORS: Final[dict[str, BinarySensorEntityDescription]] = {
         name="OTA Update",
         key="ota_update",
         device_class=BinarySensorDeviceClass.UPDATE,
-        entity_category=ENTITY_CATEGORY_DIAGNOSTIC,
+        entity_category=EntityCategory.DIAGNOSTIC,
     ),
     "vehicle": BinarySensorEntityDescription(
         name="Vehicle Connected",
@@ -280,6 +279,6 @@ BINARY_SENSORS: Final[dict[str, BinarySensorEntityDescription]] = {
         name="Ethernet Connected",
         key="using_ethernet",
         device_class=BinarySensorDeviceClass.CONNECTIVITY,
-        entity_category=ENTITY_CATEGORY_DIAGNOSTIC,
+        entity_category=EntityCategory.DIAGNOSTIC,
     ),
 }
