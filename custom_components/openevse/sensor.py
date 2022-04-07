@@ -78,8 +78,7 @@ class OpenEVSESensor(CoordinatorEntity, SensorEntity):
                 self._state = round(data[self._type] / 1000, 2)
             elif self._type == "charging_current":
                 self._state = round(data[self._type] / 1000, 2)
-            elif self._type == "current_power":
-                self._state = self.calc_watts()
+
             else:
                 self._state = data[self._type]
 
@@ -119,16 +118,3 @@ class OpenEVSESensor(CoordinatorEntity, SensorEntity):
                 self._icon = "mdi:car-off"
             else:
                 self._icon = "mdi:alert-octagon"
-
-    def calc_watts(self) -> float:
-        """Calculate Watts based on V*I"""
-        power = round(
-            self._data["charging_voltage"] * (self._data["charging_current"] / 1000), 2
-        )
-        _LOGGER.debug(
-            "Power calculation V[%s] * A[%s]: %s",
-            self._data["charging_voltage"],
-            self._data["charging_current"],
-            power,
-        )
-        return power
