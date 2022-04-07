@@ -159,7 +159,7 @@ SENSOR_TYPES: Final[dict[str, SensorEntityDescription]] = {
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
     "current_power": SensorEntityDescription(
-        key="current_power",
+        key="charging_power",
         name="Current Power Usage",
         icon="mdi:gauge",
         native_unit_of_measurement=POWER_WATT,
