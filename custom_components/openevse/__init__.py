@@ -75,7 +75,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
 
     model_info, sw_version = await get_firmware(manager)
 
-    device_registry = await dr.async_get(hass)
+    device_registry = dr.async_get(hass)
     device_registry.async_get_or_create(
         config_entry_id=config_entry.entry_id,
         connections={(DOMAIN, config_entry.entry_id)},
