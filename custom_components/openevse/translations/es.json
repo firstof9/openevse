@@ -1,8 +1,5 @@
 {
     "config": {
-      "abort": {
-        "single_instance_allowed": "Solo se permite una configuración de Mail y Packages."
-      },
       "error": {
         "communication": "No es posible conectar al cargador OpenEVSE. Por favor, revisa los detalles en el registro."
       },
