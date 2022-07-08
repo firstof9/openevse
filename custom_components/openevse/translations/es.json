@@ -1,0 +1,42 @@
+{
+    "config": {
+      "error": {
+        "communication": "No es posible conectar al cargador OpenEVSE. Por favor, revisa los detalles en el registro."
+      },
+      "step": {
+        "user": {
+          "data": {
+            "name": "Alias",
+            "host": "Hostname/IP",
+            "password": "Contraseña (opcional)",
+            "username": "Usuario (opcional)"
+          },
+          "description": "Por favor, introduce la información de conexión al cargador OpenEVSE.",
+          "title": "Configuración OpenEVSE"
+        }
+      }
+    },
+    "options": {
+      "error": {
+        "communication": "No es posible conectar o iniciar sesión con el servidor de email. Por favor, revisa los detalles en el registro.",
+        "invalid_path": "Por favor, almacena las imagenes en otro directorio.",
+        "ffmpeg_not_found": "Generar MP4 requiere ffmpeg",
+        "amazon_domain": "Email de envio no válido.",
+        "file_not_found": "No se ha encontrado el archivod e imagen",
+        "scan_too_low": "Intercalo de escaneo muy bajo (mínimo 5)",
+        "timeout_too_low": "IMAP timeout demasiado bajo (mínimo 10)"      
+      },
+      "step": {
+        "init": {
+            "data": {
+                "name": "Alias",
+                "host": "Host/IP",
+                "password": "Contraseña (opcional)",
+                "username": "Usuario (opcional)"
+            },
+            "description": "Por favor, introduce la información de conexión con el cargador OpenEVSE.",
+            "title": "Configuración OpenEVSE"
+        }
+      }
+    }
+}
