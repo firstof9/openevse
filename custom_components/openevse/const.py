@@ -26,6 +26,8 @@ from homeassistant.helpers.entity import EntityCategory
 from .entity import OpenEVSESelectEntityDescription, OpenEVSESwitchEntityDescription
 
 CONF_NAME = "name"
+CONF_SERIAL = "id"
+CONF_TYPE = "type"
 DEFAULT_HOST = "openevse.local"
 DEFAULT_NAME = "OpenEVSE"
 DOMAIN = "openevse"
