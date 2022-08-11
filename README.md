@@ -59,7 +59,7 @@ If you want to contribute to this please read the [Contribution guidelines](CONT
 - [X] Manual Override
 - [ ] Schedule
 - [X] Divert mode
-- [ ] Auto discovery
+- [X] Auto discovery
 - [x] Setup via Home Assistant UI
 - [x] Real time updates via web socket
 - [x] Support energy integration

@@ -4,13 +4,17 @@ from typing import Any, Dict, Optional, Union
 
 import voluptuous as vol
 from homeassistant import config_entries
+from homeassistant.components import zeroconf
 from homeassistant.const import CONF_HOST, CONF_PASSWORD, CONF_USERNAME
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.data_entry_flow import AbortFlow, FlowResult
 from homeassistant.helpers import config_validation as cv
 from homeassistant.util import slugify
+from openevsehttp import OpenEVSE
 
-from .const import CONF_NAME, DEFAULT_HOST, DEFAULT_NAME, DOMAIN
+from .const import CONF_NAME, CONF_SERIAL, CONF_TYPE, DEFAULT_HOST, DEFAULT_NAME, DOMAIN
 
+_LOGGER = logging.getLogger(__name__)
 
 @config_entries.HANDLERS.register(DOMAIN)
 class OpenEVSEFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
@@ -19,6 +23,92 @@ class OpenEVSEFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
     VERSION = 1
     CONNECTION_CLASS = config_entries.CONN_CLASS_LOCAL_POLL
     DEFAULTS = {CONF_HOST: DEFAULT_HOST, CONF_NAME: DEFAULT_NAME}
+
+    def __init__(self):
+        """Set up the instance."""
+        self.discovery_info = {}    
+
+    async def async_step_discovery_confirm(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Confirm discovery."""
+        _LOGGER.debug("config_flow async_step_discovery_confirm")
+        if user_input is None:
+            return self.async_show_form(
+                step_id="discovery_confirm",
+                description_placeholders={"name": self.discovery_info[CONF_NAME]},
+                errors={},
+            )
+
+        return self.async_create_entry(
+            title=self.discovery_info[CONF_NAME],
+            data=self.discovery_info,
+        )   
+
+    @staticmethod
+    async def _async_try_connect_and_fetch(ip_address: str) -> dict[str, Any]:
+        """Try to connect."""
+
+        _LOGGER.debug("config_flow _async_try_connect_and_fetch")
+
+        # Make connection with device
+        # This is to test the connection and to get info for unique_id
+        charger = OpenEVSE(ip_address)
+
+        try:
+            await charger.update()
+
+        except Exception as ex:
+            _LOGGER.exception(
+                "Error connecting with OpenEVSE at %s",
+                ip_address,
+            )
+            raise AbortFlow("unknown_error") from ex
+
+        charger.ws_disconnect()
+
+    async def async_step_zeroconf(
+        self, discovery_info: zeroconf.ZeroconfServiceInfo
+    ) -> FlowResult:
+        """Handle zeroconf discovery."""
+
+        _LOGGER.debug("config_flow async_step_zeroconf")
+
+        # Avoid probing devices that already have an entry
+        self._async_abort_entries_match({CONF_HOST: discovery_info.host})        
+
+        # Validate discovery entry
+        if (CONF_SERIAL not in discovery_info.properties):
+            return self.async_abort(reason="invalid_discovery_parameters")
+
+        host = discovery_info.host
+        serial = discovery_info.properties[CONF_SERIAL]
+        model = discovery_info.properties[CONF_TYPE]
+        name = f"OpenEVSE: {discovery_info.name.split('.')[0]}"
+
+        self.discovery_info.update(
+            {
+                CONF_HOST: host,
+                CONF_NAME: name,
+            }
+        )        
+
+        self.context.update({"title_placeholders": {"name": name}})
+
+        # Test connection to device
+        await self._async_try_connect_and_fetch(host)
+
+        unique_id = f"{name}_{serial}"
+
+        await self.async_set_unique_id(unique_id)
+        self._abort_if_unique_id_configured(
+            updates={
+                CONF_HOST: host,
+                CONF_NAME: name,
+            },
+        )        
+
+        return await self.async_step_discovery_confirm()        
 
     async def async_step_user(
         self, user_input: Dict[str, Any] = None
