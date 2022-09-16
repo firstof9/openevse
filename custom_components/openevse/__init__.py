@@ -208,10 +208,7 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
             _sensor = {}
             try:
                 sensor_property = SENSOR_TYPES[sensor].key
-                if sensor == "current_power":
-                    _sensor[sensor] = None
-                else:
-                    _sensor[sensor] = getattr(self._manager, sensor_property)
+                _sensor[sensor] = getattr(self._manager, sensor_property)
                 _LOGGER.debug(
                     "sensor: %s sensor_property: %s value: %s",
                     sensor,

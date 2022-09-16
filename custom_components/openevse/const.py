@@ -160,7 +160,7 @@ SENSOR_TYPES: Final[dict[str, SensorEntityDescription]] = {
         icon="mdi:package-up",
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
-    "current_power": SensorEntityDescription(
+    "charging_power": SensorEntityDescription(
         key="charging_power",
         name="Current Power Usage",
         icon="mdi:flash",
