@@ -16,6 +16,7 @@ from .const import CONF_NAME, CONF_SERIAL, CONF_TYPE, DEFAULT_HOST, DEFAULT_NAME
 
 _LOGGER = logging.getLogger(__name__)
 
+
 @config_entries.HANDLERS.register(DOMAIN)
 class OpenEVSEFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
     """Config flow for KeyMaster."""
@@ -26,7 +27,7 @@ class OpenEVSEFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
     def __init__(self):
         """Set up the instance."""
-        self.discovery_info = {}    
+        self.discovery_info = {}
 
     async def async_step_discovery_confirm(
         self, user_input: dict[str, Any] | None = None
@@ -43,7 +44,7 @@ class OpenEVSEFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         return self.async_create_entry(
             title=self.discovery_info[CONF_NAME],
             data=self.discovery_info,
-        )   
+        )
 
     @staticmethod
     async def _async_try_connect_and_fetch(ip_address: str) -> dict[str, Any]:
@@ -75,10 +76,10 @@ class OpenEVSEFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         _LOGGER.debug("config_flow async_step_zeroconf")
 
         # Avoid probing devices that already have an entry
-        self._async_abort_entries_match({CONF_HOST: discovery_info.host})        
+        self._async_abort_entries_match({CONF_HOST: discovery_info.host})
 
         # Validate discovery entry
-        if (CONF_SERIAL not in discovery_info.properties):
+        if CONF_SERIAL not in discovery_info.properties:
             return self.async_abort(reason="invalid_discovery_parameters")
 
         host = discovery_info.host
@@ -91,7 +92,7 @@ class OpenEVSEFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                 CONF_HOST: host,
                 CONF_NAME: name,
             }
-        )        
+        )
 
         self.context.update({"title_placeholders": {"name": name}})
 
@@ -106,9 +107,9 @@ class OpenEVSEFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                 CONF_HOST: host,
                 CONF_NAME: name,
             },
-        )        
+        )
 
-        return await self.async_step_discovery_confirm()        
+        return await self.async_step_discovery_confirm()
 
     async def async_step_user(
         self, user_input: Dict[str, Any] = None
