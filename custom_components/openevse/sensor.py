@@ -72,13 +72,13 @@ class OpenEVSESensor(CoordinatorEntity, SensorEntity):
         if self._type in data.keys():
             if self._type == "charge_time_elapsed":
                 self._state = round(data[self._type] / 60, 2)
-            elif self._type == "usage_session":
+            elif self._type in [
+                "usage_session",
+                "usage_total",
+                "charging_current",
+                "charging_power",
+            ]:
                 self._state = round(data[self._type] / 1000, 2)
-            elif self._type == "usage_total":
-                self._state = round(data[self._type] / 1000, 2)
-            elif self._type == "charging_current":
-                self._state = round(data[self._type] / 1000, 2)
-
             else:
                 self._state = data[self._type]
 
