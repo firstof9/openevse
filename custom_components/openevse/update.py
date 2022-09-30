@@ -39,7 +39,6 @@ class OpenEVSEUpdateEntity(CoordinatorEntity, UpdateEntity):
     """Update entity for a OpenEVSE device."""
 
     _attr_device_class = UpdateDeviceClass.FIRMWARE
-    _attr_supported_features = UpdateEntityFeature.RELEASE_NOTES
 
     def __init__(
         self,
@@ -93,4 +92,11 @@ class OpenEVSEUpdateEntity(CoordinatorEntity, UpdateEntity):
         """Release summary."""
         if self.fw_coordinator.data is not None:
             return self.fw_coordinator.data.get("release_summary")
+        return None
+
+    @property
+    def release_url(self) -> str | None:
+        """Release URL."""
+        if self.fw_coordinator.data is not None:
+            return self.fw_coordinator.data.get("release_url")
         return None
