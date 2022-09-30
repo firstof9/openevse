@@ -34,7 +34,7 @@ DOMAIN = "openevse"
 COORDINATOR = "coordinator"
 VERSION = "1.0.0"
 ISSUE_URL = "http://github.com/firstof9/openevse/"
-PLATFORMS = ["binary_sensor", "sensor", "select", "switch"]
+PLATFORMS = ["binary_sensor", "button", "sensor", "select", "switch"]
 USER_AGENT = "Home Assistant"
 MANAGER = "manager"
 
