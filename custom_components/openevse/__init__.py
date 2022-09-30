@@ -18,6 +18,7 @@ from .const import (
     CONF_NAME,
     COORDINATOR,
     DOMAIN,
+    FW_COORDINATOR,
     ISSUE_URL,
     MANAGER,
     PLATFORMS,
@@ -61,9 +62,11 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
     manager = OpenEVSEManager(hass, config_entry).charger
     interval = 60
     coordinator = OpenEVSEUpdateCoordinator(hass, interval, config_entry, manager)
+    fw_coordinator = OpenEVSEFirmwareCheck(hass, 86400, config_entry, manager)
 
     # Fetch initial data so we have data when entities subscribe
     await coordinator.async_refresh()
+    await fw_coordinator.async_refresh()
 
     if not coordinator.last_update_success:
         raise ConfigEntryNotReady
@@ -71,6 +74,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
     hass.data[DOMAIN][config_entry.entry_id] = {
         COORDINATOR: coordinator,
         MANAGER: manager,
+        FW_COORDINATOR: fw_coordinator,
     }
 
     model_info, sw_version = await get_firmware(manager)
@@ -155,6 +159,27 @@ async def update_listener(hass: HomeAssistant, config_entry: ConfigEntry) -> Non
 
     await hass.config_entries.async_reload(config_entry.entry_id)
 
+class OpenEVSEFirmwareCheck(DataUpdateCoordinator):
+    """Class to fetch OpenEVSE firmware update data."""
+
+    def __init__(self, hass, interval, config, manager):
+        """Initialize."""
+        self.interval = timedelta(seconds=interval)
+        self.name = f"OpenEVSE ({config.data.get(CONF_NAME)}).firmware"
+        self.config = config
+        self.hass = hass
+        self._manager = manager
+        self._data = {}
+
+        _LOGGER.debug("Firmware data will be update every %s", self.interval)
+
+        super().__init__(hass, _LOGGER, name=self.name, update_interval=self.interval)
+
+    async def _async_update_data(self):
+        """Return data"""
+        self._data = await self._manager.firmware_check()
+        _LOGGER.debug("FW Update: %s", self._data)
+        return self._data
 
 class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
     """Class to manage fetching OpenEVSE data."""
@@ -191,7 +216,7 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
             raise UpdateFailed(error) from error
 
         self.parse_sensors()
-        return self._data
+        return self._data        
 
     @callback
     def websocket_update(self):
