@@ -12,7 +12,10 @@ from homeassistant.components.update import (
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.update_coordinator import CoordinatorEntity, DataUpdateCoordinator
+from homeassistant.helpers.update_coordinator import (
+    CoordinatorEntity,
+    DataUpdateCoordinator,
+)
 
 from . import OpenEVSEManager
 from .const import CONF_NAME, COORDINATOR, DOMAIN, FW_COORDINATOR, MANAGER
@@ -77,8 +80,10 @@ class OpenEVSEUpdateEntity(CoordinatorEntity, UpdateEntity):
         """Latest version available for install."""
         if self.fw_coordinator.data is not None:
             new_version = self.fw_coordinator.data.get("latest_version")
-            if new_version is not None and self.installed_version is not None and not new_version.startswith(
-                self.installed_version
+            if (
+                new_version is not None
+                and self.installed_version is not None
+                and not new_version.startswith(self.installed_version)
             ):
                 return new_version
         return self.installed_version

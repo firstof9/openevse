@@ -159,6 +159,7 @@ async def update_listener(hass: HomeAssistant, config_entry: ConfigEntry) -> Non
 
     await hass.config_entries.async_reload(config_entry.entry_id)
 
+
 class OpenEVSEFirmwareCheck(DataUpdateCoordinator):
     """Class to fetch OpenEVSE firmware update data."""
 
@@ -180,6 +181,7 @@ class OpenEVSEFirmwareCheck(DataUpdateCoordinator):
         self._data = await self._manager.firmware_check()
         _LOGGER.debug("FW Update: %s", self._data)
         return self._data
+
 
 class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
     """Class to manage fetching OpenEVSE data."""
@@ -216,7 +218,7 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
             raise UpdateFailed(error) from error
 
         self.parse_sensors()
-        return self._data        
+        return self._data
 
     @callback
     def websocket_update(self):
