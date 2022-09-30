@@ -2,7 +2,11 @@
 from __future__ import annotations
 import logging
 
-from homeassistant.components.button import ButtonEntity
+from homeassistant.components.button import (
+    ButtonDeviceClass,
+    ButtonEntity,
+    ButtonEntityDescription,
+)
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
@@ -12,45 +16,39 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from . import OpenEVSEManager
 from .const import CONF_NAME, DOMAIN, MANAGER
 
+RESTART_BUTTON_DESCRIPTION = ButtonEntityDescription(
+    key="restart",
+    name="Restart",
+    device_class=ButtonDeviceClass.RESTART,
+    entity_category=EntityCategory.CONFIG,
+)
+
 _LOGGER = logging.getLogger(__name__)
 
+
 async def async_setup_entry(
-    hass: HomeAssistant, config_entry: ConfigEntry, async_add_entities: AddEntitiesCallback
+    hass: HomeAssistant,
+    config_entry: ConfigEntry,
+    async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up OpenEVSE buttons based on a config entry."""
 
     manager = hass.data[DOMAIN][config_entry.entry_id][MANAGER]
 
-    @callback
-    def async_add_restart_button_entity() -> None:
-        """Add restart button entity."""
-        assert manager is not None 
-        async_add_entities([OpenEVSEResetButton(manager, config_entry)])
-
-    config_entry.async_on_unload(
-        async_dispatcher_connect(
-            hass,
-            f"{DOMAIN}_{config_entry.entry_id}_add_restart_button_entity",
-            async_add_restart_button_entity,
-        )
-    )        
+    assert manager is not None
+    async_add_entities([OpenEVSEResetButton(manager, config_entry)])
 
 
 class OpenEVSEResetButton(ButtonEntity):
-    """Implementation of an OpenEVSE button."""
+    """OpenEVSE restart button."""
 
-    _attr_should_poll = False
-    _attr_entity_category = EntityCategory.CONFIG
-    _attr_has_entity_name = True    
-
+    entity_description = RESTART_BUTTON_DESCRIPTION
+    _attr_has_entity_name: bool = True
 
     def __init__(self, manager: OpenEVSEManager, config_entry: ConfigEntry) -> None:
-        """Initialize a restart button entity."""
-
-        # Entity class attributes
-        self._attr_name = "Restart"
-        self._config = config_entry
-        self._manager = manager
+        """Initialise a LIFX button."""
+        self.config = config_entry
+        self.manager = manager
         self._base_unique_id = config_entry.entry_id
         self._attr_unique_id = f"{self._base_unique_id}.restart"
 
@@ -59,7 +57,7 @@ class OpenEVSEResetButton(ButtonEntity):
         """Return a port description for device registry."""
         info = {
             "manufacturer": "OpenEVSE",
-            "name": self._config.data[CONF_NAME],
+            "name": self.config.data[CONF_NAME],
             "connections": {(DOMAIN, self._base_unique_id)},
         }
 
@@ -67,4 +65,4 @@ class OpenEVSEResetButton(ButtonEntity):
 
     async def async_press(self) -> None:
         """Press the button."""
-        self.hass.async_create_task(self._manager.restart_wifi())
+        await self.manager.restart_wifi()
