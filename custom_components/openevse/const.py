@@ -32,9 +32,10 @@ DEFAULT_HOST = "openevse.local"
 DEFAULT_NAME = "OpenEVSE"
 DOMAIN = "openevse"
 COORDINATOR = "coordinator"
+FW_COORDINATOR = "fw_coordinator"
 VERSION = "1.0.0"
 ISSUE_URL = "http://github.com/firstof9/openevse/"
-PLATFORMS = ["binary_sensor", "button", "sensor", "select", "switch"]
+PLATFORMS = ["binary_sensor", "button", "sensor", "select", "switch", "update"]
 USER_AGENT = "Home Assistant"
 MANAGER = "manager"
 
