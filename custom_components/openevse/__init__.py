@@ -27,21 +27,6 @@ from .const import (
 )
 
 _LOGGER = logging.getLogger(__name__)
-states = {
-    0: "unknown",
-    1: "not connected",
-    2: "connected",
-    3: "charging",
-    4: "vent required",
-    5: "diode check failed",
-    6: "gfci fault",
-    7: "no ground",
-    8: "stuck relay",
-    9: "gfci self-test failure",
-    10: "over temperature",
-    254: "sleeping",
-    255: "disabled",
-}
 
 
 async def async_setup(hass: HomeAssistant, config: Config) -> bool:
