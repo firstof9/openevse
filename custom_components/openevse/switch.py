@@ -89,7 +89,7 @@ class OpenEVSESwitch(CoordinatorEntity, SwitchEntity):
             return None
         _LOGGER.debug("switch [%s]: %s", self._attr_name, data[self._type])
         if self._type == "state":
-            return True if data[self._type] == "sleeping" else False
+            return True if data[self._type] == "Sleeping" else False
         return cast(bool, data[self._type] == 1)
 
     async def async_turn_on(self, **kwargs: Any) -> None:
