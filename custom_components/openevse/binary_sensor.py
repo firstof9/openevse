@@ -48,7 +48,7 @@ class OpenEVSEBinarySensor(CoordinatorEntity, BinarySensorEntity):
         self._type = sensor_description.key
         self._unique_id = config.entry_id
 
-        self._attr_name = f"{self._config.data[CONF_NAME]}_{self._name}"
+        self._attr_name = f"{self._config.data[CONF_NAME]} {self._name}"
         self._attr_unique_id = f"{self._name}_{self._unique_id}"
 
     @property
