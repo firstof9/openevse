@@ -68,6 +68,7 @@ SENSOR_TYPES: Final[dict[str, SensorEntityDescription]] = {
         native_unit_of_measurement=TEMP_CELSIUS,
         state_class=SensorStateClass.MEASUREMENT,
         device_class=SensorDeviceClass.TEMPERATURE,
+        entity_registry_enabled_default=False,
     ),
     "rtc_temperature": SensorEntityDescription(
         key="rtc_temperature",
@@ -75,6 +76,7 @@ SENSOR_TYPES: Final[dict[str, SensorEntityDescription]] = {
         native_unit_of_measurement=TEMP_CELSIUS,
         state_class=SensorStateClass.MEASUREMENT,
         device_class=SensorDeviceClass.TEMPERATURE,
+        entity_registry_enabled_default=False,
     ),
     "esp_temperature": SensorEntityDescription(
         key="esp_temperature",
@@ -82,6 +84,7 @@ SENSOR_TYPES: Final[dict[str, SensorEntityDescription]] = {
         native_unit_of_measurement=TEMP_CELSIUS,
         state_class=SensorStateClass.MEASUREMENT,
         device_class=SensorDeviceClass.TEMPERATURE,
+        entity_registry_enabled_default=False,
     ),
     "usage_session": SensorEntityDescription(
         key="usage_session",
@@ -181,6 +184,7 @@ SENSOR_TYPES: Final[dict[str, SensorEntityDescription]] = {
         name="Sensor Scale",
         icon="mdi:scale",
         entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=False,
     ),
     "divertmode": SensorEntityDescription(
         name="Divert Mode",
@@ -262,6 +266,7 @@ BINARY_SENSORS: Final[dict[str, BinarySensorEntityDescription]] = {
         key="ota_update",
         device_class=BinarySensorDeviceClass.UPDATE,
         entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=False,
     ),
     "vehicle": BinarySensorEntityDescription(
         name="Vehicle Connected",
@@ -283,5 +288,6 @@ BINARY_SENSORS: Final[dict[str, BinarySensorEntityDescription]] = {
         key="using_ethernet",
         device_class=BinarySensorDeviceClass.CONNECTIVITY,
         entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=False,
     ),
 }
