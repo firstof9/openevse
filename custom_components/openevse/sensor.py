@@ -79,6 +79,8 @@ class OpenEVSESensor(CoordinatorEntity, SensorEntity):
                 "charging_power",
             ]:
                 self._state = round(data[self._type] / 1000, 2)
+            elif self._type == "charging_voltage":
+                self._state = round(data[self._type],0)
             else:
                 self._state = data[self._type]
 
