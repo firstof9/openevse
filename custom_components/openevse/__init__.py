@@ -70,7 +70,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
         connections={(DOMAIN, config_entry.entry_id)},
         name=config_entry.data[CONF_NAME],
         manufacturer="OpenEVSE",
-        model=f"Wifi version {model_info}",
+        model={model_info},
         sw_version=sw_version,
         configuration_url=manager.url,
     )
@@ -90,13 +90,23 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
 async def get_firmware(manager: OpenEVSEManager) -> tuple:
     """Get firmware version."""
     _LOGGER.debug("Getting firmware versions...")
+    data = {}
     try:
         await manager.update()
     except Exception as error:
         _LOGGER.error("Problem retreiving firmware data: %s", error)
         return "", ""
 
-    return manager.wifi_firmware, manager.openevse_firmware
+    try:
+        data = await manager.test_and_get()
+    except OpenEVSE.MissingSerial as error:
+        _LOGGER.info("Missing serial number data, skipping...")
+
+    if data is not None:
+        if data["model"] != "unknown":
+            return data["model"], manager.wifi_firmware
+
+    return f"Wifi version {manager.wifi_firmware}", manager.openevse_firmware
 
 
 async def async_unload_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:
