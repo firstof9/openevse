@@ -96,7 +96,8 @@ class OpenEVSESensor(CoordinatorEntity, SensorEntity):
     @property
     def available(self) -> bool:
         """Return if entity is available."""
-        if self._type not in self.coordinator.data:
+        data = self.coordinator.data
+        if self._type not in data or (self._type in data and data[self._type] is None):
             return False
         return self.coordinator.last_update_success
 
