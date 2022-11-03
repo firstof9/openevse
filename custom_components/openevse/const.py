@@ -111,6 +111,7 @@ SENSOR_TYPES: Final[dict[str, SensorEntityDescription]] = {
         name="Protocol Version",
         icon="mdi:package-up",
         entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=False,
     ),
     "charging_voltage": SensorEntityDescription(
         key="charging_voltage",
@@ -160,7 +161,7 @@ SENSOR_TYPES: Final[dict[str, SensorEntityDescription]] = {
     ),
     "wifi_firmware": SensorEntityDescription(
         key="wifi_firmware",
-        name="Wifi Fimrware Version",
+        name="WiFi Firmware Version",
         icon="mdi:package-up",
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
@@ -174,7 +175,7 @@ SENSOR_TYPES: Final[dict[str, SensorEntityDescription]] = {
     ),
     "wifi_signal": SensorEntityDescription(
         key="wifi_signal",
-        name="Wifi Signal Strength",
+        name="WiFi Signal Strength",
         icon="mdi:wifi",
         native_unit_of_measurement=SIGNAL_STRENGTH_DECIBELS,
         entity_category=EntityCategory.DIAGNOSTIC,

@@ -80,7 +80,7 @@ class OpenEVSESensor(CoordinatorEntity, SensorEntity):
             ]:
                 self._state = round(data[self._type] / 1000, 2)
             elif self._type == "charging_voltage":
-                self._state = round(data[self._type],0)
+                self._state = round(data[self._type], 0)
             else:
                 self._state = data[self._type]
 
@@ -96,6 +96,8 @@ class OpenEVSESensor(CoordinatorEntity, SensorEntity):
     @property
     def available(self) -> bool:
         """Return if entity is available."""
+        if self._type not in self.coordinator.data:
+            return False
         return self.coordinator.last_update_success
 
     @property
