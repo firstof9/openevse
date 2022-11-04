@@ -66,4 +66,4 @@ class OpenEVSEButton(ButtonEntity):
 
     async def async_press(self) -> None:
         """Press the button."""
-        await getattr(self.manager, self._key)
+        await getattr(self.manager, self._key)()
