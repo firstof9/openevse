@@ -6,6 +6,10 @@ from homeassistant.components.binary_sensor import (
     BinarySensorDeviceClass,
     BinarySensorEntityDescription,
 )
+from homeassistant.components.button import (
+    ButtonDeviceClass,
+    ButtonEntityDescription,
+)
 from homeassistant.components.sensor import (
     SensorDeviceClass,
     SensorEntityDescription,
@@ -291,4 +295,19 @@ BINARY_SENSORS: Final[dict[str, BinarySensorEntityDescription]] = {
         entity_category=EntityCategory.DIAGNOSTIC,
         entity_registry_enabled_default=False,
     ),
+}
+
+BUTTON_TYPES: Final[dict[str, ButtonEntityDescription]] = {
+    "restart_wifi": ButtonEntityDescription(
+        key="restart_wifi",
+        name="Restart WiFi",
+        device_class=ButtonDeviceClass.RESTART,
+        entity_category=EntityCategory.CONFIG,        
+    ),
+    "restart_evse": ButtonEntityDescription(
+        key="restart_evse",
+        name="Restart EVSE",
+        device_class=ButtonDeviceClass.RESTART,
+        entity_category=EntityCategory.CONFIG,        
+    ),    
 }
