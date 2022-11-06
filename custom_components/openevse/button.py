@@ -46,7 +46,7 @@ class OpenEVSEButton(ButtonEntity):
         manager: OpenEVSEManager,
         config_entry: ConfigEntry,
     ) -> None:
-        """Initialise a LIFX button."""
+        """Initialise a OpenEVSE button."""
         self.entity_description = button_description
         self.config = config_entry
         self.manager = manager
