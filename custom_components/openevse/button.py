@@ -32,18 +32,21 @@ async def async_setup_entry(
 
     buttons = []
     for button in BUTTON_TYPES:
-        buttons.append(
-            OpenEVSEButton(BUTTON_TYPES[button], manager, config_entry)
-        )
+        buttons.append(OpenEVSEButton(BUTTON_TYPES[button], manager, config_entry))
 
-    async_add_entities(buttons, False)    
+    async_add_entities(buttons, False)
 
 
 class OpenEVSEButton(ButtonEntity):
     """OpenEVSE restart button."""
 
-    def __init__(self, button_description: ButtonEntityDescription, manager: OpenEVSEManager, config_entry: ConfigEntry) -> None:
-        """Initialise a LIFX button."""
+    def __init__(
+        self,
+        button_description: ButtonEntityDescription,
+        manager: OpenEVSEManager,
+        config_entry: ConfigEntry,
+    ) -> None:
+        """Initialise a OpenEVSE button."""
         self.entity_description = button_description
         self.config = config_entry
         self.manager = manager

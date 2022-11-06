@@ -22,6 +22,7 @@ from .const import (
     ISSUE_URL,
     MANAGER,
     PLATFORMS,
+    SELECT_TYPES,
     SENSOR_TYPES,
     VERSION,
 )
@@ -257,6 +258,24 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
                 _LOGGER.info(
                     "Could not update status for %s",
                     binary_sensor,
+                )
+            data.update(_sensor)
+        for select in SELECT_TYPES:
+            _sensor = {}
+            try:
+                sensor_property = SELECT_TYPES[select].key
+                # Data can be sent as boolean or as 1/0
+                _sensor[select] = getattr(self._manager, sensor_property)
+                _LOGGER.debug(
+                    "select: %s sensor_property: %s value %s",
+                    select,
+                    sensor_property,
+                    _sensor[select],
+                )
+            except (ValueError, KeyError):
+                _LOGGER.info(
+                    "Could not update status for %s",
+                    select,
                 )
             data.update(_sensor)
         _LOGGER.debug("DEBUG: %s", data)

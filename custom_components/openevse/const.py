@@ -20,6 +20,8 @@ from homeassistant.const import (
     ELECTRIC_CURRENT_AMPERE,
     ELECTRIC_POTENTIAL_VOLT,
     ENERGY_KILO_WATT_HOUR,
+    LENGTH_METERS,
+    PERCENTAGE,
     POWER_WATT,
     SIGNAL_STRENGTH_DECIBELS,
     TEMP_CELSIUS,
@@ -222,6 +224,57 @@ SENSOR_TYPES: Final[dict[str, SensorEntityDescription]] = {
         state_class=SensorStateClass.MEASUREMENT,
         device_class=SensorDeviceClass.CURRENT,
     ),
+    "shaper_live_power": SensorEntityDescription(
+        name="Shaper Power",
+        key="shaper_live_power",
+        icon="mdi:flash",
+        native_unit_of_measurement=ELECTRIC_CURRENT_AMPERE,
+        state_class=SensorStateClass.MEASUREMENT,
+        device_class=SensorDeviceClass.POWER,
+        entity_registry_enabled_default=False,
+    ),
+    "shaper_current": SensorEntityDescription(
+        name="Shaper Current",
+        key="shaper_current_power",
+        icon="mdi:flash",
+        native_unit_of_measurement=ELECTRIC_CURRENT_AMPERE,
+        device_class=SensorDeviceClass.CURRENT,
+        state_class=SensorStateClass.MEASUREMENT,
+        entity_registry_enabled_default=False,
+    ),
+    "shaper_max_power": SensorEntityDescription(
+        name="Shaper Max Power",
+        key="shaper_max_power",
+        icon="mdi:flash",
+        native_unit_of_measurement=POWER_WATT,
+        device_class=SensorDeviceClass.POWER,
+        entity_registry_enabled_default=False,
+    ),
+    "vehicle_soc": SensorEntityDescription(
+        name="Vehicle Battery Level",
+        key="vehicle_soc",
+        icon="mdi:battery",
+        native_unit_of_measurement=PERCENTAGE,
+        device_class=SensorDeviceClass.BATTERY,
+        state_class=SensorStateClass.MEASUREMENT,
+        entity_registry_enabled_default=False,
+    ),
+    "vehicle_range": SensorEntityDescription(
+        name="Vehicle Range",
+        key="vehicle_range",
+        icon="mdi:ev-station",
+        native_unit_of_measurement=LENGTH_METERS,
+        device_class=SensorDeviceClass.DISTANCE,
+        entity_registry_enabled_default=False,
+    ),
+    "vehicle_eta": SensorEntityDescription(
+        name="Vehicle Charge Completion",
+        key="vehicle_eta",
+        icon="mdi:car-electric",
+        native_unit_of_measurement=TIME_MINUTES,
+        state_class=SensorStateClass.MEASUREMENT,
+        entity_registry_enabled_default=False,
+    ),
 }
 
 SWITCH_TYPES: Final[dict[str, OpenEVSESwitchEntityDescription]] = {
@@ -248,9 +301,9 @@ SELECT_TYPES: Final[dict[str, OpenEVSESelectEntityDescription]] = {
         command="$SL",
         entity_category=EntityCategory.CONFIG,
     ),
-    "current_capacity": OpenEVSESelectEntityDescription(
+    "max_current_soft": OpenEVSESelectEntityDescription(
         name="Max Current",
-        key="current_capacity",
+        key="max_current_soft",
         default_options=None,
         command="set_current",
         entity_category=EntityCategory.CONFIG,
@@ -295,6 +348,11 @@ BINARY_SENSORS: Final[dict[str, BinarySensorEntityDescription]] = {
         entity_category=EntityCategory.DIAGNOSTIC,
         entity_registry_enabled_default=False,
     ),
+    "shaper_active": BinarySensorEntityDescription(
+        name="Shaper Active",
+        key="shaper_active",
+        device_class=BinarySensorDeviceClass.POWER,
+    ),
 }
 
 BUTTON_TYPES: Final[dict[str, ButtonEntityDescription]] = {
@@ -302,12 +360,12 @@ BUTTON_TYPES: Final[dict[str, ButtonEntityDescription]] = {
         key="restart_wifi",
         name="Restart WiFi",
         device_class=ButtonDeviceClass.RESTART,
-        entity_category=EntityCategory.CONFIG,        
+        entity_category=EntityCategory.CONFIG,
     ),
     "restart_evse": ButtonEntityDescription(
         key="restart_evse",
         name="Restart EVSE",
         device_class=ButtonDeviceClass.RESTART,
-        entity_category=EntityCategory.CONFIG,        
-    ),    
+        entity_category=EntityCategory.CONFIG,
+    ),
 }
