@@ -53,7 +53,6 @@ class OpenEVSESelect(CoordinatorEntity, SelectEntity):
         self._type = description.key
         self._attr_name = f"{config_entry.data[CONF_NAME]} {description.name}"
         self._attr_unique_id = f"{self._attr_name}_{config_entry.entry_id}"
-        self._attr_current_option = self.coordinator.data[self._type]
         self._command = description.command
         self._manager = manager
         self._default_options = description.default_options
@@ -72,7 +71,12 @@ class OpenEVSESelect(CoordinatorEntity, SelectEntity):
     @property
     def current_option(self) -> str | None:
         """Return the selected entity option to represent the entity state."""
-        return str(self.coordinator.data[self._type])
+        data = self.coordinator.data
+        if self._type in data and data is not None:
+            state = data[self._type]
+            _LOGGER.debug("Select [%s] updated value: %s", self._type, state)
+            return str(state)
+        return None
 
     async def async_select_option(self, option: Any) -> None:
         """Change the selected option."""
@@ -97,11 +101,13 @@ class OpenEVSESelect(CoordinatorEntity, SelectEntity):
     @property
     def available(self) -> bool:
         """Return if entity is available."""
+        if self._type not in self.coordinator.data:
+            return False
         return self.coordinator.last_update_success
 
     def get_options(self) -> list[str]:
         """Return a set of selectable options."""
-        if self._type == "current_capacity":
+        if self._type == "max_current_soft":
             min = self.coordinator.data["min_amps"]
             max = self.coordinator.data["max_amps"]
             _LOGGER.debug(
