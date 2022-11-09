@@ -104,7 +104,7 @@ async def get_firmware(manager: OpenEVSEManager) -> tuple:
     except MissingSerial as error:
         _LOGGER.info("Missing serial number data, skipping...")
 
-    if data is not None:
+    if data is not None and "model" in data:
         if data["model"] != "unknown":
             return data["model"], manager.wifi_firmware
 
