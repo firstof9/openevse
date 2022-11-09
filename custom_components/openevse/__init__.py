@@ -12,6 +12,7 @@ from homeassistant.core import Config, HomeAssistant, callback
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from openevsehttp import OpenEVSE
+from openevsehttp.exceptions import MissingSerial
 
 from .const import (
     BINARY_SENSORS,
@@ -100,7 +101,7 @@ async def get_firmware(manager: OpenEVSEManager) -> tuple:
 
     try:
         data = await manager.test_and_get()
-    except OpenEVSE.MissingSerial as error:
+    except MissingSerial as error:
         _LOGGER.info("Missing serial number data, skipping...")
 
     if data is not None:
