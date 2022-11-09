@@ -94,14 +94,14 @@ class OpenEVSESwitch(CoordinatorEntity, SwitchEntity):
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn the switch on."""
-        if self.toggle_command is not None:
+        if self.toggle_command is not None and not self.is_on:
             await getattr(self._manager, self.toggle_command)()
         else:
             return
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn the switch off."""
-        if self.toggle_command is not None:
+        if self.toggle_command is not None and self.is_on:
             await getattr(self._manager, self.toggle_command)()
         else:
             return
