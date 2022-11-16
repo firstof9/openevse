@@ -5,16 +5,25 @@ import asyncio
 import logging
 from datetime import timedelta
 
+import voluptuous as vol
+
 import homeassistant.helpers.device_registry as dr
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_HOST, CONF_PASSWORD, CONF_USERNAME
-from homeassistant.core import Config, HomeAssistant, callback
+from homeassistant.core import Config, HomeAssistant, callback, ServiceCall
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from openevsehttp import OpenEVSE
 from openevsehttp.exceptions import MissingSerial
 
 from .const import (
+    ATTR_DEVICE_ID,
+    ATTR_STATE,
+    ATTR_CHARGE_CURRENT,
+    ATTR_MAX_CURRENT,
+    ATTR_ENERGY_LIMIT,
+    ATTR_TIME_LIMIT,
+    ATTR_AUTO_RELEASE,
     BINARY_SENSORS,
     CONF_NAME,
     COORDINATOR,
@@ -27,6 +36,11 @@ from .const import (
     SENSOR_TYPES,
     VERSION,
 )
+
+from .services import set_overrride, clear_override
+
+SERVICE_SET_OVERRIDE = "set_override"
+SERVICE_CLEAR_OVERRIDE = "clear_override"
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -50,6 +64,56 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
     interval = 60
     coordinator = OpenEVSEUpdateCoordinator(hass, interval, config_entry, manager)
     fw_coordinator = OpenEVSEFirmwareCheck(hass, 86400, config_entry, manager)
+
+    # Setup services
+
+    async def _set_override(service: ServiceCall) -> None:
+        """Set an override."""
+        await set_overrride(
+            hass,
+            service.data,
+            config_entry,
+        )
+
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_SET_OVERRIDE,
+        _set_override,
+        schema=vol.Schema(
+            {
+                vol.Required(ATTR_DEVICE_ID): vol.Coerce(str),
+                vol.Required(ATTR_STATE): vol.Coerce(str),
+                vol.Optional(ATTR_CHARGE_CURRENT): vol.All(
+                    vol.Coerce(int), vol.Range(min=1, max=48)
+                ),
+                vol.Optional(ATTR_MAX_CURRENT): vol.All(
+                    vol.Coerce(int), vol.Range(min=1, max=48)
+                ),
+                vol.Optional(ATTR_ENERGY_LIMIT): vol.All(
+                    vol.Coerce(int), vol.Range(min=1, max=2147483647)
+                ),
+                vol.Optional(ATTR_TIME_LIMIT): vol.All(
+                    vol.Coerce(int), vol.Range(min=1, max=2147483647)
+                ),
+                vol.Optional(ATTR_AUTO_RELEASE): vol.Coerce(bool),
+            }
+        ),
+    )
+
+    async def _clear_override(service: ServiceCall) -> None:
+        """Clear an override."""
+        await clear_override(hass, service, config_entry)
+
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_CLEAR_OVERRIDE,
+        _clear_override,
+        schema=vol.Schema(
+            {
+                vol.Required(ATTR_DEVICE_ID): vol.Coerce(str),
+            }
+        ),
+    )
 
     # Fetch initial data so we have data when entities subscribe
     await coordinator.async_refresh()
