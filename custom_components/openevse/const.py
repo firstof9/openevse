@@ -45,6 +45,14 @@ PLATFORMS = ["binary_sensor", "button", "sensor", "select", "switch", "update"]
 USER_AGENT = "Home Assistant"
 MANAGER = "manager"
 
+ATTR_DEVICE_ID = "device_id"
+ATTR_STATE = "state"
+ATTR_CHARGE_CURRENT = "charge_current"
+ATTR_MAX_CURRENT = "max_current"
+ATTR_ENERGY_LIMIT = "energy_limit"
+ATTR_TIME_LIMIT = "time_limit"
+ATTR_AUTO_RELEASE = "auto_release"
+
 SERVICE_LEVELS = ["1", "2", "A"]
 DIVERT_MODE = ["normal", "eco"]
 
