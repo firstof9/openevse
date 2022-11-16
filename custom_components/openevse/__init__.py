@@ -13,7 +13,7 @@ from homeassistant.const import CONF_HOST, CONF_PASSWORD, CONF_USERNAME
 from homeassistant.core import Config, HomeAssistant, callback, ServiceCall
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
-from openevsehttp import OpenEVSE
+from openevsehttp.__main__ import OpenEVSE
 from openevsehttp.exceptions import MissingSerial
 
 from .const import (
