@@ -156,7 +156,7 @@ SENSOR_TYPES: Final[dict[str, SensorEntityDescription]] = {
     ),
     "wifi_firmware": SensorEntityDescription(
         key="wifi_firmware",
-        name="Wifi Fimrware Version",
+        name="Wifi Firmware Version",
         icon="mdi:package-up",
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
