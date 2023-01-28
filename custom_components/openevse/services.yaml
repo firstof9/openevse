@@ -1,0 +1,75 @@
+set_override:
+  name: Set override
+  description: Sets override settings on a charger.
+  target:
+    device:
+      integration: openevse
+  fields:
+    state:
+      name: State
+      description: Enable or Disable Override
+      required: true
+      default: disabled
+      example: disabled
+      selector:
+        select:
+          options:
+            - "active"
+            - "disabled"
+    charge_current: 
+      name: Charge current
+      description: Specify the active charge current in Amps
+      required: false
+      example: 30
+      selector:
+        number:
+          min: 1
+          max: 48
+          unit_of_measurement: ampers
+          mode: box
+    max_current:
+      name: Max current
+      description: Dynamically alter the max current while still allowing other claims to very the current via charge_current that can not exceede this value.
+      required: false
+      example: 32
+      selector:
+        number:
+          min: 1
+          max: 48
+          unit_of_measurement: ampers
+          mode: box
+    energy_limit: 
+      name: Energy limit
+      description: Stop the charge after energy_limit Wh of energy have been transfered. (Not currently implemented)
+      required: false
+      selector:
+        number:
+          min: 1
+          max: 2147483647
+          unit_of_measurement: Wh
+          mode: box
+    time_limit:
+      name: Time limit
+      description: Stop the charge after the duration of the charging session has exceeded time_limit seconds. (Not currently implemented)
+      required: false
+      selector:
+        number:
+          min: 1
+          max: 2147483647
+          unit_of_measurement: seconds
+          mode: box
+    auto_release:
+      name: Auto release
+      description: If the manual override is auto-released when the vehicle is disconnected.
+      required: false
+      default: true
+      example: true
+      selector:
+        boolean:
+
+clear_override:
+  name: Clear override
+  description: Clears an override on a charger.
+  target:
+    device:
+      integration: openevse  

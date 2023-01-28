@@ -79,6 +79,8 @@ class OpenEVSESensor(CoordinatorEntity, SensorEntity):
                 "charging_power",
             ]:
                 self._state = round(data[self._type] / 1000, 2)
+            elif self._type == "charging_voltage":
+                self._state = round(data[self._type], 0)
             else:
                 self._state = data[self._type]
 
@@ -94,6 +96,9 @@ class OpenEVSESensor(CoordinatorEntity, SensorEntity):
     @property
     def available(self) -> bool:
         """Return if entity is available."""
+        data = self.coordinator.data
+        if self._type not in data or (self._type in data and data[self._type] is None):
+            return False
         return self.coordinator.last_update_success
 
     @property
@@ -104,17 +109,17 @@ class OpenEVSESensor(CoordinatorEntity, SensorEntity):
     def update_icon(self) -> None:
         """Update status icon based on state."""
         if self._type == "state":
-            if self._state == "unknown":
+            if self._state == "Unknown":
                 self._icon = "mdi:help"
-            elif self._state == "not connected":
+            elif self._state == "Not Connected":
                 self._icon = "mdi:power-plug-off"
-            elif self._state == "connected":
+            elif self._state == "Connected":
                 self._icon = "mdi:power-plug"
-            elif self._state == "charging":
+            elif self._state == "Charging":
                 self._icon = "mdi:battery-charging"
-            elif self._state == "sleeping":
+            elif self._state == "Sleeping":
                 self._icon = "mdi:sleep"
-            elif self._state == "disabled":
+            elif self._state == "Disabled":
                 self._icon = "mdi:car-off"
             else:
                 self._icon = "mdi:alert-octagon"

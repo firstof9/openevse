@@ -5,42 +5,44 @@ import asyncio
 import logging
 from datetime import timedelta
 
+import voluptuous as vol
+
 import homeassistant.helpers.device_registry as dr
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_HOST, CONF_PASSWORD, CONF_USERNAME
-from homeassistant.core import Config, HomeAssistant, callback
+from homeassistant.core import Config, HomeAssistant, callback, ServiceCall
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
-from openevsehttp import OpenEVSE
+from openevsehttp.__main__ import OpenEVSE
+from openevsehttp.exceptions import MissingSerial
 
 from .const import (
+    ATTR_DEVICE_ID,
+    ATTR_STATE,
+    ATTR_CHARGE_CURRENT,
+    ATTR_MAX_CURRENT,
+    ATTR_ENERGY_LIMIT,
+    ATTR_TIME_LIMIT,
+    ATTR_AUTO_RELEASE,
     BINARY_SENSORS,
     CONF_NAME,
     COORDINATOR,
     DOMAIN,
+    FW_COORDINATOR,
     ISSUE_URL,
     MANAGER,
     PLATFORMS,
+    SELECT_TYPES,
     SENSOR_TYPES,
     VERSION,
 )
 
+from .services import set_overrride, clear_override
+
+SERVICE_SET_OVERRIDE = "set_override"
+SERVICE_CLEAR_OVERRIDE = "clear_override"
+
 _LOGGER = logging.getLogger(__name__)
-states = {
-    0: "unknown",
-    1: "not connected",
-    2: "connected",
-    3: "charging",
-    4: "vent required",
-    5: "diode check failed",
-    6: "gfci fault",
-    7: "no ground",
-    8: "stuck relay",
-    9: "gfci self-test failure",
-    10: "over temperature",
-    254: "sleeping",
-    255: "disabled",
-}
 
 
 async def async_setup(hass: HomeAssistant, config: Config) -> bool:
@@ -61,9 +63,61 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
     manager = OpenEVSEManager(hass, config_entry).charger
     interval = 60
     coordinator = OpenEVSEUpdateCoordinator(hass, interval, config_entry, manager)
+    fw_coordinator = OpenEVSEFirmwareCheck(hass, 86400, config_entry, manager)
+
+    # Setup services
+
+    async def _set_override(service: ServiceCall) -> None:
+        """Set an override."""
+        await set_overrride(
+            hass,
+            service.data,
+            config_entry,
+        )
+
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_SET_OVERRIDE,
+        _set_override,
+        schema=vol.Schema(
+            {
+                vol.Required(ATTR_DEVICE_ID): vol.Coerce(str),
+                vol.Required(ATTR_STATE): vol.Coerce(str),
+                vol.Optional(ATTR_CHARGE_CURRENT): vol.All(
+                    vol.Coerce(int), vol.Range(min=1, max=48)
+                ),
+                vol.Optional(ATTR_MAX_CURRENT): vol.All(
+                    vol.Coerce(int), vol.Range(min=1, max=48)
+                ),
+                vol.Optional(ATTR_ENERGY_LIMIT): vol.All(
+                    vol.Coerce(int), vol.Range(min=1, max=2147483647)
+                ),
+                vol.Optional(ATTR_TIME_LIMIT): vol.All(
+                    vol.Coerce(int), vol.Range(min=1, max=2147483647)
+                ),
+                vol.Optional(ATTR_AUTO_RELEASE): vol.Coerce(bool),
+            }
+        ),
+    )
+
+    async def _clear_override(service: ServiceCall) -> None:
+        """Clear an override."""
+        await clear_override(hass, service, config_entry)
+
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_CLEAR_OVERRIDE,
+        _clear_override,
+        schema=vol.Schema(
+            {
+                vol.Required(ATTR_DEVICE_ID): vol.Coerce(str),
+            }
+        ),
+    )
 
     # Fetch initial data so we have data when entities subscribe
     await coordinator.async_refresh()
+    await fw_coordinator.async_refresh()
 
     if not coordinator.last_update_success:
         raise ConfigEntryNotReady
@@ -71,6 +125,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
     hass.data[DOMAIN][config_entry.entry_id] = {
         COORDINATOR: coordinator,
         MANAGER: manager,
+        FW_COORDINATOR: fw_coordinator,
     }
 
     model_info, sw_version = await get_firmware(manager)
@@ -81,7 +136,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
         connections={(DOMAIN, config_entry.entry_id)},
         name=config_entry.data[CONF_NAME],
         manufacturer="OpenEVSE",
-        model=f"Wifi version {model_info}",
+        model={model_info},
         sw_version=sw_version,
         configuration_url=manager.url,
     )
@@ -101,13 +156,23 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
 async def get_firmware(manager: OpenEVSEManager) -> tuple:
     """Get firmware version."""
     _LOGGER.debug("Getting firmware versions...")
+    data = {}
     try:
         await manager.update()
     except Exception as error:
         _LOGGER.error("Problem retreiving firmware data: %s", error)
         return "", ""
 
-    return manager.wifi_firmware, manager.openevse_firmware
+    try:
+        data = await manager.test_and_get()
+    except MissingSerial as error:
+        _LOGGER.info("Missing serial number data, skipping...")
+
+    if data is not None and "model" in data:
+        if data["model"] != "unknown":
+            return data["model"], manager.wifi_firmware
+
+    return f"Wifi version {manager.wifi_firmware}", manager.openevse_firmware
 
 
 async def async_unload_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:
@@ -154,6 +219,29 @@ async def update_listener(hass: HomeAssistant, config_entry: ConfigEntry) -> Non
     )
 
     await hass.config_entries.async_reload(config_entry.entry_id)
+
+
+class OpenEVSEFirmwareCheck(DataUpdateCoordinator):
+    """Class to fetch OpenEVSE firmware update data."""
+
+    def __init__(self, hass, interval, config, manager):
+        """Initialize."""
+        self.interval = timedelta(seconds=interval)
+        self.name = f"OpenEVSE ({config.data.get(CONF_NAME)}).firmware"
+        self.config = config
+        self.hass = hass
+        self._manager = manager
+        self._data = {}
+
+        _LOGGER.debug("Firmware data will be update every %s", self.interval)
+
+        super().__init__(hass, _LOGGER, name=self.name, update_interval=self.interval)
+
+    async def _async_update_data(self):
+        """Return data"""
+        self._data = await self._manager.firmware_check()
+        _LOGGER.debug("FW Update: %s", self._data)
+        return self._data
 
 
 class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
@@ -235,6 +323,24 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
                 _LOGGER.info(
                     "Could not update status for %s",
                     binary_sensor,
+                )
+            data.update(_sensor)
+        for select in SELECT_TYPES:
+            _sensor = {}
+            try:
+                sensor_property = SELECT_TYPES[select].key
+                # Data can be sent as boolean or as 1/0
+                _sensor[select] = getattr(self._manager, sensor_property)
+                _LOGGER.debug(
+                    "select: %s sensor_property: %s value %s",
+                    select,
+                    sensor_property,
+                    _sensor[select],
+                )
+            except (ValueError, KeyError):
+                _LOGGER.info(
+                    "Could not update status for %s",
+                    select,
                 )
             data.update(_sensor)
         _LOGGER.debug("DEBUG: %s", data)

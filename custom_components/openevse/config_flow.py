@@ -1,4 +1,6 @@
 """Adds config flow for OpenEVSE."""
+from __future__ import annotations
+
 import logging
 from typing import Any, Dict, Optional, Union
 
@@ -10,7 +12,7 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.data_entry_flow import AbortFlow, FlowResult
 from homeassistant.helpers import config_validation as cv
 from homeassistant.util import slugify
-from openevsehttp import OpenEVSE
+from openevsehttp.__main__ import OpenEVSE
 
 from .const import CONF_NAME, CONF_SERIAL, CONF_TYPE, DEFAULT_HOST, DEFAULT_NAME, DOMAIN
 
