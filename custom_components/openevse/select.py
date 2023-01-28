@@ -88,6 +88,7 @@ class OpenEVSESelect(CoordinatorEntity, SelectEntity):
                 _LOGGER.debug("Command: %s", command)
                 await send_command(charger, command)
             else:
+                _LOGGER.debug("Command: %s Option: %s", self._command, option)
                 await getattr(self._manager, self._command)(option)
         except (ValueError, KeyError) as err:
             _LOGGER.warning(
@@ -109,9 +110,8 @@ class OpenEVSESelect(CoordinatorEntity, SelectEntity):
         """Return a set of selectable options."""
         if self._type == "max_current_soft":
             min = self.coordinator.data["min_amps"]
-            max = self.coordinator.data["max_amps"]
-            _LOGGER.debug(
-                "Max Amps: %s", list([str(item) for item in range(min, max + 1)])
-            )
-            return list([str(item) for item in range(min, max + 1)])
+            max = self.coordinator.data["max_amps"] + 1
+            options = list([str(item) for item in range(min, max)])
+            _LOGGER.debug("Max Amps: %s", options)
+            return options
         return self._default_options
