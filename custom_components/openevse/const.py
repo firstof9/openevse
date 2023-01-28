@@ -205,7 +205,6 @@ SENSOR_TYPES: Final[dict[str, SensorEntityDescription]] = {
         name="Divert Mode",
         key="divertmode",
         icon="mdi:solar-power",
-        device_class=SensorDeviceClass.POWER,
         entity_category=EntityCategory.CONFIG,
     ),
     "available_current": SensorEntityDescription(
