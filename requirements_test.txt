@@ -8,5 +8,3 @@ isort==5.11.4
 pylint==2.15.9
 tox==4.2.3
 pytest==7.2.0
-pytest-cov==4.0.0
-pytest-timeout==2.1.0
