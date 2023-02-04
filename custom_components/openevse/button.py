@@ -1,5 +1,6 @@
 """Support for OpenEVSE buttons."""
 from __future__ import annotations
+
 import logging
 
 from homeassistant.components.button import (

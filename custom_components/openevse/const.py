@@ -6,10 +6,7 @@ from homeassistant.components.binary_sensor import (
     BinarySensorDeviceClass,
     BinarySensorEntityDescription,
 )
-from homeassistant.components.button import (
-    ButtonDeviceClass,
-    ButtonEntityDescription,
-)
+from homeassistant.components.button import ButtonDeviceClass, ButtonEntityDescription
 from homeassistant.components.sensor import (
     SensorDeviceClass,
     SensorEntityDescription,
