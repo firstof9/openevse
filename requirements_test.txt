@@ -1,0 +1,10 @@
+-r requirements.txt
+pytest-homeassistant-custom-component==0.12.49
+black==22.12.0
+flake8==6.0.0
+mypy==0.991
+pydocstyle==6.2.2
+isort==5.11.4
+pylint==2.15.9
+tox==4.2.3
+pytest==7.2.0
