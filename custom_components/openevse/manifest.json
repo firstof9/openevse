@@ -2,6 +2,7 @@
   "domain": "openevse",
   "name": "OpenEVSE",
   "documentation": "https://www.home-assistant.io/integrations/openevse",
+  "issue_tracker": "https://github.com/firstof9/openevse/issues",
   "requirements": ["python-openevse-http==0.1.36"],
   "dependencies": ["zeroconf"],
   "zeroconf": ["_openevse._tcp.local."],
