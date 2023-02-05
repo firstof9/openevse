@@ -37,9 +37,7 @@ async def set_overrride(
     if ATTR_STATE in data:
         state = data[ATTR_STATE]
     else:
-        _LOGGER.error("Missing state value!")
-        raise ValueError
-
+        state = None
     if ATTR_CHARGE_CURRENT in data:
         charge_current = data[ATTR_CHARGE_CURRENT]
     else:
