@@ -8,7 +8,7 @@ set_override:
     state:
       name: State
       description: Enable or Disable Override
-      required: true
+      required: false
       default: disabled
       example: disabled
       selector:

@@ -4,10 +4,10 @@ from __future__ import annotations
 import logging
 from typing import Any, cast
 
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.components.switch import SwitchEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_NAME
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from . import (
     CommandFailed,

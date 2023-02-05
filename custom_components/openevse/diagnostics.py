@@ -9,10 +9,7 @@ from homeassistant.const import CONF_PASSWORD
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceEntry
 
-from .const import (
-    COORDINATOR,
-    DOMAIN,
-)
+from .const import COORDINATOR, DOMAIN
 
 REDACT_KEYS = {CONF_PASSWORD}
 

@@ -1,21 +1,21 @@
 """Services for OpenEVSE."""
 from __future__ import annotations
+
 import logging
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.device_registry import async_get as async_get_device_registry
 
 from .const import (
+    ATTR_AUTO_RELEASE,
+    ATTR_CHARGE_CURRENT,
+    ATTR_DEVICE_ID,
+    ATTR_ENERGY_LIMIT,
+    ATTR_MAX_CURRENT,
+    ATTR_STATE,
+    ATTR_TIME_LIMIT,
     DOMAIN,
     MANAGER,
-    ATTR_DEVICE_ID,
-    ATTR_STATE,
-    ATTR_CHARGE_CURRENT,
-    ATTR_MAX_CURRENT,
-    ATTR_ENERGY_LIMIT,
-    ATTR_TIME_LIMIT,
-    ATTR_AUTO_RELEASE,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -37,9 +37,7 @@ async def set_overrride(
     if ATTR_STATE in data:
         state = data[ATTR_STATE]
     else:
-        _LOGGER.error("Missing state value!")
-        raise ValueError
-
+        state = None
     if ATTR_CHARGE_CURRENT in data:
         charge_current = data[ATTR_CHARGE_CURRENT]
     else:
