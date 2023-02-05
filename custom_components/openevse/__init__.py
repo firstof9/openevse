@@ -80,7 +80,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
         schema=vol.Schema(
             {
                 vol.Required(ATTR_DEVICE_ID): vol.Coerce(str),
-                vol.Required(ATTR_STATE): vol.Coerce(str),
+                vol.Optional(ATTR_STATE): vol.Coerce(str),
                 vol.Optional(ATTR_CHARGE_CURRENT): vol.All(
                     vol.Coerce(int), vol.Range(min=1, max=48)
                 ),
