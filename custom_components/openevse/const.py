@@ -298,13 +298,13 @@ SWITCH_TYPES: Final[dict[str, OpenEVSESwitchEntityDescription]] = {
 
 # Name, options, command, entity category
 SELECT_TYPES: Final[dict[str, OpenEVSESelectEntityDescription]] = {
-    "service_level": OpenEVSESelectEntityDescription(
-        name="Service Level",
-        key="service_level",
-        default_options=SERVICE_LEVELS,
-        command="$SL",
-        entity_category=EntityCategory.CONFIG,
-    ),
+    # "service_level": OpenEVSESelectEntityDescription(
+    #     name="Service Level",
+    #     key="service_level",
+    #     default_options=SERVICE_LEVELS,
+    #     command="$SL",
+    #     entity_category=EntityCategory.CONFIG,
+    # ),
     "max_current_soft": OpenEVSESelectEntityDescription(
         name="Max Current",
         key="current_capacity",
