@@ -9,7 +9,10 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_NAME
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from . import OpenEVSEManager, OpenEVSEUpdateCoordinator
+from . import (
+    OpenEVSEManager,
+    OpenEVSEUpdateCoordinator,
+)
 from .const import COORDINATOR, DOMAIN, MANAGER, SWITCH_TYPES
 from .entity import OpenEVSESwitchEntityDescription
 
