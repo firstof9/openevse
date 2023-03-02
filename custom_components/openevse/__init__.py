@@ -33,12 +33,10 @@ from .const import (
     PLATFORMS,
     SELECT_TYPES,
     SENSOR_TYPES,
+    SERVICE_CLEAR_OVERRIDE,
+    SERVICE_SET_OVERRIDE,
     VERSION,
 )
-from .services import clear_override, set_overrride
-
-SERVICE_SET_OVERRIDE = "set_override"
-SERVICE_CLEAR_OVERRIDE = "clear_override"
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -66,12 +64,48 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
     # Setup services
 
     async def _set_override(service: ServiceCall) -> None:
-        """Set an override."""
-        await set_overrride(
-            hass,
-            service.data,
-            config_entry,
+        """Set the override."""
+        data = service.data
+        if ATTR_DEVICE_ID in data:
+            device_id = data[ATTR_DEVICE_ID]
+            _LOGGER.debug("Device ID: %s", device_id)
+        else:
+            raise ValueError
+
+        if ATTR_STATE in data:
+            state = data[ATTR_STATE]
+        else:
+            state = None
+        if ATTR_CHARGE_CURRENT in data:
+            charge_current = data[ATTR_CHARGE_CURRENT]
+        else:
+            charge_current = None
+        if ATTR_MAX_CURRENT in data:
+            max_current = data[ATTR_MAX_CURRENT]
+        else:
+            max_current = None
+        if ATTR_ENERGY_LIMIT in data:
+            energy_limit = data[ATTR_ENERGY_LIMIT]
+        else:
+            energy_limit = None
+        if ATTR_TIME_LIMIT in data:
+            time_limit = data[ATTR_TIME_LIMIT]
+        else:
+            time_limit = None
+        if ATTR_AUTO_RELEASE in data:
+            auto_release = data[ATTR_AUTO_RELEASE]
+        else:
+            auto_release = None
+
+        response = await manager.set_override(
+            state=state,
+            charge_current=charge_current,
+            max_current=max_current,
+            energy_limit=energy_limit,
+            time_limit=time_limit,
+            auto_release=auto_release,
         )
+        _LOGGER.debug("Set Override response: %s", response)
 
     hass.services.async_register(
         DOMAIN,
@@ -99,8 +133,12 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
     )
 
     async def _clear_override(service: ServiceCall) -> None:
-        """Clear an override."""
-        await clear_override(hass, service, config_entry)
+        """Clear the manual override."""
+        data = service.data
+        _LOGGER.debug("Clear Override data: %s", data)
+
+        await manager.clear_override()
+        _LOGGER.debug("Override clear command sent.")
 
     hass.services.async_register(
         DOMAIN,

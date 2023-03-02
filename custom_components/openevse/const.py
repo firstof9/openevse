@@ -42,6 +42,9 @@ PLATFORMS = ["binary_sensor", "button", "sensor", "select", "switch", "update"]
 USER_AGENT = "Home Assistant"
 MANAGER = "manager"
 
+SERVICE_SET_OVERRIDE = "set_override"
+SERVICE_CLEAR_OVERRIDE = "clear_override"
+
 ATTR_DEVICE_ID = "device_id"
 ATTR_STATE = "state"
 ATTR_CHARGE_CURRENT = "charge_current"
