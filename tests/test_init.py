@@ -31,7 +31,6 @@ async def test_setup_and_unload_entry(hass, mock_charger, mock_fw_get, mock_libr
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
 
-
     assert len(hass.states.async_entity_ids(BINARY_SENSOR_DOMAIN)) == 4
     assert len(hass.states.async_entity_ids(SENSOR_DOMAIN)) == 20
     assert len(hass.states.async_entity_ids(SWITCH_DOMAIN)) == 2

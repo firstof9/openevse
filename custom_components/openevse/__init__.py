@@ -41,7 +41,9 @@ from .const import (
 _LOGGER = logging.getLogger(__name__)
 
 
-async def async_setup(hass: HomeAssistant, config: Config) -> bool:
+async def async_setup(  # pylint: disable-next=unused-argument
+    hass: HomeAssistant, config: Config
+) -> bool:
     """Disallow configuration via YAML."""
     return True
 
@@ -50,7 +52,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
     """Set up is called when Home Assistant is loading our component."""
     hass.data.setdefault(DOMAIN, {})
     _LOGGER.info(
-        "Version %s is starting, if you have any issues please report" " them here: %s",
+        "Version %s is starting, if you have any issues please report them here: %s",
         VERSION,
         ISSUE_URL,
     )
@@ -201,7 +203,7 @@ async def get_firmware(manager: OpenEVSEManager) -> tuple:
 
     try:
         data = await manager.test_and_get()
-    except MissingSerial as error:
+    except MissingSerial:
         _LOGGER.info("Missing serial number data, skipping...")
 
     if data is not None and "model" in data:
@@ -213,7 +215,6 @@ async def get_firmware(manager: OpenEVSEManager) -> tuple:
 
 async def async_unload_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:
     """Handle removal of an entry."""
-
     _LOGGER.debug("Attempting to unload entities from the %s integration", DOMAIN)
 
     unload_ok = all(
@@ -240,7 +241,6 @@ async def async_unload_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> 
 
 async def update_listener(hass: HomeAssistant, config_entry: ConfigEntry) -> None:
     """Update listener."""
-
     _LOGGER.debug("Attempting to reload entities from the %s integration", DOMAIN)
 
     if config_entry.data == config_entry.options:
@@ -274,7 +274,7 @@ class OpenEVSEFirmwareCheck(DataUpdateCoordinator):
         super().__init__(hass, _LOGGER, name=self.name, update_interval=self.interval)
 
     async def _async_update_data(self):
-        """Return data"""
+        """Return data."""
         self._data = await self._manager.firmware_check()
         _LOGGER.debug("FW Update: %s", self._data)
         return self._data
@@ -298,7 +298,7 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
         super().__init__(hass, _LOGGER, name=self.name, update_interval=self.interval)
 
     async def _async_update_data(self):
-        """Return data"""
+        """Return data."""
         await self.update_sensors()
         return self._data
 
@@ -328,7 +328,7 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
     def parse_sensors(self) -> None:
         """Parse updated sensor data."""
         data = {}
-        for sensor in SENSOR_TYPES:
+        for sensor in SENSOR_TYPES:  # pylint: disable=consider-using-dict-items
             _sensor = {}
             try:
                 sensor_property = SENSOR_TYPES[sensor].key
@@ -343,7 +343,9 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
                 _LOGGER.info("Could not update status for %s", sensor)
             data.update(_sensor)
 
-        for binary_sensor in BINARY_SENSORS:
+        for (
+            binary_sensor
+        ) in BINARY_SENSORS:  # pylint: disable=consider-using-dict-items
             _sensor = {}
             try:
                 sensor_property = BINARY_SENSORS[binary_sensor].key
@@ -361,7 +363,7 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
                     binary_sensor,
                 )
             data.update(_sensor)
-        for select in SELECT_TYPES:
+        for select in SELECT_TYPES:  # pylint: disable=consider-using-dict-items
             _sensor = {}
             try:
                 sensor_property = SELECT_TYPES[select].key
@@ -397,6 +399,7 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
 
 
 async def send_command(handler, command) -> None:
+    """Send command to OpenEVSE device via RAPI."""
     cmd, response = await handler.send_command(command)
     _LOGGER.debug("send_command: %s, %s", cmd, response)
     if cmd == command:
@@ -410,7 +413,9 @@ async def send_command(handler, command) -> None:
 class OpenEVSEManager:
     """OpenEVSE connection manager."""
 
-    def __init__(self, hass: HomeAssistant, config_entry: ConfigEntry) -> None:
+    def __init__(  # pylint: disable-next=unused-argument
+        self, hass: HomeAssistant, config_entry: ConfigEntry
+    ) -> None:
         """Initialize."""
         self._host = config_entry.data.get(CONF_HOST)
         self._username = config_entry.data.get(CONF_USERNAME)

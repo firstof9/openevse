@@ -17,6 +17,7 @@ pytest_plugins = "pytest_homeassistant_custom_component"
 # Remove to enable selective use of this fixture
 @pytest.fixture(autouse=True)
 def auto_enable_custom_integrations(enable_custom_integrations):
+    """Enable custom integration tests."""
     yield
 
 
@@ -52,15 +53,16 @@ def mock_fw_get():
         mock_value.return_value = GETFW_DATA
         yield mock_value
 
+
 @pytest.fixture()
 def mock_library():
     """Mock library."""
     with patch("custom_components.openevse.OpenEVSE") as mock_value:
         mock_value.ws_start.return_value = True
         mock_value.url.return_value = "http://localhost"
-        
+
         yield mock_value
-        
+
 
 @pytest.fixture()
 def mock_manager():

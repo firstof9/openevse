@@ -18,11 +18,11 @@ _LOGGER = logging.getLogger(__name__)
 
 
 async def async_setup_entry(hass, entry, async_add_devices):
-    """Setup binary_sensor platform."""
+    """Set up binary_sensor platform."""
     coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
 
     binary_sensors = []
-    for binary_sensor in BINARY_SENSORS:
+    for binary_sensor in BINARY_SENSORS:  # pylint: disable=consider-using-dict-items
         binary_sensors.append(
             OpenEVSEBinarySensor(BINARY_SENSORS[binary_sensor], coordinator, entry)
         )
