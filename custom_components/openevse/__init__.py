@@ -63,8 +63,42 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
     coordinator = OpenEVSEUpdateCoordinator(hass, interval, config_entry, manager)
     fw_coordinator = OpenEVSEFirmwareCheck(hass, 86400, config_entry, manager)
 
-    # Setup services
+    # Fetch initial data so we have data when entities subscribe
+    await coordinator.async_refresh()
+    await fw_coordinator.async_refresh()
 
+    if not coordinator.last_update_success:
+        raise ConfigEntryNotReady
+
+    hass.data[DOMAIN][config_entry.entry_id] = {
+        COORDINATOR: coordinator,
+        MANAGER: manager,
+        FW_COORDINATOR: fw_coordinator,
+    }
+
+    model_info, sw_version = await get_firmware(manager)
+
+    device_registry = dr.async_get(hass)
+    device_registry.async_get_or_create(
+        config_entry_id=config_entry.entry_id,
+        connections={(DOMAIN, config_entry.entry_id)},
+        name=config_entry.data[CONF_NAME],
+        manufacturer="OpenEVSE",
+        model={model_info},
+        sw_version=sw_version,
+        configuration_url=manager.url,
+    )
+
+    await coordinator.async_refresh()
+    # Start the websocket listener
+    manager.ws_start()
+
+    for platform in PLATFORMS:
+        hass.async_create_task(
+            hass.config_entries.async_forward_entry_setup(config_entry, platform)
+        )
+
+    # Setup services
     async def _set_override(service: ServiceCall) -> None:
         """Set the override."""
         data = service.data
@@ -73,7 +107,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
             _LOGGER.debug("Device ID: %s", device_id)
         else:
             raise ValueError
-
+        
         if ATTR_STATE in data:
             state = data[ATTR_STATE]
         else:
@@ -137,6 +171,12 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
     async def _clear_override(service: ServiceCall) -> None:
         """Clear the manual override."""
         data = service.data
+        if ATTR_DEVICE_ID in data:
+            device_id = data[ATTR_DEVICE_ID]
+            _LOGGER.debug("Device ID: %s", device_id)
+        else:
+            raise ValueError
+                
         _LOGGER.debug("Clear Override data: %s", data)
 
         await manager.clear_override()
@@ -151,42 +191,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
                 vol.Required(ATTR_DEVICE_ID): vol.Coerce(str),
             }
         ),
-    )
-
-    # Fetch initial data so we have data when entities subscribe
-    await coordinator.async_refresh()
-    await fw_coordinator.async_refresh()
-
-    if not coordinator.last_update_success:
-        raise ConfigEntryNotReady
-
-    hass.data[DOMAIN][config_entry.entry_id] = {
-        COORDINATOR: coordinator,
-        MANAGER: manager,
-        FW_COORDINATOR: fw_coordinator,
-    }
-
-    model_info, sw_version = await get_firmware(manager)
-
-    device_registry = dr.async_get(hass)
-    device_registry.async_get_or_create(
-        config_entry_id=config_entry.entry_id,
-        connections={(DOMAIN, config_entry.entry_id)},
-        name=config_entry.data[CONF_NAME],
-        manufacturer="OpenEVSE",
-        model={model_info},
-        sw_version=sw_version,
-        configuration_url=manager.url,
-    )
-
-    await coordinator.async_refresh()
-    # Start the websocket listener
-    manager.ws_start()
-
-    for platform in PLATFORMS:
-        hass.async_create_task(
-            hass.config_entries.async_forward_entry_setup(config_entry, platform)
-        )
+    )        
 
     return True
 
