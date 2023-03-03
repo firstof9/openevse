@@ -107,7 +107,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
             _LOGGER.debug("Device ID: %s", device_id)
         else:
             raise ValueError
-        
+
         if ATTR_STATE in data:
             state = data[ATTR_STATE]
         else:
@@ -176,7 +176,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
             _LOGGER.debug("Device ID: %s", device_id)
         else:
             raise ValueError
-                
+
         _LOGGER.debug("Clear Override data: %s", data)
 
         await manager.clear_override()
@@ -191,7 +191,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
                 vol.Required(ATTR_DEVICE_ID): vol.Coerce(str),
             }
         ),
-    )        
+    )
 
     return True
 
