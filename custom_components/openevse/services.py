@@ -1,7 +1,6 @@
 """OpenEVSE services."""
 
 import logging
-from typing import Any
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry
@@ -45,7 +44,6 @@ class OpenEVSEServices:
     @callback
     def async_register(self) -> None:
         """Register all our services."""
-
         self._hass.services.async_register(
             DOMAIN,
             SERVICE_SET_OVERRIDE,

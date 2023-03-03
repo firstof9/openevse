@@ -5,7 +5,6 @@ import asyncio
 import logging
 from datetime import timedelta
 
-import homeassistant.helpers.device_registry as dr
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_HOST, CONF_PASSWORD, CONF_USERNAME
 from homeassistant.core import Config, HomeAssistant, callback
