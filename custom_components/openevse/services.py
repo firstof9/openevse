@@ -90,7 +90,13 @@ class OpenEVSEServices:
         else:
             raise ValueError
 
-        config_id = dr.async_get(device_id).config_entries
+        dev_reg = dr.async_get(self._hass)
+
+        if not (device_entry := dev_reg.async_get(device_id)):
+            raise ValueError(f"Device ID {device_id} is not valid")
+
+
+        config_id = device_entry.config_entries
         manager = self._hass.data[DOMAIN][config_id][MANAGER]
 
         _LOGGER.debug("Config ID: %s", config_id)
@@ -140,7 +146,13 @@ class OpenEVSEServices:
         else:
             raise ValueError
 
-        config_id = dr.async_get(device_id).config_entries
+        dev_reg = dr.async_get(self._hass)
+
+        if not (device_entry := dev_reg.async_get(device_id)):
+            raise ValueError(f"Device ID {device_id} is not valid")
+
+
+        config_id = device_entry.config_entries
         manager = self._hass.data[DOMAIN][config_id][MANAGER]
 
         _LOGGER.debug("Config ID: %s", config_id)
