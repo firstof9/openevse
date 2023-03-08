@@ -294,6 +294,12 @@ SWITCH_TYPES: Final[dict[str, OpenEVSESwitchEntityDescription]] = {
         toggle_command="toggle_override",
         device_class=SwitchDeviceClass.SWITCH,
     ),
+    "divertmode": OpenEVSESwitchEntityDescription(
+        name="Divert Active",
+        key="divert_active",
+        toggle_command="divert_mode",
+        entity_category=EntityCategory.CONFIG,
+    ),    
 }
 
 # Name, options, command, entity category
@@ -313,13 +319,13 @@ SELECT_TYPES: Final[dict[str, OpenEVSESelectEntityDescription]] = {
         entity_category=EntityCategory.CONFIG,
         entity_registry_enabled_default=False,
     ),
-    "divertmode": OpenEVSESelectEntityDescription(
-        name="Divert Mode",
-        key="divertmode",
-        default_options=DIVERT_MODE,
-        command="divert_mode",
-        entity_category=EntityCategory.CONFIG,
-    ),
+    # "divertmode": OpenEVSESelectEntityDescription(
+    #     name="Divert Mode",
+    #     key="divertmode",
+    #     default_options=DIVERT_MODE,
+    #     command="divert_mode",
+    #     entity_category=EntityCategory.CONFIG,
+    # ),
 }
 
 # key: name
