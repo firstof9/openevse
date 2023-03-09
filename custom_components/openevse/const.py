@@ -51,7 +51,7 @@ ATTR_TIME_LIMIT = "time_limit"
 ATTR_AUTO_RELEASE = "auto_release"
 
 SERVICE_LEVELS = ["1", "2", "A"]
-DIVERT_MODE = ["normal", "eco"]
+DIVERT_MODE = ["fast", "eco"]
 
 # Name, unit of measure, property, icon, device class, state class
 SENSOR_TYPES: Final[dict[str, SensorEntityDescription]] = {
@@ -198,9 +198,9 @@ SENSOR_TYPES: Final[dict[str, SensorEntityDescription]] = {
         entity_category=EntityCategory.DIAGNOSTIC,
         entity_registry_enabled_default=False,
     ),
-    "divertmode": SensorEntityDescription(
+    "charge_mode": SensorEntityDescription(
         name="Divert Mode",
-        key="divertmode",
+        key="charge_mode",
         icon="mdi:solar-power",
         entity_category=EntityCategory.CONFIG,
     ),
@@ -295,7 +295,7 @@ SWITCH_TYPES: Final[dict[str, OpenEVSESwitchEntityDescription]] = {
         device_class=SwitchDeviceClass.SWITCH,
     ),
     "divertmode": OpenEVSESwitchEntityDescription(
-        name="Divert Active",
+        name="Solar PV Divert",
         key="divert_active",
         toggle_command="divert_mode",
         device_class=SwitchDeviceClass.SWITCH,
@@ -319,13 +319,13 @@ SELECT_TYPES: Final[dict[str, OpenEVSESelectEntityDescription]] = {
         entity_category=EntityCategory.CONFIG,
         entity_registry_enabled_default=False,
     ),
-    # "divertmode": OpenEVSESelectEntityDescription(
-    #     name="Divert Mode",
-    #     key="divertmode",
-    #     default_options=DIVERT_MODE,
-    #     command="divert_mode",
-    #     entity_category=EntityCategory.CONFIG,
-    # ),
+    "charge_mode": OpenEVSESelectEntityDescription(
+        name="Divert Mode",
+        key="charge_mode",
+        default_options=DIVERT_MODE,
+        command="set_charge_mode",
+        entity_category=EntityCategory.CONFIG,
+    ),
 }
 
 # key: name
