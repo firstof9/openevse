@@ -19,7 +19,7 @@ jobs:
       - name: "Set version numbmer"
         run: |
           sed -i '/VERSION = /c\VERSION = "${{ steps.get_version.outputs.VERSION }}"' ${{ github.workspace }}/custom_components/openevse/const.py
-          sed -i '/version/c\  \"version\": \"${{ steps.get_version.outputs.VERSION }}\"' ${{ github.workspace }}/custom_components/openevse/manifest.json
+          sed -i '/version/c\  \"version\": \"${{ steps.get_version.outputs.VERSION }}\",' ${{ github.workspace }}/custom_components/openevse/manifest.json
       # Pack the openevse dir as a zip and upload to the release
       - name: Create Zip File
         run: |

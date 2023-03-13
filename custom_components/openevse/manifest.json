@@ -4,10 +4,10 @@
   "after_dependencies": ["zeroconf"],
   "codeowners": ["@firstof9"],
   "config_flow": true,
-  "documentation": "https://www.home-assistant.io/integrations/openevse",
+  "documentation": "https://github.com/firstof9/openevse/",
   "iot_class": "local_push",
   "issue_tracker": "https://github.com/firstof9/openevse/issues",
-  "requirements": ["python-openevse-http==0.1.38"],
+  "requirements": ["python-openevse-http==0.1.43"],
   "version": "0.0.0-dev",
   "zeroconf": ["_openevse._tcp.local."]
 }
