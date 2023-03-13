@@ -279,6 +279,38 @@ SENSOR_TYPES: Final[dict[str, SensorEntityDescription]] = {
         state_class=SensorStateClass.MEASUREMENT,
         entity_registry_enabled_default=False,
     ),
+    "total_day": SensorEntityDescription(
+        key="total_day",
+        name="Usage (Today)",
+        native_unit_of_measurement=ENERGY_KILO_WATT_HOUR,
+        state_class=SensorStateClass.TOTAL_INCREASING,
+        device_class=SensorDeviceClass.ENERGY,
+        entity_registry_enabled_default=False,
+    ),    
+    "total_week": SensorEntityDescription(
+        key="total_week",
+        name="Usage (Week)",
+        native_unit_of_measurement=ENERGY_KILO_WATT_HOUR,
+        state_class=SensorStateClass.TOTAL_INCREASING,
+        device_class=SensorDeviceClass.ENERGY,
+        entity_registry_enabled_default=False,
+    ),        
+    "total_month": SensorEntityDescription(
+        key="total_month",
+        name="Usage (Month)",
+        native_unit_of_measurement=ENERGY_KILO_WATT_HOUR,
+        state_class=SensorStateClass.TOTAL_INCREASING,
+        device_class=SensorDeviceClass.ENERGY,
+        entity_registry_enabled_default=False,
+    ),        
+    "total_year": SensorEntityDescription(
+        key="total_year",
+        name="Usage (Year)",
+        native_unit_of_measurement=ENERGY_KILO_WATT_HOUR,
+        state_class=SensorStateClass.TOTAL_INCREASING,
+        device_class=SensorDeviceClass.ENERGY,
+        entity_registry_enabled_default=False,
+    ),        
 }
 
 SWITCH_TYPES: Final[dict[str, OpenEVSESwitchEntityDescription]] = {
@@ -364,6 +396,12 @@ BINARY_SENSORS: Final[dict[str, BinarySensorEntityDescription]] = {
         key="shaper_active",
         device_class=BinarySensorDeviceClass.POWER,
     ),
+    "has_limit": BinarySensorEntityDescription(
+        name="Limit Active",
+        key="has_limit",
+        device_class=BinarySensorDeviceClass.POWER,
+        entity_registry_enabled_default=False,
+    ),    
 }
 
 BUTTON_TYPES: Final[dict[str, ButtonEntityDescription]] = {
