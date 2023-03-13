@@ -8,7 +8,7 @@ jobs:
     runs-on: "ubuntu-latest"
     name: Validate
     steps:
-        - uses: "actions/checkout@v2"
+        - uses: actions/checkout@v3.3.0
 
         - name: HACS validation
           uses: "hacs/action@main"
@@ -19,6 +19,17 @@ jobs:
         - name: Hassfest validation
           uses: "home-assistant/actions/hassfest@master"
 
+  style:
+    runs-on: "ubuntu-latest"
+    name: Check style formatting
+    steps:
+        - uses: actions/checkout@v3.3.0
+        - uses: actions/setup-python@v4.5.0
+          with:
+            python-version: "3.x"
+        - run: python3 -m pip install black
+        - run: black .
+
   tests:
     runs-on: "ubuntu-latest"
     name: Run tests
@@ -28,7 +39,10 @@ jobs:
           - "3.10"
 
     steps:
-      - uses: actions/checkout@v2
+      - name: Check out code from GitHub
+        uses: actions/checkout@v3.3.0
+      - name: Setup Python
+        uses: actions/setup-python@v4.5.0
         with:
           fetch-depth: 2      
       - name: Set up Python ${{ matrix.python-version }}
