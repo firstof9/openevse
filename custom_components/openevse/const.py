@@ -101,7 +101,7 @@ SENSOR_TYPES: Final[dict[str, SensorEntityDescription]] = {
         key="usage_session",
         name="Usage this Session",
         native_unit_of_measurement=ENERGY_KILO_WATT_HOUR,
-        state_class=SensorStateClass.TOTAL,
+        state_class=SensorStateClass.TOTAL_INCREASING,
         device_class=SensorDeviceClass.ENERGY,
     ),
     "usage_total": SensorEntityDescription(
