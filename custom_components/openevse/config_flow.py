@@ -68,7 +68,7 @@ class OpenEVSEFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             )
             raise AbortFlow("unknown_error") from ex
 
-        charger.ws_disconnect()
+        await charger.ws_disconnect()
 
     async def async_step_zeroconf(
         self, discovery_info: zeroconf.ZeroconfServiceInfo
