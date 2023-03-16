@@ -110,17 +110,17 @@ class OpenEVSESensor(CoordinatorEntity, SensorEntity):
     def update_icon(self) -> None:
         """Update status icon based on state."""
         if self._type == "state":
-            if self._state == "Unknown":
+            if self._state == "unknown":
                 self._icon = "mdi:help"
-            elif self._state == "Not Connected":
+            elif self._state == "not connected":
                 self._icon = "mdi:power-plug-off"
-            elif self._state == "Connected":
+            elif self._state == "connected":
                 self._icon = "mdi:power-plug"
-            elif self._state == "Charging":
+            elif self._state == "charging":
                 self._icon = "mdi:battery-charging"
-            elif self._state == "Sleeping":
+            elif self._state == "sleeping":
                 self._icon = "mdi:sleep"
-            elif self._state == "Disabled":
+            elif self._state == "disabled":
                 self._icon = "mdi:car-off"
             else:
                 self._icon = "mdi:alert-octagon"
