@@ -20,6 +20,8 @@ from .const import COORDINATOR, DOMAIN, MANAGER, SWITCH_TYPES
 from .entity import OpenEVSESwitchEntityDescription
 
 _LOGGER = logging.getLogger(__name__)
+SLEEP_STATE = "sleeping"
+ATTR_STATE = "state"
 
 
 async def async_setup_entry(hass, entry, async_add_entities):
@@ -88,8 +90,8 @@ class OpenEVSESwitch(CoordinatorEntity, SwitchEntity):
             _LOGGER.info("switch [%s] not supported.", self._type)
             return None
         _LOGGER.debug("switch [%s]: %s", self._attr_name, data[self._type])
-        if self._type == "state":
-            return True if data[self._type] == "Sleeping" else False
+        if self._type == ATTR_STATE:
+            return True if data[self._type] == SLEEP_STATE else False
         return cast(bool, data[self._type] == 1)
 
     async def async_turn_on(self, **kwargs: Any) -> None:
