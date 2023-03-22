@@ -69,11 +69,14 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
     }
 
     model_info, sw_version = await get_firmware(manager)
+    data = await manager.test_and_get()
+    serial = data["serial"]
 
     device_registry = dr.async_get(hass)
     device_registry.async_get_or_create(
         config_entry_id=config_entry.entry_id,
         connections={(DOMAIN, config_entry.entry_id)},
+        identifiers={(DOMAIN, serial)},
         name=config_entry.data[CONF_NAME],
         manufacturer="OpenEVSE",
         model={model_info},
@@ -90,9 +93,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
             hass.config_entries.async_forward_entry_setup(config_entry, platform)
         )
 
-    dev_reg = dr.async_get(hass)
-    ent_reg = er.async_get(hass)
-    services = OpenEVSEServices(hass, ent_reg, dev_reg, config_entry)
+    services = OpenEVSEServices(hass, config_entry)
     services.async_register()
 
     return True

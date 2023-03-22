@@ -31,14 +31,10 @@ class OpenEVSEServices:
     def __init__(
         self,
         hass: HomeAssistant,
-        ent_reg: er.EntityRegistry,
-        dev_reg: dr.DeviceRegistry,
         config: ConfigEntry,
     ) -> None:
         """Initialize with hass object."""
         self._hass = hass
-        self._ent_reg = ent_reg
-        self._dev_reg = dev_reg
         self._config = config
 
     @callback
@@ -92,6 +88,8 @@ class OpenEVSEServices:
 
         dev_reg = dr.async_get(self._hass)
         device_entry = dev_reg.async_get(device_id)
+        _LOGGER.debug("DR: %s", dir(dev_reg))
+        _LOGGER.debug("Device_entry: %s", device_entry)
 
         if not device_entry:
             raise ValueError(f"Device ID {device_id} is not valid")
@@ -146,8 +144,7 @@ class OpenEVSEServices:
         else:
             raise ValueError
 
-        dev_reg = dr.async_get(self._hass)
-        device_entry = dev_reg.async_get(device_id)
+        device_entry = self._dev_reg.async_get(device_id)
 
         if not device_entry:
             raise ValueError(f"Device ID {device_id} is not valid")
