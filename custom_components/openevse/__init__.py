@@ -93,7 +93,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
             hass.config_entries.async_forward_entry_setup(config_entry, platform)
         )
 
-    services = OpenEVSEServices(hass, config_entry)
+    services = OpenEVSEServices(hass, config_entry, manager)
     services.async_register()
 
     return True

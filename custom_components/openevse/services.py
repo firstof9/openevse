@@ -32,10 +32,12 @@ class OpenEVSEServices:
         self,
         hass: HomeAssistant,
         config: ConfigEntry,
+        manager,
     ) -> None:
         """Initialize with hass object."""
         self._hass = hass
         self._config = config
+        self._manager = manager
 
     @callback
     def async_register(self) -> None:
@@ -86,19 +88,19 @@ class OpenEVSEServices:
         else:
             raise ValueError
 
-        dev_reg = dr.async_get(self._hass)
-        device_entry = dev_reg.async_get(device_id)
-        _LOGGER.debug("DR: %s", dir(dev_reg))
-        _LOGGER.debug("Device_entry: %s", device_entry)
+        # dev_reg = dr.async_get(self._hass)
+        # device_entry = dev_reg.async_get_device({(DOMAIN, self._serial)})
+        # _LOGGER.debug("DR: %s", dir(dev_reg))
+        # _LOGGER.debug("Device_entry: %s", device_entry)
 
-        if not device_entry:
-            raise ValueError(f"Device ID {device_id} is not valid")
+        # if not device_entry:
+        #     raise ValueError(f"Device ID {device_id} is not valid")
 
-        config_id = device_entry.config_entries
-        manager = self._hass.data[DOMAIN][config_id][MANAGER]
-
-        _LOGGER.debug("Config ID: %s", config_id)
-        _LOGGER.debug("Manager: %s", manager)
+        # config_id = device_entry.config_entries
+        # _LOGGER.debug("Config ID: %s", config_id)
+        # _LOGGER.debug("DEBUG: %s", self._hass.data[DOMAIN][config_id][MANAGER])
+        # manager = self._hass.data[DOMAIN][config_id][MANAGER]
+        _LOGGER.debug("Manager: %s", self._manager)
 
         if ATTR_STATE in data:
             state = data[ATTR_STATE]
@@ -125,7 +127,7 @@ class OpenEVSEServices:
         else:
             auto_release = None
 
-        response = await manager.set_override(
+        response = await self._manager.set_override(
             state=state,
             charge_current=charge_current,
             max_current=max_current,
@@ -144,17 +146,5 @@ class OpenEVSEServices:
         else:
             raise ValueError
 
-        device_entry = self._dev_reg.async_get(device_id)
-
-        if not device_entry:
-            raise ValueError(f"Device ID {device_id} is not valid")
-
-        config_id = device_entry.config_entries
-        manager = self._hass.data[DOMAIN][config_id][MANAGER]
-
-        _LOGGER.debug("Config ID: %s", config_id)
-        _LOGGER.debug("Manager: %s", manager)
-        _LOGGER.debug("Clear Override data: %s", data)
-
-        await manager.clear_override()
+        await self._manager.clear_override()
         _LOGGER.debug("Override clear command sent.")
