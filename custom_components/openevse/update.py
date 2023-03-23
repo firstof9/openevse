@@ -3,21 +3,16 @@ from __future__ import annotations
 
 import logging
 
-from homeassistant.components.update import (
-    UpdateDeviceClass,
-    UpdateEntity,
-    UpdateEntityFeature,
-)
+from homeassistant.components.update import UpdateDeviceClass, UpdateEntity
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import (
     CoordinatorEntity,
     DataUpdateCoordinator,
 )
 
-from . import OpenEVSEManager
-from .const import CONF_NAME, COORDINATOR, DOMAIN, FW_COORDINATOR, MANAGER
+from .const import CONF_NAME, COORDINATOR, DOMAIN, FW_COORDINATOR
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -26,10 +21,9 @@ async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
 ) -> None:
     """Set up update entities for Netgear component."""
-    manager = hass.data[DOMAIN][entry.entry_id][MANAGER]
     coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
     fw_coordinator = hass.data[DOMAIN][entry.entry_id][FW_COORDINATOR]
-    entities = [OpenEVSEUpdateEntity(coordinator, fw_coordinator, manager, entry)]
+    entities = [OpenEVSEUpdateEntity(coordinator, fw_coordinator, entry)]
 
     async_add_entities(entities)
 
@@ -43,7 +37,6 @@ class OpenEVSEUpdateEntity(CoordinatorEntity, UpdateEntity):
         self,
         coordinator: DataUpdateCoordinator,
         fw_coordinator: DataUpdateCoordinator,
-        manager: OpenEVSEManager,
         config: ConfigEntry,
     ) -> None:
         """Initialize a OpenEVSE device."""

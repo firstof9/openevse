@@ -3,15 +3,9 @@ from __future__ import annotations
 
 import logging
 
-from homeassistant.components.button import (
-    ButtonDeviceClass,
-    ButtonEntity,
-    ButtonEntityDescription,
-)
+from homeassistant.components.button import ButtonEntity, ButtonEntityDescription
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers.dispatcher import async_dispatcher_connect
-from homeassistant.helpers.entity import EntityCategory
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from . import OpenEVSEManager
@@ -26,15 +20,11 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up OpenEVSE buttons based on a config entry."""
-
     manager = hass.data[DOMAIN][config_entry.entry_id][MANAGER]
-
     assert manager is not None
-
     buttons = []
-    for button in BUTTON_TYPES:
+    for button in BUTTON_TYPES:  # pylint: disable=consider-using-dict-items
         buttons.append(OpenEVSEButton(BUTTON_TYPES[button], manager, config_entry))
-
     async_add_entities(buttons, False)
 
 

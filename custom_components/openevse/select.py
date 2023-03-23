@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Optional
+from typing import Any
 
 from homeassistant.components.select import SelectEntity
 from homeassistant.config_entries import ConfigEntry
@@ -27,7 +27,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
     coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
     manager = hass.data[DOMAIN][entry.entry_id][MANAGER]
     selects = []
-    for select in SELECT_TYPES:
+    for select in SELECT_TYPES:  # pylint: disable=consider-using-dict-items
         selects.append(
             OpenEVSESelect(hass, entry, coordinator, SELECT_TYPES[select], manager)
         )
@@ -46,6 +46,7 @@ class OpenEVSESelect(CoordinatorEntity, SelectEntity):
         description: OpenEVSESelectEntityDescription,
         manager: OpenEVSEManager,
     ) -> None:
+        """Initialize."""
         super().__init__(coordinator)
         self.hass = hass
         self._config = config_entry
@@ -95,9 +96,9 @@ class OpenEVSESelect(CoordinatorEntity, SelectEntity):
                 "Could not set status for %s error: %s", self._attr_name, err
             )
         except InvalidValue:
-            _LOGGER.error(f"Value {option} invalid for command {self._command}.")
+            _LOGGER.error("Value %s invalid for command %s.", option, self._command)
         except CommandFailed:
-            _LOGGER.error(f"Command {self._command} failed.")
+            _LOGGER.error("Command %s failed.", self._command)
 
     @property
     def available(self) -> bool:
@@ -109,9 +110,10 @@ class OpenEVSESelect(CoordinatorEntity, SelectEntity):
     def get_options(self) -> list[str]:
         """Return a set of selectable options."""
         if self._type == "current_capacity":
-            min = self.coordinator.data["min_amps"]
-            max = self.coordinator.data["max_amps"] + 1
-            options = list([str(item) for item in range(min, max)])
+            amps_min = self.coordinator.data["min_amps"]
+            amps_max = self.coordinator.data["max_amps"] + 1
+            # pylint: disable-next=consider-using-generator
+            options = list([str(item) for item in range(amps_min, amps_max)])
             _LOGGER.debug("Max Amps: %s", options)
             return options
         return self._default_options

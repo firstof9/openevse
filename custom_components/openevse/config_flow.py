@@ -14,7 +14,7 @@ from homeassistant.helpers import config_validation as cv
 from homeassistant.util import slugify
 from openevsehttp.__main__ import OpenEVSE
 
-from .const import CONF_NAME, CONF_SERIAL, CONF_TYPE, DEFAULT_HOST, DEFAULT_NAME, DOMAIN
+from .const import CONF_NAME, CONF_SERIAL, DEFAULT_HOST, DEFAULT_NAME, DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -51,7 +51,6 @@ class OpenEVSEFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
     @staticmethod
     async def _async_try_connect_and_fetch(ip_address: str) -> dict[str, Any]:
         """Try to connect."""
-
         _LOGGER.debug("config_flow _async_try_connect_and_fetch")
 
         # Make connection with device
@@ -74,7 +73,6 @@ class OpenEVSEFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         self, discovery_info: zeroconf.ZeroconfServiceInfo
     ) -> FlowResult:
         """Handle zeroconf discovery."""
-
         _LOGGER.debug("config_flow async_step_zeroconf")
 
         # Avoid probing devices that already have an entry
@@ -86,7 +84,7 @@ class OpenEVSEFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
         host = discovery_info.host
         serial = discovery_info.properties[CONF_SERIAL]
-        model = discovery_info.properties[CONF_TYPE]
+        # model = discovery_info.properties[CONF_TYPE]
         name = f"OpenEVSE: {discovery_info.name.split('.')[0]}"
 
         self.discovery_info.update(
@@ -128,6 +126,7 @@ class OpenEVSEFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
     @staticmethod
     @callback
     def async_get_options_flow(config_entry: config_entries.ConfigEntry):
+        """Handle options flow."""
         return OpenEVSEOptionsFlow(config_entry)
 
 
@@ -152,18 +151,19 @@ class OpenEVSEOptionsFlow(config_entries.OptionsFlow):
         )
 
 
-def _get_schema(
+def _get_schema(  # pylint: disable-next=unused-argument
     hass: HomeAssistant,
     user_input: Optional[Dict[str, Any]],
     default_dict: Dict[str, Any],
+    # pylint: disable-next=unused-argument
     entry_id: str = None,
 ) -> vol.Schema:
-    """Gets a schema using the default_dict as a backup."""
+    """Get a schema using the default_dict as a backup."""
     if user_input is None:
         user_input = {}
 
     def _get_default(key: str, fallback_default: Any = None) -> None:
-        """Gets default value for key."""
+        """Get default value for key."""
         return user_input.get(key, default_dict.get(key, fallback_default))
 
     return vol.Schema(

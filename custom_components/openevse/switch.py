@@ -9,13 +9,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_NAME
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from . import (
-    CommandFailed,
-    InvalidValue,
-    OpenEVSEManager,
-    OpenEVSEUpdateCoordinator,
-    send_command,
-)
+from . import OpenEVSEManager, OpenEVSEUpdateCoordinator
 from .const import COORDINATOR, DOMAIN, MANAGER, SWITCH_TYPES
 from .entity import OpenEVSESwitchEntityDescription
 
@@ -30,7 +24,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
     manager = hass.data[DOMAIN][entry.entry_id][MANAGER]
 
     switches = []
-    for switch in SWITCH_TYPES:
+    for switch in SWITCH_TYPES:  # pylint: disable=consider-using-dict-items
         switches.append(
             OpenEVSESwitch(hass, entry, coordinator, SWITCH_TYPES[switch], manager)
         )
@@ -49,6 +43,7 @@ class OpenEVSESwitch(CoordinatorEntity, SwitchEntity):
         description: OpenEVSESwitchEntityDescription,
         manager: OpenEVSEManager,
     ) -> None:
+        """Initialize."""
         super().__init__(coordinator)
         self.hass = hass
         self._config = config_entry
@@ -91,7 +86,7 @@ class OpenEVSESwitch(CoordinatorEntity, SwitchEntity):
             return None
         _LOGGER.debug("switch [%s]: %s", self._attr_name, data[self._type])
         if self._type == ATTR_STATE:
-            return True if data[self._type] == SLEEP_STATE else False
+            return data[self._type] == SLEEP_STATE
         return cast(bool, data[self._type] == 1)
 
     async def async_turn_on(self, **kwargs: Any) -> None:

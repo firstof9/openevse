@@ -1,3 +1,5 @@
+"""Constants for OpenEVSE."""
+
 from __future__ import annotations
 
 from typing import Final
@@ -41,6 +43,9 @@ ISSUE_URL = "http://github.com/firstof9/openevse/"
 PLATFORMS = ["binary_sensor", "button", "sensor", "select", "switch", "update"]
 USER_AGENT = "Home Assistant"
 MANAGER = "manager"
+
+SERVICE_SET_OVERRIDE = "set_override"
+SERVICE_CLEAR_OVERRIDE = "clear_override"
 
 ATTR_DEVICE_ID = "device_id"
 ATTR_STATE = "state"
@@ -286,7 +291,7 @@ SENSOR_TYPES: Final[dict[str, SensorEntityDescription]] = {
         state_class=SensorStateClass.TOTAL_INCREASING,
         device_class=SensorDeviceClass.ENERGY,
         entity_registry_enabled_default=False,
-    ),    
+    ),
     "total_week": SensorEntityDescription(
         key="total_week",
         name="Usage (Week)",
@@ -294,7 +299,7 @@ SENSOR_TYPES: Final[dict[str, SensorEntityDescription]] = {
         state_class=SensorStateClass.TOTAL_INCREASING,
         device_class=SensorDeviceClass.ENERGY,
         entity_registry_enabled_default=False,
-    ),        
+    ),
     "total_month": SensorEntityDescription(
         key="total_month",
         name="Usage (Month)",
@@ -302,7 +307,7 @@ SENSOR_TYPES: Final[dict[str, SensorEntityDescription]] = {
         state_class=SensorStateClass.TOTAL_INCREASING,
         device_class=SensorDeviceClass.ENERGY,
         entity_registry_enabled_default=False,
-    ),        
+    ),
     "total_year": SensorEntityDescription(
         key="total_year",
         name="Usage (Year)",
@@ -310,7 +315,7 @@ SENSOR_TYPES: Final[dict[str, SensorEntityDescription]] = {
         state_class=SensorStateClass.TOTAL_INCREASING,
         device_class=SensorDeviceClass.ENERGY,
         entity_registry_enabled_default=False,
-    ),        
+    ),
 }
 
 SWITCH_TYPES: Final[dict[str, OpenEVSESwitchEntityDescription]] = {
@@ -401,7 +406,7 @@ BINARY_SENSORS: Final[dict[str, BinarySensorEntityDescription]] = {
         key="has_limit",
         device_class=BinarySensorDeviceClass.POWER,
         entity_registry_enabled_default=False,
-    ),    
+    ),
 }
 
 BUTTON_TYPES: Final[dict[str, ButtonEntityDescription]] = {
