@@ -291,7 +291,7 @@ SENSOR_TYPES: Final[dict[str, SensorEntityDescription]] = {
         state_class=SensorStateClass.TOTAL_INCREASING,
         device_class=SensorDeviceClass.ENERGY,
         entity_registry_enabled_default=False,
-    ),    
+    ),
     "total_week": SensorEntityDescription(
         key="total_week",
         name="Usage (Week)",
@@ -299,7 +299,7 @@ SENSOR_TYPES: Final[dict[str, SensorEntityDescription]] = {
         state_class=SensorStateClass.TOTAL_INCREASING,
         device_class=SensorDeviceClass.ENERGY,
         entity_registry_enabled_default=False,
-    ),        
+    ),
     "total_month": SensorEntityDescription(
         key="total_month",
         name="Usage (Month)",
@@ -307,7 +307,7 @@ SENSOR_TYPES: Final[dict[str, SensorEntityDescription]] = {
         state_class=SensorStateClass.TOTAL_INCREASING,
         device_class=SensorDeviceClass.ENERGY,
         entity_registry_enabled_default=False,
-    ),        
+    ),
     "total_year": SensorEntityDescription(
         key="total_year",
         name="Usage (Year)",
@@ -315,7 +315,7 @@ SENSOR_TYPES: Final[dict[str, SensorEntityDescription]] = {
         state_class=SensorStateClass.TOTAL_INCREASING,
         device_class=SensorDeviceClass.ENERGY,
         entity_registry_enabled_default=False,
-    ),        
+    ),
 }
 
 SWITCH_TYPES: Final[dict[str, OpenEVSESwitchEntityDescription]] = {
@@ -406,7 +406,7 @@ BINARY_SENSORS: Final[dict[str, BinarySensorEntityDescription]] = {
         key="has_limit",
         device_class=BinarySensorDeviceClass.POWER,
         entity_registry_enabled_default=False,
-    ),    
+    ),
 }
 
 BUTTON_TYPES: Final[dict[str, ButtonEntityDescription]] = {

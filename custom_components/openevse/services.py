@@ -136,7 +136,7 @@ class OpenEVSEServices:
         for device in data[ATTR_DEVICE_ID]:
             device_id = device
             _LOGGER.debug("Device ID: %s", device_id)
-        
+
             dev_reg = dr.async_get(self.hass)
             device_entry = dev_reg.async_get(device_id)
             _LOGGER.debug("Device_entry: %s", device_entry)
