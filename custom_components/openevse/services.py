@@ -87,8 +87,8 @@ class OpenEVSEServices:
             raise ValueError
 
         dev_reg = dr.async_get(self.hass)
-        device_entry = dev_reg.async_get(device_id)
         _LOGGER.debug("DR: %s", dir(dev_reg))
+        device_entry = dev_reg.async_get(device_id)
         _LOGGER.debug("Device_entry: %s", device_entry)
 
         if not device_entry:
