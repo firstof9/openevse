@@ -137,7 +137,7 @@ async def async_unload_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> 
     manager = hass.data[DOMAIN][config_entry.entry_id][MANAGER]
     if manager.ws_state != "stopped":
         _LOGGER.debug("Closing websocket")
-        manager.ws_disconnect()
+        await manager.ws_disconnect()
 
     if unload_ok:
         _LOGGER.debug("Successfully removed entities from the %s integration", DOMAIN)
