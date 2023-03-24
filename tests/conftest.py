@@ -1,16 +1,27 @@
 """Global fixtures for openevse integration."""
 
+from aioresponses import aioresponses
 from unittest import mock
 from unittest.mock import patch
 
 import json
+import os
 
 import pytest
-from openevsehttp.__main__ import OpenEVSE
+import openevsehttp.__main__ as main
 
 from tests.const import CHARGER_DATA, GETFW_DATA, FW_DATA
 
 pytest_plugins = "pytest_homeassistant_custom_component"
+
+TEST_URL_GITHUB = (
+    "https://api.github.com/repos/OpenEVSE/ESP32_WiFi_V4.x/releases/latest"
+)
+TEST_URL_STATUS = "http://openevse.test.tld/status"
+TEST_URL_CONFIG = "http://openevse.test.tld/config"
+TEST_URL_RAPI = "http://openevse.test.tld/r"
+TEST_URL_WS = "ws://openevse.test.tld/ws"
+TEST_TLD = "openevse.test.tld"
 
 
 # This fixture enables loading custom integrations in all tests.
@@ -55,13 +66,41 @@ def mock_fw_get():
 
 
 @pytest.fixture()
-def mock_library():
-    """Mock library."""
-    with patch("custom_components.openevse.OpenEVSE") as mock_value:
-        mock_value.ws_start.return_value = True
-        mock_value.url.return_value = "http://localhost"
-
+def mock_ws_start():
+    """Mock charger fw data."""
+    with patch("custom_components.openevse.OpenEVSE.ws_start") as mock_value:
+        mock_value.return_value = True
         yield mock_value
+
+
+@pytest.fixture(name="test_charger")
+def test_charger(mock_aioclient):
+    """Load the charger data."""
+    mock_aioclient.get(
+        TEST_URL_STATUS,
+        status=200,
+        body=load_fixture("status.json"),
+        repeat=True,
+    )
+    mock_aioclient.get(
+        TEST_URL_CONFIG,
+        status=200,
+        body=load_fixture("config.json"),
+        repeat=True,
+    )
+    mock_aioclient.get(
+        TEST_URL_WS,
+        status=200,
+        body=load_fixture("status.json"),
+        repeat=True,
+    )
+    mock_aioclient.get(
+        TEST_URL_GITHUB,
+        status=200,
+        body=load_fixture("github.json"),
+        repeat=True,
+    )
+    return main.OpenEVSE(TEST_TLD)
 
 
 @pytest.fixture()
@@ -70,3 +109,17 @@ def mock_manager():
     with patch("custom_components.openevse.OpenEVSEManager") as mock_value:
         mock_value.url.return_value = "http://localhost"
         yield
+
+
+@pytest.fixture
+def mock_aioclient():
+    """Fixture to mock aioclient calls."""
+    with aioresponses() as m:
+        yield m
+
+
+def load_fixture(filename):
+    """Load a fixture."""
+    path = os.path.join(os.path.dirname(__file__), "fixtures", filename)
+    with open(path, encoding="utf-8") as fptr:
+        return fptr.read()

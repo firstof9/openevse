@@ -217,9 +217,23 @@ async def _start_config_flow(
     if user_input is not None:
         user_input[CONF_NAME] = slugify(user_input[CONF_NAME].lower())
 
-        # TODO: Insert openevse connection check here
+        charger = OpenEVSE(
+            user_input[CONF_HOST],
+            user=user_input[CONF_USERNAME],
+            pwd=user_input[CONF_PASSWORD],
+        )
 
-        # Update options if no errors
+        try:
+            await charger.update()
+            await charger.ws_disconnect()
+        except Exception as ex:
+            _LOGGER.exception(
+                "Error connecting with OpenEVSE at %s: %s",
+                user_input[CONF_HOST],
+                ex,
+            )
+            errors[CONF_HOST] = "communication"
+
         if not errors:
             return cls.async_create_entry(title=title, data=user_input)
 

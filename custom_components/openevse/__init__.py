@@ -78,7 +78,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
         identifiers={(DOMAIN, serial)},
         name=config_entry.data[CONF_NAME],
         manufacturer="OpenEVSE",
-        model={model_info},
+        model=model_info,
         sw_version=sw_version,
         configuration_url=manager.url,
     )
@@ -137,7 +137,7 @@ async def async_unload_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> 
     manager = hass.data[DOMAIN][config_entry.entry_id][MANAGER]
     if manager.ws_state != "stopped":
         _LOGGER.debug("Closing websocket")
-        manager.ws_disconnect()
+        await manager.ws_disconnect()
 
     if unload_ok:
         _LOGGER.debug("Successfully removed entities from the %s integration", DOMAIN)
