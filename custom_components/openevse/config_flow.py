@@ -217,7 +217,11 @@ async def _start_config_flow(
     if user_input is not None:
         user_input[CONF_NAME] = slugify(user_input[CONF_NAME].lower())
 
-        charger = OpenEVSE(user_input[CONF_HOST], user=user_input[CONF_USERNAME], pwd=user_input[CONF_PASSWORD])
+        charger = OpenEVSE(
+            user_input[CONF_HOST],
+            user=user_input[CONF_USERNAME],
+            pwd=user_input[CONF_PASSWORD],
+        )
 
         try:
             await charger.update()
@@ -229,7 +233,7 @@ async def _start_config_flow(
                 ex,
             )
             errors[CONF_HOST] = "communication"
-        
+
         if not errors:
             return cls.async_create_entry(title=title, data=user_input)
 

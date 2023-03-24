@@ -15,6 +15,7 @@ CHARGER_NAME = "openevse"
 
 pytestmark = pytest.mark.asyncio
 
+
 @pytest.mark.parametrize(
     "input,step_id,title,data",
     [
@@ -42,8 +43,8 @@ async def test_form_user(
     title,
     data,
     hass,
-    test_charger, 
-    mock_ws_start,    
+    test_charger,
+    mock_ws_start,
 ):
     """Test we get the form."""
     await setup.async_setup_component(hass, "persistent_notification", {})
@@ -57,7 +58,6 @@ async def test_form_user(
         "custom_components.openevse.async_setup_entry",
         return_value=True,
     ) as mock_setup_entry:
-
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"], input
         )
@@ -97,7 +97,7 @@ async def test_options(
     title,
     data,
     hass,
-    test_charger, 
+    test_charger,
     mock_ws_start,
 ):
     """Test options flow."""
@@ -121,7 +121,6 @@ async def test_options(
         "custom_components.openevse.async_setup_entry",
         return_value=True,
     ) as mock_setup_entry:
-    
         result = await hass.config_entries.options.async_configure(
             result["flow_id"], input
         )
@@ -130,6 +129,6 @@ async def test_options(
         assert result["title"] == ""
         assert result["data"] == data
 
-        await hass.async_block_till_done()        
+        await hass.async_block_till_done()
 
         assert data == entry.options.copy()

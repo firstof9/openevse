@@ -18,6 +18,7 @@ pytestmark = pytest.mark.asyncio
 
 CHARGER_NAME = "openevse"
 
+
 async def test_sensors(hass, test_charger, mock_ws_start):
     """Test setup_entry."""
     entry = MockConfigEntry(
@@ -41,7 +42,7 @@ async def test_sensors(hass, test_charger, mock_ws_start):
 
     state = hass.states.get("sensor.openevse_wifi_firmware_version")
     assert state
-    assert state.state == '4.1.2'
+    assert state.state == "4.1.2"
     state = hass.states.get("sensor.openevse_charge_time_elapsed")
     assert state
-    assert state.state == '4.1'
+    assert state.state == "4.1"
