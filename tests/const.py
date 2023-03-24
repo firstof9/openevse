@@ -48,7 +48,7 @@ CHARGER_DATA = {
 }
 CONFIG_DATA = {
     "name": "openevse",
-    "host": "openevse-7b2c.collective.lan",
+    "host": "openevse.test.tld",
     "username": "",
     "password": "",
 }

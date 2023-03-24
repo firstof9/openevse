@@ -78,7 +78,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
         identifiers={(DOMAIN, serial)},
         name=config_entry.data[CONF_NAME],
         manufacturer="OpenEVSE",
-        model={model_info},
+        model=model_info,
         sw_version=sw_version,
         configuration_url=manager.url,
     )
