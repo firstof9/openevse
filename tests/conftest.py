@@ -102,6 +102,7 @@ def test_charger(mock_aioclient):
     )
     return main.OpenEVSE(TEST_TLD)
 
+
 @pytest.fixture(name="test_charger_bad_serial")
 def test_charger_bad_serial(mock_aioclient):
     """Load the charger data."""
@@ -130,6 +131,7 @@ def test_charger_bad_serial(mock_aioclient):
         repeat=True,
     )
     return main.OpenEVSE(TEST_TLD)
+
 
 @pytest.fixture()
 def mock_manager():
