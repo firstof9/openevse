@@ -68,7 +68,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
     }
 
     model_info, sw_version = await get_firmware(manager)
-    
+
     try:
         data = await manager.test_and_get()
         serial = data["serial"]
