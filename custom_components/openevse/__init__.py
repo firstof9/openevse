@@ -68,8 +68,13 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
     }
 
     model_info, sw_version = await get_firmware(manager)
-    data = await manager.test_and_get()
-    serial = data["serial"]
+
+    try:
+        data = await manager.test_and_get()
+        serial = data["serial"]
+    except MissingSerial:
+        _LOGGER.info("Unable to find serial number.")
+        serial = config_entry.entry_id
 
     device_registry = dr.async_get(hass)
     device_registry.async_get_or_create(
