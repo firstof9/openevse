@@ -46,3 +46,6 @@ async def test_sensors(hass, test_charger, mock_ws_start):
     state = hass.states.get("sensor.openevse_charge_time_elapsed")
     assert state
     assert state.state == "4.1"
+    state = hass.states.get("sensor.openevse_total_usage")
+    assert state
+    assert state.state == "64.582"
