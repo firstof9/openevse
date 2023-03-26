@@ -111,7 +111,6 @@ async def test_options(
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
 
-    await setup.async_setup_component(hass, "persistent_notification", {})
     result = await hass.config_entries.options.async_init(entry.entry_id)
 
     assert result["type"] == FlowResultType.FORM

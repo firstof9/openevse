@@ -102,6 +102,34 @@ def test_charger(mock_aioclient):
     )
     return main.OpenEVSE(TEST_TLD)
 
+@pytest.fixture(name="test_charger_bad_serial")
+def test_charger_bad_serial(mock_aioclient):
+    """Load the charger data."""
+    mock_aioclient.get(
+        TEST_URL_STATUS,
+        status=200,
+        body=load_fixture("status.json"),
+        repeat=True,
+    )
+    mock_aioclient.get(
+        TEST_URL_CONFIG,
+        status=200,
+        body=load_fixture("config-no-serial.json"),
+        repeat=True,
+    )
+    mock_aioclient.get(
+        TEST_URL_WS,
+        status=200,
+        body=load_fixture("status.json"),
+        repeat=True,
+    )
+    mock_aioclient.get(
+        TEST_URL_GITHUB,
+        status=200,
+        body=load_fixture("github.json"),
+        repeat=True,
+    )
+    return main.OpenEVSE(TEST_TLD)
 
 @pytest.fixture()
 def mock_manager():
