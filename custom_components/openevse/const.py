@@ -413,7 +413,7 @@ BINARY_SENSORS: Final[dict[str, BinarySensorEntityDescription]] = {
         device_class=BinarySensorDeviceClass.CONNECTIVITY,
         entity_category=EntityCategory.DIAGNOSTIC,
         entity_registry_enabled_default=False,
-    ),    
+    ),
 }
 
 BUTTON_TYPES: Final[dict[str, ButtonEntityDescription]] = {
