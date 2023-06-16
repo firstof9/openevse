@@ -407,6 +407,13 @@ BINARY_SENSORS: Final[dict[str, BinarySensorEntityDescription]] = {
         device_class=BinarySensorDeviceClass.POWER,
         entity_registry_enabled_default=False,
     ),
+    "mqtt_connected": BinarySensorEntityDescription(
+        name="MQTT Connected",
+        key="mqtt_connected",
+        device_class=BinarySensorDeviceClass.CONNECTIVITY,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=False,
+    ),
 }
 
 BUTTON_TYPES: Final[dict[str, ButtonEntityDescription]] = {
