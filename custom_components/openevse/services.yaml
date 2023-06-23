@@ -7,7 +7,7 @@ set_override:
   fields:
     state:
       name: State
-      description: Enable or Disable Override
+      description: Enable or disable charging.
       required: false
       default: disabled
       example: disabled
