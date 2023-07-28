@@ -43,7 +43,7 @@ from .services import OpenEVSEServices
 _LOGGER = logging.getLogger(__name__)
 
 
-def handle_state_change(
+async def handle_state_change(
     hass: HomeAssistant,
     config_entry: ConfigEntry,
     changed_entity: str,
@@ -59,7 +59,7 @@ def handle_state_change(
     invert = config_entry.data.get(CONF_INVERT)
 
     if changed_entity in [grid_sensor, solar_sensor]:
-        manager.self_production(grid=grid, solar=solar, invert=invert)
+        await manager.self_production(grid=grid, solar=solar, invert=invert)
 
 
 async def homeassistant_started_listener(
