@@ -48,14 +48,14 @@ def handle_state_change(
     config_entry: ConfigEntry,
     changed_entity: str,
     old_state: State,
-    new_state: State,    
+    new_state: State,
 ) -> None:
     """Listener to track state changes to sensor entities."""
     manager = hass.data[DOMAIN][config_entry.entry_id][MANAGER]
     grid_sensor = config_entry.data.get(CONF_GRID)
     solar_sensor = config_entry.data.get(CONF_SOLAR)
-    grid = round(hass.states.get(grid_sensor).state)
-    solar = round(hass.states.get(solar_sensor).state)
+    grid = round(float(hass.states.get(grid_sensor).state))
+    solar = round(float(hass.states.get(solar_sensor).state))
     invert = config_entry.data.get(CONF_INVERT)
 
     if changed_entity in [grid_sensor, solar_sensor]:
