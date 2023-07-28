@@ -10,11 +10,11 @@
             "host": "Hostname/IP",
             "password": "Contraseña (opcional)",
             "username": "Usuario (opcional)",
-            "grid": "Grid import/export sensor (opcional)",
-            "solar": "Solar production sensor (opcional)",
-            "invert_grid": "Invert grid import/export"
+            "grid": "Sensor de importación/exportación de red (opcional)",
+            "solar": "Sensor de producción solar (opcional)",
+            "invert_grid": "Importación/exportación de cuadrícula inversa"
           },
-          "description": "Por favor, introduce la información de conexión al cargador OpenEVSE.",
+          "description": "Por favor, introduce la información de conexión al cargador OpenEVSE.\nTambién puede ingresar la importación/exportación de su red y los sensores de producción solar para enviar datos a OpenEVSE.\n\nNOTA IMPORTANTE: OpenEVSE espera una importación negativa y una exportación positiva.",
           "title": "Configuración OpenEVSE"
         }
       }
@@ -36,11 +36,11 @@
                 "host": "Host/IP",
                 "password": "Contraseña (opcional)",
                 "username": "Usuario (opcional)",
-                "grid": "Grid import/export sensor (opcional)",
-                "solar": "Solar production sensor (opcional)",
-                "invert_grid": "Invert grid import/export"
+                "grid": "Sensor de importación/exportación de red (opcional)",
+                "solar": "Sensor de producción solar (opcional)",
+                "invert_grid": "Importación/exportación de cuadrícula inversa"
             },
-            "description": "Por favor, introduce la información de conexión con el cargador OpenEVSE.",
+            "description": "Por favor, introduce la información de conexión al cargador OpenEVSE.\nTambién puede ingresar la importación/exportación de su red y los sensores de producción solar para enviar datos a OpenEVSE.\n\nNOTA IMPORTANTE: OpenEVSE espera una importación negativa y una exportación positiva.",
             "title": "Configuración OpenEVSE"
         }
       }
