@@ -9,7 +9,10 @@
             "name": "Alias",
             "host": "Hostname/IP",
             "password": "Password (optional)",
-            "username": "Username (optional)"
+            "username": "Username (optional)",
+            "grid": "Grid import/export sensor (optional)",
+            "solar": "Solar production sensor (optional)",
+            "invert_grid": "Invert grid import/export"
           },
           "description": "Please enter the connection information of OpenEVSE charger.",
           "title": "OpenEVSE Setup"
@@ -36,7 +39,10 @@
                 "name": "Alias",
                 "host": "Host/IP",
                 "password": "Password (optional)",
-                "username": "Username (optional)"
+                "username": "Username (optional)",
+                "grid": "Grid import/export sensor (optional)",
+                "solar": "Solar production sensor (optional)",
+                "invert_grid": "Invert grid import/export"
             },
             "description": "Please enter the connection information of OpenEVSE charger.",
             "title": "OpenEVSE Setup"
