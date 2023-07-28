@@ -58,11 +58,11 @@ async def handle_state_change(
     solar = hass.states.get(solar_sensor).state
     grid = hass.states.get(grid_sensor).state
 
-    if solar is None:
+    if solar in [None, "unavailable"]:
         solar = 0
     else:
         solar = round(float(hass.states.get(solar_sensor).state))
-    if grid is None:
+    if grid in [None, "unavailable"]:
         grid = 0
     else:
         grid = round(float(hass.states.get(grid_sensor).state))
