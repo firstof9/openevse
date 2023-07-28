@@ -59,6 +59,9 @@ async def handle_state_change(
     invert = config_entry.data.get(CONF_INVERT)
 
     if changed_entity in [grid_sensor, solar_sensor]:
+        _LOGGER.debug(
+            "Sending sensor data to OpenEVSE: (soalr: %s) (grid: %s)", solar, grid
+        )
         await manager.self_production(grid=grid, solar=solar, invert=invert)
 
 
