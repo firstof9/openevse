@@ -54,8 +54,19 @@ async def handle_state_change(
     manager = hass.data[DOMAIN][config_entry.entry_id][MANAGER]
     grid_sensor = config_entry.data.get(CONF_GRID)
     solar_sensor = config_entry.data.get(CONF_SOLAR)
-    grid = round(float(hass.states.get(grid_sensor).state))
-    solar = round(float(hass.states.get(solar_sensor).state))
+
+    solar = hass.states.get(solar_sensor).state
+    grid = hass.states.get(grid_sensor).state
+
+    if solar is None:
+        solar = 0
+    else:
+        solar = round(float(hass.states.get(solar_sensor).state))
+    if grid is None:
+        grid = 0
+    else:
+        grid = round(float(hass.states.get(grid_sensor).state))
+    
     invert = config_entry.data.get(CONF_INVERT)
 
     if changed_entity in [grid_sensor, solar_sensor]:
