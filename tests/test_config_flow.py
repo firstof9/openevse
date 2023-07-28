@@ -38,7 +38,7 @@ pytestmark = pytest.mark.asyncio
                 "password": "",
                 "grid": "",
                 "solar": "",
-                "invert_grid": False,                
+                "invert_grid": False,
             },
         ),
     ],
