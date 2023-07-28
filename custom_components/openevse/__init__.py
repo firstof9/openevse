@@ -50,8 +50,8 @@ def handle_state_change(
 ) -> None:
     """Listener to track state changes to sensor entities."""
     manager = hass.data[DOMAIN][config_entry.entry_id][MANAGER]
-    grid = config_entry.data.get(CONF_GRID)
-    solar = config_entry.data.get(CONF_SOLAR)
+    grid = int(hass.states.get(config_entry.data.get(CONF_GRID)))
+    solar = int(hass.states.get(config_entry.data.get(CONF_SOLAR)))
     invert = config_entry.data.get(CONF_INVERT)
 
     if changed_entity in [grid, solar]:
