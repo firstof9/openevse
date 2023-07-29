@@ -14,7 +14,16 @@ from homeassistant.helpers import config_validation as cv
 from homeassistant.util import slugify
 from openevsehttp.__main__ import OpenEVSE
 
-from .const import CONF_NAME, CONF_SERIAL, DEFAULT_HOST, DEFAULT_NAME, DOMAIN
+from .const import (
+    CONF_GRID,
+    CONF_INVERT,
+    CONF_NAME,
+    CONF_SERIAL,
+    CONF_SOLAR,
+    DEFAULT_HOST,
+    DEFAULT_NAME,
+    DOMAIN,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -180,6 +189,10 @@ def _get_schema(  # pylint: disable-next=unused-argument
             vol.Optional(
                 CONF_PASSWORD, default=_get_default(CONF_PASSWORD, "")
             ): cv.string,
+            vol.Optional(CONF_GRID, default=_get_default(CONF_GRID, "")): cv.string,
+            vol.Optional(CONF_SOLAR, default=_get_default(CONF_SOLAR, "")): cv.string,
+            vol.Optional(CONF_SOLAR, default=_get_default(CONF_SOLAR, "")): cv.string,
+            vol.Optional(CONF_INVERT, default=_get_default(CONF_INVERT, False)): bool,
         },
     )
 

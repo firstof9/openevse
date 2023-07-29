@@ -30,11 +30,19 @@ from homeassistant.helpers.entity import EntityCategory
 
 from .entity import OpenEVSESelectEntityDescription, OpenEVSESwitchEntityDescription
 
+# config flow
 CONF_NAME = "name"
 CONF_SERIAL = "id"
 CONF_TYPE = "type"
+CONF_GRID = "grid"
+CONF_SOLAR = "solar"
+CONF_INVERT = "invert_grid"
 DEFAULT_HOST = "openevse.local"
 DEFAULT_NAME = "OpenEVSE"
+
+# hass.data attribues
+UNSUB_LISTENERS = "unsub_listeners"
+
 DOMAIN = "openevse"
 COORDINATOR = "coordinator"
 FW_COORDINATOR = "fw_coordinator"
@@ -47,6 +55,7 @@ MANAGER = "manager"
 SERVICE_SET_OVERRIDE = "set_override"
 SERVICE_CLEAR_OVERRIDE = "clear_override"
 
+# attributes
 ATTR_DEVICE_ID = "device_id"
 ATTR_STATE = "state"
 ATTR_CHARGE_CURRENT = "charge_current"

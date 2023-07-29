@@ -2,14 +2,21 @@
 from __future__ import annotations
 
 import asyncio
+import functools
 import logging
 from datetime import timedelta
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_HOST, CONF_PASSWORD, CONF_USERNAME
-from homeassistant.core import Config, HomeAssistant, callback
+from homeassistant.const import (
+    CONF_HOST,
+    CONF_PASSWORD,
+    CONF_USERNAME,
+    EVENT_HOMEASSISTANT_STARTED,
+)
+from homeassistant.core import Config, CoreState, HomeAssistant, callback, Event, State
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers.event import async_track_state_change
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from openevsehttp.__main__ import OpenEVSE
 from openevsehttp.exceptions import MissingSerial
@@ -17,6 +24,9 @@ from openevsehttp.exceptions import MissingSerial
 from .const import (
     BINARY_SENSORS,
     CONF_NAME,
+    CONF_GRID,
+    CONF_INVERT,
+    CONF_SOLAR,
     COORDINATOR,
     DOMAIN,
     FW_COORDINATOR,
@@ -25,11 +35,62 @@ from .const import (
     PLATFORMS,
     SELECT_TYPES,
     SENSOR_TYPES,
+    UNSUB_LISTENERS,
     VERSION,
 )
 from .services import OpenEVSEServices
 
 _LOGGER = logging.getLogger(__name__)
+
+
+async def handle_state_change(
+    hass: HomeAssistant,
+    config_entry: ConfigEntry,
+    changed_entity: str,
+    old_state: State,
+    new_state: State,
+) -> None:
+    """Listener to track state changes to sensor entities."""
+    manager = hass.data[DOMAIN][config_entry.entry_id][MANAGER]
+    grid_sensor = config_entry.data.get(CONF_GRID)
+    solar_sensor = config_entry.data.get(CONF_SOLAR)
+
+    solar = hass.states.get(solar_sensor).state
+    grid = hass.states.get(grid_sensor).state
+
+    if solar in [None, "unavailable"]:
+        solar = 0
+    else:
+        solar = round(float(hass.states.get(solar_sensor).state))
+    if grid in [None, "unavailable"]:
+        grid = 0
+    else:
+        grid = round(float(hass.states.get(grid_sensor).state))
+    
+    invert = config_entry.data.get(CONF_INVERT)
+
+    if changed_entity in [grid_sensor, solar_sensor]:
+        _LOGGER.debug(
+            "Sending sensor data to OpenEVSE: (solar: %s) (grid: %s)", solar, grid
+        )
+        await manager.self_production(grid=grid, solar=solar, invert=invert)
+
+
+async def homeassistant_started_listener(
+    hass: HomeAssistant,
+    config_entry: ConfigEntry,
+    sensors: list,
+    evt: Event = None,
+):
+    """Start tracking state changes after HomeAssistant has started."""
+    # Listen to sensor state changes so we can fire an event
+    hass.data[DOMAIN][config_entry.entry_id][UNSUB_LISTENERS].append(
+        async_track_state_change(
+            hass,
+            sensors,
+            functools.partial(handle_state_change, hass, config_entry),
+        )
+    )
 
 
 async def async_setup(  # pylint: disable-next=unused-argument
@@ -65,6 +126,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
         COORDINATOR: coordinator,
         MANAGER: manager,
         FW_COORDINATOR: fw_coordinator,
+        UNSUB_LISTENERS: [],
     }
 
     model_info, sw_version = await get_firmware(manager)
@@ -99,6 +161,22 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
 
     services = OpenEVSEServices(hass, config_entry)
     services.async_register()
+
+    sensors = []
+    if config_entry.data.get(CONF_GRID) and config_entry.data.get(CONF_SOLAR):
+        sensors.append(config_entry.data.get(CONF_GRID))
+        sensors.append(config_entry.data.get(CONF_SOLAR))
+
+    if len(sensors) > 0:
+        if hass.state == CoreState.running:
+            await homeassistant_started_listener(hass, config_entry, sensors)
+        else:
+            hass.bus.async_listen_once(
+                EVENT_HOMEASSISTANT_STARTED,
+                functools.partial(
+                    homeassistant_started_listener, hass, config_entry, sensors
+                ),
+            )
 
     return True
 
@@ -145,6 +223,12 @@ async def async_unload_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> 
         await manager.ws_disconnect()
 
     if unload_ok:
+        # Unsubscribe to any listeners
+        for unsub_listener in hass.data[DOMAIN][config_entry.entry_id].get(
+            UNSUB_LISTENERS, []
+        ):
+            unsub_listener()
+        hass.data[DOMAIN][config_entry.entry_id].get(UNSUB_LISTENERS, []).clear()
         _LOGGER.debug("Successfully removed entities from the %s integration", DOMAIN)
         hass.data[DOMAIN].pop(config_entry.entry_id)
 
