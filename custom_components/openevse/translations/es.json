@@ -14,7 +14,7 @@
             "solar": "Sensor de producción solar (opcional)",
             "invert_grid": "Importación/exportación de cuadrícula inversa"
           },
-          "description": "Por favor, introduce la información de conexión al cargador OpenEVSE.\nTambién puede ingresar la importación/exportación de su red y los sensores de producción solar para enviar datos a OpenEVSE.\n\nNOTA IMPORTANTE: OpenEVSE espera una importación negativa y una exportación positiva.",
+          "description": "Por favor, introduce la información de conexión al cargador OpenEVSE.\nTambién puede ingresar la importación/exportación de su red o los sensores de producción solar para enviar datos a OpenEVSE.\n\nNOTA IMPORTANTE: OpenEVSE espera una importación positiva y una exportación negativa.",
           "title": "Configuración OpenEVSE"
         }
       }
@@ -40,7 +40,7 @@
                 "solar": "Sensor de producción solar (opcional)",
                 "invert_grid": "Importación/exportación de cuadrícula inversa"
             },
-            "description": "Por favor, introduce la información de conexión al cargador OpenEVSE.\nTambién puede ingresar la importación/exportación de su red y los sensores de producción solar para enviar datos a OpenEVSE.\n\nNOTA IMPORTANTE: OpenEVSE espera una importación negativa y una exportación positiva.",
+            "description": "Por favor, introduce la información de conexión al cargador OpenEVSE.\nTambién puede ingresar la importación/exportación de su red o los sensores de producción solar para enviar datos a OpenEVSE.\n\nNOTA IMPORTANTE: OpenEVSE espera una importación positiva y una exportación negativa.",
             "title": "Configuración OpenEVSE"
         }
       }
