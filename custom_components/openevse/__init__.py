@@ -52,28 +52,29 @@ async def handle_state_change(
 ) -> None:
     """Listener to track state changes to sensor entities."""
     manager = hass.data[DOMAIN][config_entry.entry_id][MANAGER]
+    invert = config_entry.data.get(CONF_INVERT)
     grid_sensor = config_entry.data.get(CONF_GRID)
     solar_sensor = config_entry.data.get(CONF_SOLAR)
 
-    solar = hass.states.get(solar_sensor).state
-    grid = hass.states.get(grid_sensor).state
+    if grid_sensor is not None and changed_entity == grid_sensor:
+        grid = hass.states.get(grid_sensor).state
+        if grid in [None, "unavailable"]:
+            grid = None
+        else:
+            grid = round(float(hass.states.get(grid_sensor).state))
 
-    if solar in [None, "unavailable"]:
-        solar = 0
-    else:
-        solar = round(float(hass.states.get(solar_sensor).state))
-    if grid in [None, "unavailable"]:
-        grid = 0
-    else:
-        grid = round(float(hass.states.get(grid_sensor).state))
-    
-    invert = config_entry.data.get(CONF_INVERT)
+        _LOGGER.debug("Sending sensor data to OpenEVSE: (grid: %s)", grid)
+        await manager.self_production(grid=grid, solar=None, invert=invert)
 
-    if changed_entity in [grid_sensor, solar_sensor]:
-        _LOGGER.debug(
-            "Sending sensor data to OpenEVSE: (solar: %s) (grid: %s)", solar, grid
-        )
-        await manager.self_production(grid=grid, solar=solar, invert=invert)
+    elif solar_sensor is not None and changed_entity == solar_sensor:
+        solar = hass.states.get(solar_sensor).state
+        if solar in [None, "unavailable"]:
+            solar = None
+        else:
+            solar = round(float(hass.states.get(solar_sensor).state))
+
+        _LOGGER.debug("Sending sensor data to OpenEVSE: (solar: %s)", solar)
+        await manager.self_production(grid=None, solar=solar, invert=False)
 
 
 async def homeassistant_started_listener(
