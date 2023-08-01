@@ -164,8 +164,9 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
     services.async_register()
 
     sensors = []
-    if config_entry.data.get(CONF_GRID) and config_entry.data.get(CONF_SOLAR):
+    if config_entry.data.get(CONF_GRID):
         sensors.append(config_entry.data.get(CONF_GRID))
+    elif config_entry.data.get(CONF_SOLAR):
         sensors.append(config_entry.data.get(CONF_SOLAR))
 
     if len(sensors) > 0:
