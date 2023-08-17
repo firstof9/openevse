@@ -79,6 +79,7 @@ SENSOR_TYPES: Final[dict[str, SensorEntityDescription]] = {
         icon="mdi:camera-timer",
         native_unit_of_measurement=TIME_MINUTES,
         entity_category=EntityCategory.DIAGNOSTIC,
+        suggested_display_precision=1,
     ),
     "ambient_temperature": SensorEntityDescription(
         key="ambient_temperature",
@@ -117,6 +118,7 @@ SENSOR_TYPES: Final[dict[str, SensorEntityDescription]] = {
         native_unit_of_measurement=ENERGY_KILO_WATT_HOUR,
         state_class=SensorStateClass.TOTAL_INCREASING,
         device_class=SensorDeviceClass.ENERGY,
+        suggested_display_precision=1,
     ),
     "usage_total": SensorEntityDescription(
         key="usage_total",
@@ -124,6 +126,7 @@ SENSOR_TYPES: Final[dict[str, SensorEntityDescription]] = {
         native_unit_of_measurement=ENERGY_KILO_WATT_HOUR,
         state_class=SensorStateClass.TOTAL_INCREASING,
         device_class=SensorDeviceClass.ENERGY,
+        suggested_display_precision=1,
     ),
     "openevse_firmware": SensorEntityDescription(
         key="openevse_firmware",
@@ -145,6 +148,7 @@ SENSOR_TYPES: Final[dict[str, SensorEntityDescription]] = {
         native_unit_of_measurement=ELECTRIC_POTENTIAL_VOLT,
         state_class=SensorStateClass.MEASUREMENT,
         device_class=SensorDeviceClass.VOLTAGE,
+        suggested_display_precision=1,
     ),
     "charging_current": SensorEntityDescription(
         key="charging_current",
@@ -153,6 +157,7 @@ SENSOR_TYPES: Final[dict[str, SensorEntityDescription]] = {
         native_unit_of_measurement=ELECTRIC_CURRENT_AMPERE,
         state_class=SensorStateClass.MEASUREMENT,
         device_class=SensorDeviceClass.CURRENT,
+        suggested_display_precision=1,
     ),
     "service_level": SensorEntityDescription(
         key="service_level",
@@ -197,6 +202,7 @@ SENSOR_TYPES: Final[dict[str, SensorEntityDescription]] = {
         native_unit_of_measurement=POWER_WATT,
         device_class=SensorDeviceClass.POWER,
         state_class=SensorStateClass.MEASUREMENT,
+        suggested_display_precision=1,
     ),
     "wifi_signal": SensorEntityDescription(
         key="wifi_signal",
@@ -225,6 +231,7 @@ SENSOR_TYPES: Final[dict[str, SensorEntityDescription]] = {
         native_unit_of_measurement=ELECTRIC_CURRENT_AMPERE,
         state_class=SensorStateClass.MEASUREMENT,
         device_class=SensorDeviceClass.CURRENT,
+        suggested_display_precision=1,
     ),
     "smoothed_available_current": SensorEntityDescription(
         name="PV Smoothed Available Current",
@@ -233,6 +240,7 @@ SENSOR_TYPES: Final[dict[str, SensorEntityDescription]] = {
         native_unit_of_measurement=ELECTRIC_CURRENT_AMPERE,
         state_class=SensorStateClass.MEASUREMENT,
         device_class=SensorDeviceClass.CURRENT,
+        suggested_display_precision=1,
     ),
     "charge_rate": SensorEntityDescription(
         name="PV Charge Rate",
