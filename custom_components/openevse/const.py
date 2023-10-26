@@ -163,7 +163,7 @@ SENSOR_TYPES: Final[dict[str, SensorEntityDescription]] = {
         key="service_level",
         name="Service Level",
         icon="mdi:leaf",
-        entity_category=EntityCategory.CONFIG,
+        entity_category=EntityCategory.DIAGNOSTIC,
     ),
     "max_amps": SensorEntityDescription(
         key="max_amps",
@@ -187,7 +187,7 @@ SENSOR_TYPES: Final[dict[str, SensorEntityDescription]] = {
         icon="mdi:sine-wave",
         native_unit_of_measurement=ELECTRIC_CURRENT_AMPERE,
         device_class=SensorDeviceClass.CURRENT,
-        entity_category=EntityCategory.CONFIG,
+        entity_category=EntityCategory.DIAGNOSTIC,
     ),
     "wifi_firmware": SensorEntityDescription(
         key="wifi_firmware",
@@ -222,7 +222,7 @@ SENSOR_TYPES: Final[dict[str, SensorEntityDescription]] = {
         name="Divert Mode",
         key="charge_mode",
         icon="mdi:solar-power",
-        entity_category=EntityCategory.CONFIG,
+        entity_category=EntityCategory.DIAGNOSTIC,
     ),
     "available_current": SensorEntityDescription(
         name="PV Available Current",
