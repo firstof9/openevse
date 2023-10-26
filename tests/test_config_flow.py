@@ -63,7 +63,11 @@ async def test_form_user(
     with patch(
         "custom_components.openevse.async_setup_entry",
         return_value=True,
-    ) as mock_setup_entry:
+    ) as mock_setup_entry, patch(
+        "custom_components.openevse.OpenEVSE.update", return_value=True
+    ), patch(
+        "custom_components.openevse.OpenEVSE.ws_disconnect", return_value=True
+    ):
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"], input
         )
