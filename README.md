@@ -27,7 +27,8 @@ Platform | Description
 2. Use the custom repo link https://github.com/firstof9/openevse
 3. Select the category type integration
 4. Then once it's there (still in HACS) click the INSTALL button
-5. Then go to the HA Devices and Services and add a new OpenEVSE Integration
+5. Restart Home Assistant
+6. Once restarted, in the HA UI go to "Configuration" -> "Devices and Services" click "+ Add Integration" and search for "openevse"
 
 ## Manual (non-HACS)
 <details>
@@ -43,7 +44,7 @@ You probably do not want to do this! Use the HACS method above unless you know w
 4. Download _all_ the files from the `custom_components/openevse/` directory (folder) in this repository.
 5. Place the files you downloaded in the new directory (folder) you created.
 6. Restart Home Assistant
-7. In the HA UI go to "Configuration" -> "Integrations" click "+" and search for "openevse"
+7. Once restarted, in the HA UI go to "Configuration" -> "Devices and Services" click "+ Add Integration" and search for "openevse"
 </details>
 
 ## Configuration is done in the UI
