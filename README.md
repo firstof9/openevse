@@ -21,8 +21,22 @@ Platform | Description
 `switch` | Switch to toggle various charger modes.
 `select` | Select the ampers limit and service level.
 
-## Installation
+## Installation via HACS (recommended)
 
+1. Follow the link [here](https://hacs.xyz/docs/faq/custom_repositories/)
+2. Use the custom repo link https://github.com/firstof9/openevse
+3. Select the category type integration
+4. Then once it's there (still in HACS) click the INSTALL button
+5. Then go to the HA Devices and Services and add a new OpenEVSE Integration
+
+## Manual (non-HACS)
+<details>
+<summary>Instructions</summary>
+  
+<br>
+You probably do not want to do this! Use the HACS method above unless you know what you are doing and have a good reason as to why you are installing manually
+<br>
+  
 1. Using the tool of choice open the directory (folder) for your HA configuration (where you find `configuration.yaml`).
 2. If you do not have a `custom_components` directory (folder) there, you need to create it.
 3. In the `custom_components` directory (folder) create a new folder called `openevse`.
@@ -30,7 +44,7 @@ Platform | Description
 5. Place the files you downloaded in the new directory (folder) you created.
 6. Restart Home Assistant
 7. In the HA UI go to "Configuration" -> "Integrations" click "+" and search for "openevse"
-
+</details>
 
 ## Configuration is done in the UI
 
@@ -54,7 +68,7 @@ If you want to contribute to this please read the [Contribution guidelines](CONT
 - [x] Temps
 - [x] Vehicle connected
 - [x] Rssi
-- [ ] Max current
+- [x] Max current
 - [x] Charge current
 - [X] Manual Override
 - [ ] Schedule
