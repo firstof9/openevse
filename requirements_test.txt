@@ -1,6 +1,6 @@
 -r requirements.txt
 pytest-homeassistant-custom-component
-black==23.10.1
+black==23.11.0
 flake8==6.1.0
 mypy==1.6.1
 pydocstyle==6.3.0
