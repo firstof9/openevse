@@ -75,10 +75,10 @@ async def handle_state_change(
         await manager.self_production(grid=None, solar=solar, invert=False)
 
 
-async def homeassistant_started_listener(  # pylint: disable-next=unused-argument
+async def homeassistant_started_listener(
     hass: HomeAssistant,
     config_entry: ConfigEntry,
-    sensors: list,
+    sensors: list,  # pylint: disable-next=unused-argument
     event: Event = None,
 ):
     """Start tracking state changes after HomeAssistant has started."""
