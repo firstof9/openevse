@@ -13,7 +13,7 @@ from homeassistant.const import (
     CONF_USERNAME,
     EVENT_HOMEASSISTANT_STARTED,
 )
-from homeassistant.core import Config, CoreState, Event, HomeAssistant, callback
+from homeassistant.core import Config, CoreState, Event, HomeAssistant, State, callback
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.event import async_track_state_change
@@ -46,7 +46,9 @@ _LOGGER = logging.getLogger(__name__)
 async def handle_state_change(
     hass: HomeAssistant,
     config_entry: ConfigEntry,
-    changed_entity: str,
+    changed_entity: str,  # pylint: disable-next=unused-argument
+    old_state: State,  # pylint: disable-next=unused-argument
+    new_state: State,
 ) -> None:
     """Track state changes to sensor entities."""
     manager = hass.data[DOMAIN][config_entry.entry_id][MANAGER]
