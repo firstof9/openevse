@@ -13,7 +13,7 @@ from homeassistant.const import (
     CONF_USERNAME,
     EVENT_HOMEASSISTANT_STARTED,
 )
-from homeassistant.core import Config, CoreState, HomeAssistant, callback
+from homeassistant.core import Config, CoreState, Event, HomeAssistant, callback
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.event import async_track_state_change
@@ -79,6 +79,7 @@ async def homeassistant_started_listener(
     hass: HomeAssistant,
     config_entry: ConfigEntry,
     sensors: list,
+    event: Event = None,
 ):
     """Start tracking state changes after HomeAssistant has started."""
     # Listen to sensor state changes so we can fire an event
