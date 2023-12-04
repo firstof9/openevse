@@ -23,6 +23,8 @@ Platform | Description
 
 ## Installation via HACS (recommended)
 
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=firstof9&repository=openevse)
+
 1. Follow the link [here](https://hacs.xyz/docs/faq/custom_repositories/)
 2. Use the custom repo link https://github.com/firstof9/openevse
 3. Select the category type `integration`
