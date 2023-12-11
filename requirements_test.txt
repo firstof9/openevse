@@ -4,7 +4,7 @@ black==23.11.0
 flake8==6.1.0
 mypy==1.7.1
 pydocstyle==6.3.0
-isort==5.13.0
+isort
 pylint==3.0.3
 tox==4.11.4
 aioresponses
