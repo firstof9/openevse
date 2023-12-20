@@ -228,7 +228,7 @@ class OpenEVSEServices:
             response = await manager.set_limit(
                 limit_type=limit_type,
                 value=value,
-                auto_release=auto_release,
+                release=auto_release,
             )
             _LOGGER.debug("Set Limit response: %s", response)
 
