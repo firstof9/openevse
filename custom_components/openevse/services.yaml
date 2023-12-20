@@ -82,8 +82,8 @@ set_limit:
     device:
       integration: openevse
   fields:
-    type:
-      name: Type
+    limit_type:
+      name: Limit type
       description: 'Limit type: time (minutes), energy (watts/h), soc (%), range (km or miles).'
       required: true
       default: time

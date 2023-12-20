@@ -4,7 +4,13 @@ import logging
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant, ServiceCall, callback, ServiceResponse, SupportsResponse
+from homeassistant.core import (
+    HomeAssistant,
+    ServiceCall,
+    callback,
+    ServiceResponse,
+    SupportsResponse,
+)
 from homeassistant.helpers import device_registry as dr
 
 from .const import (
@@ -115,7 +121,7 @@ class OpenEVSEServices:
                 }
             ),
             supports_response=SupportsResponse.ONLY,
-        )        
+        )
 
     # Setup services
     async def _set_override(self, service: ServiceCall) -> None:
@@ -211,7 +217,7 @@ class OpenEVSEServices:
             _LOGGER.debug("Config ID: %s", config_id)
             manager = self.hass.data[DOMAIN][config_id][MANAGER]
 
-            type = data[ATTR_TYPE]
+            limit_type = data[ATTR_TYPE]
             value = data[ATTR_VALUE]
 
             if ATTR_AUTO_RELEASE in data:
@@ -220,11 +226,11 @@ class OpenEVSEServices:
                 auto_release = None
 
             response = await manager.set_limit(
-                type=type,
+                limit_type=limit_type,
                 value=value,
                 auto_release=auto_release,
             )
-            _LOGGER.debug("Set Limit response: %s", response)            
+            _LOGGER.debug("Set Limit response: %s", response)
 
     async def _clear_limit(self, service: ServiceCall) -> None:
         """Clear the limit."""
@@ -247,7 +253,6 @@ class OpenEVSEServices:
 
             await manager.clear_limit()
             _LOGGER.debug("Limit clear command sent.")
-
 
     async def _get_limit(self, service: ServiceCall) -> ServiceResponse:
         """Get the limit."""
