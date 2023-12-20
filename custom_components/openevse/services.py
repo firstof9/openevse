@@ -193,6 +193,39 @@ class OpenEVSEServices:
             await manager.clear_override()
             _LOGGER.debug("Override clear command sent.")
 
+    async def _set_limit(self, service: ServiceCall) -> None:
+        """Set the limit."""
+        data = service.data
+        for device in data[ATTR_DEVICE_ID]:
+            device_id = device
+            _LOGGER.debug("Device ID: %s", device_id)
+
+            dev_reg = dr.async_get(self.hass)
+            device_entry = dev_reg.async_get(device_id)
+            _LOGGER.debug("Device_entry: %s", device_entry)
+
+            if not device_entry:
+                raise ValueError(f"Device ID {device_id} is not valid")
+
+            config_id = list(device_entry.config_entries)[0]
+            _LOGGER.debug("Config ID: %s", config_id)
+            manager = self.hass.data[DOMAIN][config_id][MANAGER]
+
+            type = data[ATTR_TYPE]
+            value = data[ATTR_VALUE]
+
+            if ATTR_AUTO_RELEASE in data:
+                auto_release = data[ATTR_AUTO_RELEASE]
+            else:
+                auto_release = None
+
+            response = await manager.set_limit(
+                type=type,
+                value=value,
+                auto_release=auto_release,
+            )
+            _LOGGER.debug("Set Limit response: %s", response)            
+
     async def _clear_limit(self, service: ServiceCall) -> None:
         """Clear the limit."""
         data = service.data
