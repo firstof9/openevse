@@ -4,7 +4,7 @@ import logging
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant, ServiceCall, callback
+from homeassistant.core import HomeAssistant, ServiceCall, callback, ServiceResponse, SupportsResponse
 from homeassistant.helpers import device_registry as dr
 
 from .const import (
@@ -15,9 +15,14 @@ from .const import (
     ATTR_MAX_CURRENT,
     ATTR_STATE,
     ATTR_TIME_LIMIT,
+    ATTR_TYPE,
+    ATTR_VALUE,
     DOMAIN,
     MANAGER,
+    SERVICE_CLEAR_LIMIT,
     SERVICE_CLEAR_OVERRIDE,
+    SERVICE_GET_LIMIT,
+    SERVICE_SET_LIMIT,
     SERVICE_SET_OVERRIDE,
 )
 
@@ -66,6 +71,20 @@ class OpenEVSEServices:
 
         self.hass.services.async_register(
             DOMAIN,
+            SERVICE_SET_LIMIT,
+            self._set_limit,
+            schema=vol.Schema(
+                {
+                    vol.Required(ATTR_DEVICE_ID): vol.Coerce(list),
+                    vol.Required(ATTR_TYPE): vol.Coerce(str),
+                    vol.Required(ATTR_VALUE): vol.Coerce(int),
+                    vol.Optional(ATTR_AUTO_RELEASE): vol.Coerce(bool),
+                }
+            ),
+        )
+
+        self.hass.services.async_register(
+            DOMAIN,
             SERVICE_CLEAR_OVERRIDE,
             self._clear_override,
             schema=vol.Schema(
@@ -74,6 +93,29 @@ class OpenEVSEServices:
                 }
             ),
         )
+
+        self.hass.services.async_register(
+            DOMAIN,
+            SERVICE_CLEAR_LIMIT,
+            self._clear_limit,
+            schema=vol.Schema(
+                {
+                    vol.Required(ATTR_DEVICE_ID): vol.Coerce(list),
+                }
+            ),
+        )
+
+        self.hass.services.async_register(
+            DOMAIN,
+            SERVICE_GET_LIMIT,
+            self._get_limit,
+            schema=vol.Schema(
+                {
+                    vol.Required(ATTR_DEVICE_ID): vol.Coerce(list),
+                }
+            ),
+            supports_response=SupportsResponse.ONLY,
+        )        
 
     # Setup services
     async def _set_override(self, service: ServiceCall) -> None:
@@ -150,3 +192,49 @@ class OpenEVSEServices:
 
             await manager.clear_override()
             _LOGGER.debug("Override clear command sent.")
+
+    async def _clear_limit(self, service: ServiceCall) -> None:
+        """Clear the limit."""
+        data = service.data
+        _LOGGER.debug("Data: %s", data)
+        for device in data[ATTR_DEVICE_ID]:
+            device_id = device
+            _LOGGER.debug("Device ID: %s", device_id)
+
+            dev_reg = dr.async_get(self.hass)
+            device_entry = dev_reg.async_get(device_id)
+            _LOGGER.debug("Device_entry: %s", device_entry)
+
+            if not device_entry:
+                raise ValueError(f"Device ID {device_id} is not valid")
+
+            config_id = list(device_entry.config_entries)[0]
+            _LOGGER.debug("Config ID: %s Type: %s", config_id, type(config_id))
+            manager = self.hass.data[DOMAIN][config_id][MANAGER]
+
+            await manager.clear_limit()
+            _LOGGER.debug("Limit clear command sent.")
+
+
+    async def _get_limit(self, service: ServiceCall) -> ServiceResponse:
+        """Get the limit."""
+        data = service.data
+        _LOGGER.debug("Data: %s", data)
+        for device in data[ATTR_DEVICE_ID]:
+            device_id = device
+            _LOGGER.debug("Device ID: %s", device_id)
+
+            dev_reg = dr.async_get(self.hass)
+            device_entry = dev_reg.async_get(device_id)
+            _LOGGER.debug("Device_entry: %s", device_entry)
+
+            if not device_entry:
+                raise ValueError(f"Device ID {device_id} is not valid")
+
+            config_id = list(device_entry.config_entries)[0]
+            _LOGGER.debug("Config ID: %s Type: %s", config_id, type(config_id))
+            manager = self.hass.data[DOMAIN][config_id][MANAGER]
+
+            response = await manager.get_limit()
+            _LOGGER.debug("Get limit response %s.", response)
+            return response

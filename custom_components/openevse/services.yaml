@@ -73,3 +73,49 @@ clear_override:
   target:
     device:
       integration: openevse  
+
+
+set_limit:
+  name: Set charge limit
+  description: This will set the limit type, value and auto release.
+  target:
+    device:
+      integration: openevse
+  fields:
+    type:
+      name: Type
+      description: 'Limit type: time (minutes), energy (watts/h), soc (%), range (km or miles).'
+      required: true
+      default: time
+      example: time
+      selector:
+        select:
+          options:
+            - "time"
+            - "energy"
+            - "soc"
+            - "range"
+    value: 
+      name: Limit value
+      description: Stop the charge after the specified limit value.
+      required: false
+      selector:
+        number:
+          min: 1
+          max: 2147483647
+          mode: box
+    auto_release:
+      name: Auto release
+      description: If the limit is auto-released when the vehicle is disconnected.
+      required: false
+      default: true
+      example: true
+      selector:
+        boolean:
+
+clear_limit:
+  name: Clear limit
+  description: Clears a limit on a charger.
+  target:
+    device:
+      integration: openevse          
