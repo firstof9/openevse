@@ -119,3 +119,10 @@ clear_limit:
   target:
     device:
       integration: openevse          
+
+get_limit:
+  name: Get limit
+  description: Gets a limit on a charger.
+  target:
+    device:
+      integration: openevse        
