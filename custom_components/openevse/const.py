@@ -54,6 +54,9 @@ MANAGER = "manager"
 
 SERVICE_SET_OVERRIDE = "set_override"
 SERVICE_CLEAR_OVERRIDE = "clear_override"
+SERVICE_SET_LIMIT = "set_limit"
+SERVICE_CLEAR_LIMIT = "clear_limit"
+SERVICE_GET_LIMIT = "get_limit"
 
 # attributes
 ATTR_DEVICE_ID = "device_id"
@@ -63,6 +66,8 @@ ATTR_MAX_CURRENT = "max_current"
 ATTR_ENERGY_LIMIT = "energy_limit"
 ATTR_TIME_LIMIT = "time_limit"
 ATTR_AUTO_RELEASE = "auto_release"
+ATTR_TYPE = "type"
+ATTR_VALUE = "value"
 
 SERVICE_LEVELS = ["1", "2", "A"]
 DIVERT_MODE = ["fast", "eco"]
