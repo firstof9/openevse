@@ -23,9 +23,9 @@ from openevsehttp.exceptions import MissingSerial
 
 from .const import (
     BINARY_SENSORS,
-    CONF_NAME,
     CONF_GRID,
     CONF_INVERT,
+    CONF_NAME,
     CONF_SOLAR,
     COORDINATOR,
     DOMAIN,
