@@ -7,9 +7,9 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import (
     HomeAssistant,
     ServiceCall,
-    callback,
     ServiceResponse,
     SupportsResponse,
+    callback,
 )
 from homeassistant.helpers import device_registry as dr
 

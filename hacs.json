@@ -1,6 +1,6 @@
 {
     "name": "OpenEVSE",
-    "homeassistant": "0.118.0",
+    "homeassistant": "2023.1.0",
     "zip_release": true,
     "filename": "openevse.zip",
     "render_readme": true
