@@ -27,6 +27,7 @@ from .const import (
     CONF_INVERT,
     CONF_NAME,
     CONF_SOLAR,
+    CONF_VOLTAGE,
     COORDINATOR,
     DOMAIN,
     FW_COORDINATOR,
@@ -55,6 +56,7 @@ async def handle_state_change(
     invert = config_entry.data.get(CONF_INVERT)
     grid_sensor = config_entry.data.get(CONF_GRID)
     solar_sensor = config_entry.data.get(CONF_SOLAR)
+    voltage_sensor = config_entry.data.get(CONF_VOLTAGE)
 
     if grid_sensor is not None and changed_entity == grid_sensor:
         grid = hass.states.get(grid_sensor).state
@@ -75,6 +77,16 @@ async def handle_state_change(
 
         _LOGGER.debug("Sending sensor data to OpenEVSE: (solar: %s)", solar)
         await manager.self_production(grid=None, solar=solar, invert=False)
+
+    if voltage_sensor is not None and changed_entity == voltage_sensor:
+        voltage = hass.states.get(voltage_sensor).state
+        if voltage in [None, "unavailable"]:
+            voltage = None
+        else:
+            voltage = round(float(hass.states.get(voltage_sensor).state))
+
+        _LOGGER.debug("Sending sensor data to OpenEVSE: (voltage: %s)", voltage)
+        await manager.grid_voltage(voltage=voltage)
 
 
 async def homeassistant_started_listener(
@@ -168,6 +180,8 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
         sensors.append(config_entry.data.get(CONF_GRID))
     elif config_entry.data.get(CONF_SOLAR):
         sensors.append(config_entry.data.get(CONF_SOLAR))
+    if config_entry.data.get(CONF_VOLTAGE):
+        sensors.append(config_entry.data.get(CONF_VOLTAGE))
 
     if len(sensors) > 0:
         if hass.state == CoreState.running:
