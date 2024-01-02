@@ -12,7 +12,8 @@
             "username": "Username (optional)",
             "grid": "Grid import/export sensor (optional)",
             "solar": "Solar production sensor (optional)",
-            "invert_grid": "Invert grid import/export"
+            "invert_grid": "Invert grid import/export",
+            "voltage": "Grid voltage sensor (optional)"
           },
           "description": "Please enter the connection information of OpenEVSE charger.\nYou can also enter your grid import/export or solar production sensors to push data to OpenEVSE.\n\nIMPORTANT NOTE: OpenEVSE expects positive import and negative export.",
           "title": "OpenEVSE Setup"
@@ -42,7 +43,8 @@
                 "username": "Username (optional)",
                 "grid": "Grid import/export sensor (optional)",
                 "solar": "Solar production sensor (optional)",
-                "invert_grid": "Invert grid import/export"
+                "invert_grid": "Invert grid import/export",
+                "voltage": "Grid voltage sensor (optional)"
             },
             "description": "Please enter the connection information of OpenEVSE charger.\nYou can also enter your grid import/export or solar production sensors to push data to OpenEVSE.\n\nIMPORTANT NOTE: OpenEVSE expects positive import and negative export.",
             "title": "OpenEVSE Setup"
