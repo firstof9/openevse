@@ -192,7 +192,9 @@ def _get_schema(  # pylint: disable-next=unused-argument
             ): cv.string,
             vol.Optional(CONF_GRID, default=_get_default(CONF_GRID, "")): cv.string,
             vol.Optional(CONF_SOLAR, default=_get_default(CONF_SOLAR, "")): cv.string,
-            vol.Optional(CONF_VOLTAGE, default=_get_default(CONF_VOLTAGE, "")): cv.string,
+            vol.Optional(
+                CONF_VOLTAGE, default=_get_default(CONF_VOLTAGE, "")
+            ): cv.string,
             vol.Optional(CONF_INVERT, default=_get_default(CONF_INVERT, False)): bool,
         },
     )

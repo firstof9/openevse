@@ -86,7 +86,7 @@ async def handle_state_change(
             voltage = round(float(hass.states.get(voltage_sensor).state))
 
         _LOGGER.debug("Sending sensor data to OpenEVSE: (voltage: %s)", voltage)
-        await manager.grid_voltage(voltage=voltage)    
+        await manager.grid_voltage(voltage=voltage)
 
 
 async def homeassistant_started_listener(
