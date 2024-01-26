@@ -1,4 +1,5 @@
 """Support for OpenEVSE entities."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass

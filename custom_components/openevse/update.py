@@ -1,4 +1,5 @@
 """Support for OpenEVSE updates."""
+
 from __future__ import annotations
 
 import logging

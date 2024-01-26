@@ -1,4 +1,5 @@
 """Binary sensors for OpenEVSE Charger."""
+
 import logging
 from typing import cast
 

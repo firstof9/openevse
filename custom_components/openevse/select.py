@@ -1,4 +1,5 @@
 """Support for OpenEVSE controls using the select platform."""
+
 from __future__ import annotations
 
 import logging
