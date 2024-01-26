@@ -31,7 +31,9 @@ disable=
   broad-except,
   too-many-lines,
   too-many-locals,
-
+  unexpected-keyword-arg,
+  abstract-method,
+  
 [REFACTORING]
 
 # Maximum number of nested blocks for function / method body
