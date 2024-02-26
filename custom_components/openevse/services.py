@@ -143,7 +143,7 @@ class OpenEVSEServices:
                     vol.Optional(ATTR_AUTO_RELEASE): vol.Coerce(bool),
                 }
             ),
-        )        
+        )
 
         self.hass.services.async_register(
             DOMAIN,
@@ -155,7 +155,7 @@ class OpenEVSEServices:
                 }
             ),
             supports_response=SupportsResponse.ONLY,
-        )        
+        )
 
         self.hass.services.async_register(
             DOMAIN,
@@ -166,7 +166,7 @@ class OpenEVSEServices:
                     vol.Required(ATTR_DEVICE_ID): vol.Coerce(list),
                 }
             ),
-        )        
+        )
 
     # Setup services
     async def _set_override(self, service: ServiceCall) -> None:
@@ -385,7 +385,7 @@ class OpenEVSEServices:
             manager = self.hass.data[DOMAIN][config_id][MANAGER]
 
             await manager.release_claim()
-            _LOGGER.debug("Release claim command sent.")            
+            _LOGGER.debug("Release claim command sent.")
 
     async def _list_claims(self, service: ServiceCall) -> ServiceResponse:
         """Get the limit."""
@@ -408,4 +408,4 @@ class OpenEVSEServices:
 
             response = await manager.list_claims()
             _LOGGER.debug("List claims response %s.", response)
-            return response            
+            return response

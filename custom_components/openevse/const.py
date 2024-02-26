@@ -358,7 +358,7 @@ SWITCH_TYPES: Final[dict[str, OpenEVSESwitchEntityDescription]] = {
         toggle_command="claim",
         device_class=SwitchDeviceClass.SWITCH,
         entity_registry_enabled_default=False,
-    ),    
+    ),
     "manual_override": OpenEVSESwitchEntityDescription(
         name="Manual Override",
         key="manual_override",
