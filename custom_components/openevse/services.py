@@ -30,6 +30,9 @@ from .const import (
     SERVICE_GET_LIMIT,
     SERVICE_SET_LIMIT,
     SERVICE_SET_OVERRIDE,
+    SERVICE_LIST_CLAIMS,
+    SERVICE_MAKE_CLAIM,
+    SERVICE_RELEASE_CLAIM,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -122,6 +125,48 @@ class OpenEVSEServices:
             ),
             supports_response=SupportsResponse.ONLY,
         )
+
+        self.hass.services.async_register(
+            DOMAIN,
+            SERVICE_MAKE_CLAIM,
+            self._make_claim,
+            schema=vol.Schema(
+                {
+                    vol.Required(ATTR_DEVICE_ID): vol.Coerce(list),
+                    vol.Optional(ATTR_STATE): vol.Coerce(str),
+                    vol.Optional(ATTR_CHARGE_CURRENT): vol.All(
+                        vol.Coerce(int), vol.Range(min=1, max=48)
+                    ),
+                    vol.Optional(ATTR_MAX_CURRENT): vol.All(
+                        vol.Coerce(int), vol.Range(min=1, max=48)
+                    ),
+                    vol.Optional(ATTR_AUTO_RELEASE): vol.Coerce(bool),
+                }
+            ),
+        )        
+
+        self.hass.services.async_register(
+            DOMAIN,
+            SERVICE_LIST_CLAIMS,
+            self._list_claims,
+            schema=vol.Schema(
+                {
+                    vol.Required(ATTR_DEVICE_ID): vol.Coerce(list),
+                }
+            ),
+            supports_response=SupportsResponse.ONLY,
+        )        
+
+        self.hass.services.async_register(
+            DOMAIN,
+            SERVICE_RELEASE_CLAIM,
+            self._release_claim,
+            schema=vol.Schema(
+                {
+                    vol.Required(ATTR_DEVICE_ID): vol.Coerce(list),
+                }
+            ),
+        )        
 
     # Setup services
     async def _set_override(self, service: ServiceCall) -> None:
@@ -276,3 +321,91 @@ class OpenEVSEServices:
             response = await manager.get_limit()
             _LOGGER.debug("Get limit response %s.", response)
             return response
+
+    async def _make_claim(self, service: ServiceCall) -> None:
+        """Make a claim."""
+        data = service.data
+        for device in data[ATTR_DEVICE_ID]:
+            device_id = device
+            _LOGGER.debug("Device ID: %s", device_id)
+
+            dev_reg = dr.async_get(self.hass)
+            device_entry = dev_reg.async_get(device_id)
+            _LOGGER.debug("Device_entry: %s", device_entry)
+
+            if not device_entry:
+                raise ValueError(f"Device ID {device_id} is not valid")
+
+            config_id = list(device_entry.config_entries)[0]
+            _LOGGER.debug("Config ID: %s", config_id)
+            manager = self.hass.data[DOMAIN][config_id][MANAGER]
+
+            if ATTR_STATE in data:
+                state = data[ATTR_STATE]
+            else:
+                state = None
+            if ATTR_CHARGE_CURRENT in data:
+                charge_current = data[ATTR_CHARGE_CURRENT]
+            else:
+                charge_current = None
+            if ATTR_MAX_CURRENT in data:
+                max_current = data[ATTR_MAX_CURRENT]
+            else:
+                max_current = None
+            if ATTR_AUTO_RELEASE in data:
+                auto_release = data[ATTR_AUTO_RELEASE]
+            else:
+                auto_release = None
+
+            response = await manager.make_claim(
+                state=state,
+                charge_current=charge_current,
+                max_current=max_current,
+                auto_release=auto_release,
+            )
+            _LOGGER.debug("Make claim response: %s", response)
+
+    async def _release_claim(self, service: ServiceCall) -> None:
+        """Release a claim."""
+        data = service.data
+        _LOGGER.debug("Data: %s", data)
+        for device in data[ATTR_DEVICE_ID]:
+            device_id = device
+            _LOGGER.debug("Device ID: %s", device_id)
+
+            dev_reg = dr.async_get(self.hass)
+            device_entry = dev_reg.async_get(device_id)
+            _LOGGER.debug("Device_entry: %s", device_entry)
+
+            if not device_entry:
+                raise ValueError(f"Device ID {device_id} is not valid")
+
+            config_id = list(device_entry.config_entries)[0]
+            _LOGGER.debug("Config ID: %s Type: %s", config_id, type(config_id))
+            manager = self.hass.data[DOMAIN][config_id][MANAGER]
+
+            await manager.release_claim()
+            _LOGGER.debug("Release claim command sent.")            
+
+    async def _list_claims(self, service: ServiceCall) -> ServiceResponse:
+        """Get the limit."""
+        data = service.data
+        _LOGGER.debug("Data: %s", data)
+        for device in data[ATTR_DEVICE_ID]:
+            device_id = device
+            _LOGGER.debug("Device ID: %s", device_id)
+
+            dev_reg = dr.async_get(self.hass)
+            device_entry = dev_reg.async_get(device_id)
+            _LOGGER.debug("Device_entry: %s", device_entry)
+
+            if not device_entry:
+                raise ValueError(f"Device ID {device_id} is not valid")
+
+            config_id = list(device_entry.config_entries)[0]
+            _LOGGER.debug("Config ID: %s Type: %s", config_id, type(config_id))
+            manager = self.hass.data[DOMAIN][config_id][MANAGER]
+
+            response = await manager.list_claims()
+            _LOGGER.debug("List claims response %s.", response)
+            return response            

@@ -83,7 +83,7 @@ class OpenEVSESwitch(CoordinatorEntity, SwitchEntity):
         """Return True if switch is on."""
         data = self.coordinator.data
         if self._type not in data.keys():
-            _LOGGER.info("switch [%s] not supported.", self._type)
+            _LOGGER.warning("switch [%s] not supported.", self._type)
             return None
         _LOGGER.debug("switch [%s]: %s", self._attr_name, data[self._type])
         if self._type == ATTR_STATE:
@@ -92,14 +92,20 @@ class OpenEVSESwitch(CoordinatorEntity, SwitchEntity):
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn the switch on."""
-        if self.toggle_command is not None and not self.is_on:
-            await getattr(self._manager, self.toggle_command)()
+        if not self.is_on:
+            if self.toggle_command == "claim":
+                await self._manager.release_claim()
+            else:
+                await getattr(self._manager, self.toggle_command)()
         else:
             return
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn the switch off."""
-        if self.toggle_command is not None and self.is_on:
-            await getattr(self._manager, self.toggle_command)()
+        if self.is_on:
+            if self.toggle_command == "claim":
+                await self._manager.make_claim(state="active")
+            else:
+                await getattr(self._manager, self.toggle_command)()
         else:
             return
