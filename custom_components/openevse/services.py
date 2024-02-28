@@ -31,6 +31,7 @@ from .const import (
     SERVICE_SET_LIMIT,
     SERVICE_SET_OVERRIDE,
     SERVICE_LIST_CLAIMS,
+    SERVICE_LIST_OVERRIDES,
     SERVICE_MAKE_CLAIM,
     SERVICE_RELEASE_CLAIM,
 )
@@ -166,6 +167,18 @@ class OpenEVSEServices:
                     vol.Required(ATTR_DEVICE_ID): vol.Coerce(list),
                 }
             ),
+        )
+
+        self.hass.services.async_register(
+            DOMAIN,
+            SERVICE_LIST_OVERRIDES,
+            self._list_overrides,
+            schema=vol.Schema(
+                {
+                    vol.Required(ATTR_DEVICE_ID): vol.Coerce(list),
+                }
+            ),
+            supports_response=SupportsResponse.ONLY,
         )
 
     # Setup services
@@ -388,7 +401,7 @@ class OpenEVSEServices:
             _LOGGER.debug("Release claim command sent.")
 
     async def _list_claims(self, service: ServiceCall) -> ServiceResponse:
-        """Get the limit."""
+        """Get the claims."""
         data = service.data
         _LOGGER.debug("Data: %s", data)
         for device in data[ATTR_DEVICE_ID]:
@@ -408,4 +421,27 @@ class OpenEVSEServices:
 
             response = await manager.list_claims()
             _LOGGER.debug("List claims response %s.", response)
+            return response
+
+    async def _list_overrides(self, service: ServiceCall) -> ServiceResponse:
+        """Get the overrides."""
+        data = service.data
+        _LOGGER.debug("Data: %s", data)
+        for device in data[ATTR_DEVICE_ID]:
+            device_id = device
+            _LOGGER.debug("Device ID: %s", device_id)
+
+            dev_reg = dr.async_get(self.hass)
+            device_entry = dev_reg.async_get(device_id)
+            _LOGGER.debug("Device_entry: %s", device_entry)
+
+            if not device_entry:
+                raise ValueError(f"Device ID {device_id} is not valid")
+
+            config_id = list(device_entry.config_entries)[0]
+            _LOGGER.debug("Config ID: %s Type: %s", config_id, type(config_id))
+            manager = self.hass.data[DOMAIN][config_id][MANAGER]
+
+            response = await manager.get_override()
+            _LOGGER.debug("List overrides response %s.", response)
             return response

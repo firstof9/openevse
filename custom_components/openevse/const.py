@@ -61,6 +61,7 @@ SERVICE_GET_LIMIT = "get_limit"
 SERVICE_MAKE_CLAIM = "make_claim"
 SERVICE_LIST_CLAIMS = "list_claims"
 SERVICE_RELEASE_CLAIM = "release_claim"
+SERVICE_LIST_OVERRIDES = "list_overrides"
 
 # attributes
 ATTR_DEVICE_ID = "device_id"

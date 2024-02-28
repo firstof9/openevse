@@ -187,3 +187,9 @@ list_claims:
   target:
     device:
       integration: openevse        
+list_overrides:
+  name: List overrides
+  description: Lists overrides on an EVSE.
+  target:
+    device:
+      integration: openevse    
