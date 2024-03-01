@@ -196,7 +196,7 @@ class OpenEVSEServices:
             if not device_entry:
                 raise ValueError(f"Device ID {device_id} is not valid")
 
-            config_id = list(device_entry.config_entries)[0]
+            config_id = list(device_entry.connections)[0][1]
             _LOGGER.debug("Config ID: %s", config_id)
             manager = self.hass.data[DOMAIN][config_id][MANAGER]
 
@@ -250,7 +250,7 @@ class OpenEVSEServices:
             if not device_entry:
                 raise ValueError(f"Device ID {device_id} is not valid")
 
-            config_id = list(device_entry.config_entries)[0]
+            config_id = list(device_entry.connections)[0][1]
             _LOGGER.debug("Config ID: %s Type: %s", config_id, type(config_id))
             manager = self.hass.data[DOMAIN][config_id][MANAGER]
 
@@ -271,7 +271,7 @@ class OpenEVSEServices:
             if not device_entry:
                 raise ValueError(f"Device ID {device_id} is not valid")
 
-            config_id = list(device_entry.config_entries)[0]
+            config_id = list(device_entry.connections)[0][1]
             _LOGGER.debug("Config ID: %s", config_id)
             manager = self.hass.data[DOMAIN][config_id][MANAGER]
 
@@ -305,7 +305,7 @@ class OpenEVSEServices:
             if not device_entry:
                 raise ValueError(f"Device ID {device_id} is not valid")
 
-            config_id = list(device_entry.config_entries)[0]
+            config_id = list(device_entry.connections)[0][1]
             _LOGGER.debug("Config ID: %s Type: %s", config_id, type(config_id))
             manager = self.hass.data[DOMAIN][config_id][MANAGER]
 
@@ -327,13 +327,13 @@ class OpenEVSEServices:
             if not device_entry:
                 raise ValueError(f"Device ID {device_id} is not valid")
 
-            config_id = list(device_entry.config_entries)[0]
+            config_id = list(device_entry.connections)[0][1]
             _LOGGER.debug("Config ID: %s Type: %s", config_id, type(config_id))
             manager = self.hass.data[DOMAIN][config_id][MANAGER]
 
             response = await manager.get_limit()
             _LOGGER.debug("Get limit response %s.", response)
-            return response
+            return response[0]
 
     async def _make_claim(self, service: ServiceCall) -> None:
         """Make a claim."""
@@ -349,7 +349,7 @@ class OpenEVSEServices:
             if not device_entry:
                 raise ValueError(f"Device ID {device_id} is not valid")
 
-            config_id = list(device_entry.config_entries)[0]
+            config_id = list(device_entry.connections)[0][1]
             _LOGGER.debug("Config ID: %s", config_id)
             manager = self.hass.data[DOMAIN][config_id][MANAGER]
 
@@ -393,7 +393,7 @@ class OpenEVSEServices:
             if not device_entry:
                 raise ValueError(f"Device ID {device_id} is not valid")
 
-            config_id = list(device_entry.config_entries)[0]
+            config_id = list(device_entry.connections)[0][1]
             _LOGGER.debug("Config ID: %s Type: %s", config_id, type(config_id))
             manager = self.hass.data[DOMAIN][config_id][MANAGER]
 
@@ -415,13 +415,13 @@ class OpenEVSEServices:
             if not device_entry:
                 raise ValueError(f"Device ID {device_id} is not valid")
 
-            config_id = list(device_entry.config_entries)[0]
+            config_id = list(device_entry.connections)[0][1]
             _LOGGER.debug("Config ID: %s Type: %s", config_id, type(config_id))
             manager = self.hass.data[DOMAIN][config_id][MANAGER]
 
             response = await manager.list_claims()
             _LOGGER.debug("List claims response %s.", response)
-            return response
+            return response[0]
 
     async def _list_overrides(self, service: ServiceCall) -> ServiceResponse:
         """Get the overrides."""
@@ -438,10 +438,10 @@ class OpenEVSEServices:
             if not device_entry:
                 raise ValueError(f"Device ID {device_id} is not valid")
 
-            config_id = list(device_entry.config_entries)[0]
+            config_id = list(device_entry.connections)[0][1]
             _LOGGER.debug("Config ID: %s Type: %s", config_id, type(config_id))
             manager = self.hass.data[DOMAIN][config_id][MANAGER]
 
             response = await manager.get_override()
             _LOGGER.debug("List overrides response %s.", response)
-            return response
+            return response[0]
