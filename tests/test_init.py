@@ -33,7 +33,7 @@ async def test_setup_entry(hass, test_charger, mock_ws_start):
 
     assert len(hass.states.async_entity_ids(BINARY_SENSOR_DOMAIN)) == 4
     assert len(hass.states.async_entity_ids(SENSOR_DOMAIN)) == 20
-    assert len(hass.states.async_entity_ids(SWITCH_DOMAIN)) == 3
+    assert len(hass.states.async_entity_ids(SWITCH_DOMAIN)) == 4
     assert len(hass.states.async_entity_ids(SELECT_DOMAIN)) == 2
     entries = hass.config_entries.async_entries(DOMAIN)
     assert len(entries) == 1
@@ -53,7 +53,7 @@ async def test_setup_entry_bad_serial(hass, test_charger_bad_serial, mock_ws_sta
 
     assert len(hass.states.async_entity_ids(BINARY_SENSOR_DOMAIN)) == 4
     assert len(hass.states.async_entity_ids(SENSOR_DOMAIN)) == 20
-    assert len(hass.states.async_entity_ids(SWITCH_DOMAIN)) == 3
+    assert len(hass.states.async_entity_ids(SWITCH_DOMAIN)) == 4
     assert len(hass.states.async_entity_ids(SELECT_DOMAIN)) == 2
     entries = hass.config_entries.async_entries(DOMAIN)
     assert len(entries) == 1
@@ -73,7 +73,7 @@ async def test_setup_and_unload_entry(hass, test_charger):
 
     assert len(hass.states.async_entity_ids(BINARY_SENSOR_DOMAIN)) == 4
     assert len(hass.states.async_entity_ids(SENSOR_DOMAIN)) == 20
-    assert len(hass.states.async_entity_ids(SWITCH_DOMAIN)) == 3
+    assert len(hass.states.async_entity_ids(SWITCH_DOMAIN)) == 4
     assert len(hass.states.async_entity_ids(SELECT_DOMAIN)) == 2
     entries = hass.config_entries.async_entries(DOMAIN)
     assert len(entries) == 1

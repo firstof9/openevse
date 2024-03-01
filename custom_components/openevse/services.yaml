@@ -126,3 +126,70 @@ get_limit:
   target:
     device:
       integration: openevse        
+
+make_claim:
+  name: Make Claim
+  description: Make/Update a claim.
+  target:
+    device:
+      integration: openevse
+  fields:
+    state:
+      name: State
+      description: Enable or disable charging.
+      required: false
+      default: disabled
+      example: disabled
+      selector:
+        select:
+          options:
+            - "active"
+            - "disabled"
+    charge_current: 
+      name: Charge current
+      description: Specify the active charge current in Amps
+      required: false
+      example: 30
+      selector:
+        number:
+          min: 1
+          max: 48
+          unit_of_measurement: ampers
+          mode: box
+    max_current:
+      name: Max current
+      description: Dynamically alter the max current while still allowing other claims to very the current via charge_current that can not exceede this value.
+      required: false
+      example: 32
+      selector:
+        number:
+          min: 1
+          max: 48
+          unit_of_measurement: ampers
+          mode: box
+    auto_release:
+      name: Auto release
+      description: If the manual override is auto-released when the vehicle is disconnected.
+      required: false
+      default: true
+      example: true
+      selector:
+        boolean:      
+release_claim:
+  name: Release claim
+  description: Releases a claim on a charger.
+  target:
+    device:
+      integration: openevse               
+list_claims:
+  name: List claims
+  description: Lists claims on an EVSE.
+  target:
+    device:
+      integration: openevse        
+list_overrides:
+  name: List overrides
+  description: Lists overrides on an EVSE.
+  target:
+    device:
+      integration: openevse    

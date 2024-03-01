@@ -58,6 +58,10 @@ SERVICE_CLEAR_OVERRIDE = "clear_override"
 SERVICE_SET_LIMIT = "set_limit"
 SERVICE_CLEAR_LIMIT = "clear_limit"
 SERVICE_GET_LIMIT = "get_limit"
+SERVICE_MAKE_CLAIM = "make_claim"
+SERVICE_LIST_CLAIMS = "list_claims"
+SERVICE_RELEASE_CLAIM = "release_claim"
+SERVICE_LIST_OVERRIDES = "list_overrides"
 
 # attributes
 ATTR_DEVICE_ID = "device_id"
@@ -347,6 +351,14 @@ SWITCH_TYPES: Final[dict[str, OpenEVSESwitchEntityDescription]] = {
         key="state",
         toggle_command="toggle_override",
         device_class=SwitchDeviceClass.SWITCH,
+        entity_registry_enabled_default=False,
+    ),
+    "sleep_mode_new": OpenEVSESwitchEntityDescription(
+        name="Sleep Mode (new)",
+        key="state",
+        toggle_command="claim",
+        device_class=SwitchDeviceClass.SWITCH,
+        entity_registry_enabled_default=False,
     ),
     "manual_override": OpenEVSESwitchEntityDescription(
         name="Manual Override",
