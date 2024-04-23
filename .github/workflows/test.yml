@@ -12,7 +12,7 @@ jobs:
     name: Validate
     steps:
         - name: 📥 Checkout the repository
-          uses: actions/checkout@v3.5.3
+          uses: actions/checkout@v4
 
         - name: HACS validation
           uses: "hacs/action@main"
@@ -28,9 +28,9 @@ jobs:
     name: Check style formatting
     steps:
         - name: 📥 Checkout the repository
-          uses: actions/checkout@v3.5.3
+          uses: actions/checkout@v4
         - name: 🛠️ Set up Python
-          uses: actions/setup-python@v4.6.1
+          uses: actions/setup-python@v5
           with:
             python-version: "3.x"
         - run: python3 -m pip install black
@@ -48,13 +48,13 @@ jobs:
 
     steps:
       - name: 📥 Checkout the repository
-        uses: actions/checkout@v3.5.3
+        uses: actions/checkout@v4
       - name: 🛠️ Set up Python
-        uses: actions/setup-python@v4.6.1
+        uses: actions/setup-python@v5
         with:
           fetch-depth: 2      
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4.6.1
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
       - name: 📦 Install requirements
@@ -63,7 +63,7 @@ jobs:
       - name: 🏃 Test with tox
         run: tox
       - name: 📤 Upload coverage to Codecov
-        uses: "actions/upload-artifact@v2.2.4"
+        uses: "actions/upload-artifact@v4"
         with:
           name: coverage-data
           path: "coverage.xml"
@@ -73,12 +73,12 @@ jobs:
     needs: tests
     steps:
       - name: 📥 Checkout the repository
-        uses: actions/checkout@v3.5.3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 2
       - name: 📥 Download coverage data
-        uses: actions/download-artifact@v3.0.2
+        uses: actions/download-artifact@v4
         with:
           name: coverage-data
       - name: 📤 Upload coverage report
-        uses: codecov/codecov-action@v3.1.1
+        uses: codecov/codecov-action@v4
