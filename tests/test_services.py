@@ -17,6 +17,7 @@ from custom_components.openevse.const import (
     DOMAIN,
     SERVICE_LIST_CLAIMS,
     SERVICE_LIST_OVERRIDES,
+    SERVICE_GET_LIMIT,
 )
 
 from .const import CONFIG_DATA
@@ -25,6 +26,7 @@ pytestmark = pytest.mark.asyncio
 
 CHARGER_NAME = "openevse"
 TEST_URL_CLAIMS = "http://openevse.test.tld/claims"
+TEST_URL_LIMIT = "http://openevse.test.tld/limit"
 TEST_URL_OVERRIDE = "http://openevse.test.tld/override"
 
 
@@ -128,3 +130,44 @@ async def test_list_overrides(
             return_response=True,
         )
         assert response == value
+
+
+async def test_get_limit(
+    hass,
+    test_charger,
+    mock_aioclient,
+    mock_ws_start,
+    entity_registry: er.EntityRegistry,
+    caplog,
+):
+    """Test setup_entry."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA,
+    )
+    mock_aioclient.get(
+        TEST_URL_LIMIT,
+        status=200,
+        body='{"type": "energy", "value": 10}',
+    )
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    entry = entity_registry.async_get("sensor.openevse_station_status")
+    assert entry
+    assert entry.device_id
+
+    # setup service call
+    with caplog.at_level(logging.DEBUG):
+        response = await hass.services.async_call(
+            DOMAIN,
+            SERVICE_GET_LIMIT,
+            {CONF_DEVICE_ID: entry.device_id},
+            blocking=True,
+            return_response=True,
+        )
+        assert response == {"type": "energy", "value": 10}
+
+
