@@ -12,6 +12,7 @@ from homeassistant.core import (
     callback,
 )
 from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers import config_validation as cv
 
 from .const import (
     ATTR_AUTO_RELEASE,
@@ -60,7 +61,7 @@ class OpenEVSEServices:
             self._set_override,
             schema=vol.Schema(
                 {
-                    vol.Required(ATTR_DEVICE_ID): vol.Coerce(list),
+                    vol.Required(ATTR_DEVICE_ID): cv.string,
                     vol.Optional(ATTR_STATE): vol.Coerce(str),
                     vol.Optional(ATTR_CHARGE_CURRENT): vol.All(
                         vol.Coerce(int), vol.Range(min=1, max=48)
@@ -85,7 +86,7 @@ class OpenEVSEServices:
             self._set_limit,
             schema=vol.Schema(
                 {
-                    vol.Required(ATTR_DEVICE_ID): vol.Coerce(list),
+                    vol.Required(ATTR_DEVICE_ID): cv.string,
                     vol.Required(ATTR_TYPE): vol.Coerce(str),
                     vol.Required(ATTR_VALUE): vol.Coerce(int),
                     vol.Optional(ATTR_AUTO_RELEASE): vol.Coerce(bool),
@@ -99,7 +100,7 @@ class OpenEVSEServices:
             self._clear_override,
             schema=vol.Schema(
                 {
-                    vol.Required(ATTR_DEVICE_ID): vol.Coerce(list),
+                    vol.Required(ATTR_DEVICE_ID): cv.string,
                 }
             ),
         )
@@ -110,7 +111,7 @@ class OpenEVSEServices:
             self._clear_limit,
             schema=vol.Schema(
                 {
-                    vol.Required(ATTR_DEVICE_ID): vol.Coerce(list),
+                    vol.Required(ATTR_DEVICE_ID): cv.string,
                 }
             ),
         )
@@ -121,7 +122,7 @@ class OpenEVSEServices:
             self._get_limit,
             schema=vol.Schema(
                 {
-                    vol.Required(ATTR_DEVICE_ID): vol.Coerce(list),
+                    vol.Required(ATTR_DEVICE_ID): cv.string,
                 }
             ),
             supports_response=SupportsResponse.ONLY,
@@ -133,7 +134,7 @@ class OpenEVSEServices:
             self._make_claim,
             schema=vol.Schema(
                 {
-                    vol.Required(ATTR_DEVICE_ID): vol.Coerce(list),
+                    vol.Required(ATTR_DEVICE_ID): cv.string,
                     vol.Optional(ATTR_STATE): vol.Coerce(str),
                     vol.Optional(ATTR_CHARGE_CURRENT): vol.All(
                         vol.Coerce(int), vol.Range(min=1, max=48)
@@ -152,7 +153,7 @@ class OpenEVSEServices:
             self._list_claims,
             schema=vol.Schema(
                 {
-                    vol.Required(ATTR_DEVICE_ID): vol.Coerce(list),
+                    vol.Required(ATTR_DEVICE_ID): cv.string,
                 }
             ),
             supports_response=SupportsResponse.ONLY,
@@ -164,7 +165,7 @@ class OpenEVSEServices:
             self._release_claim,
             schema=vol.Schema(
                 {
-                    vol.Required(ATTR_DEVICE_ID): vol.Coerce(list),
+                    vol.Required(ATTR_DEVICE_ID): cv.string,
                 }
             ),
         )
@@ -175,7 +176,7 @@ class OpenEVSEServices:
             self._list_overrides,
             schema=vol.Schema(
                 {
-                    vol.Required(ATTR_DEVICE_ID): vol.Coerce(list),
+                    vol.Required(ATTR_DEVICE_ID): cv.string,
                 }
             ),
             supports_response=SupportsResponse.ONLY,
@@ -316,7 +317,7 @@ class OpenEVSEServices:
         """Get the limit."""
         data = service.data
         _LOGGER.debug("Data: %s", data)
-        for device in data[ATTR_DEVICE_ID]:
+        for device in data.values():
             device_id = device
             _LOGGER.debug("Device ID: %s", device_id)
 
@@ -333,7 +334,7 @@ class OpenEVSEServices:
 
             response = await manager.get_limit()
             _LOGGER.debug("Get limit response %s.", response)
-            return response[0]
+            return response
 
     async def _make_claim(self, service: ServiceCall) -> None:
         """Make a claim."""
@@ -404,7 +405,7 @@ class OpenEVSEServices:
         """Get the claims."""
         data = service.data
         _LOGGER.debug("Data: %s", data)
-        for device in data[ATTR_DEVICE_ID]:
+        for device in data.values():
             device_id = device
             _LOGGER.debug("Device ID: %s", device_id)
 
@@ -421,13 +422,19 @@ class OpenEVSEServices:
 
             response = await manager.list_claims()
             _LOGGER.debug("List claims response %s.", response)
-            return response[0]
+            claims = {}
+            x = 0
+            for claim in response:
+                claims[x] = claim
+                x += 1
+            _LOGGER.debug("Processed response %s.", claims)
+            return claims
 
     async def _list_overrides(self, service: ServiceCall) -> ServiceResponse:
         """Get the overrides."""
         data = service.data
         _LOGGER.debug("Data: %s", data)
-        for device in data[ATTR_DEVICE_ID]:
+        for device in data.values():
             device_id = device
             _LOGGER.debug("Device ID: %s", device_id)
 
@@ -444,4 +451,4 @@ class OpenEVSEServices:
 
             response = await manager.get_override()
             _LOGGER.debug("List overrides response %s.", response)
-            return response[0]
+            return response

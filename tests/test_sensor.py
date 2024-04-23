@@ -3,14 +3,13 @@
 from unittest.mock import patch
 
 import pytest
-
-from custom_components.openevse.const import DOMAIN
-
 from homeassistant.components.binary_sensor import DOMAIN as BINARY_SENSOR_DOMAIN
-from homeassistant.components.sensor import DOMAIN as SENSOR_DOMAIN
 from homeassistant.components.select import DOMAIN as SELECT_DOMAIN
+from homeassistant.components.sensor import DOMAIN as SENSOR_DOMAIN
 from homeassistant.components.switch import DOMAIN as SWITCH_DOMAIN
 from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+from custom_components.openevse.const import DOMAIN
 
 from .const import CONFIG_DATA
 
@@ -42,7 +41,7 @@ async def test_sensors(hass, test_charger, mock_ws_start):
 
     state = hass.states.get("sensor.openevse_wifi_firmware_version")
     assert state
-    assert state.state == "4.1.2"
+    assert state.state == "5.1.0"
     state = hass.states.get("sensor.openevse_charge_time_elapsed")
     assert state
     assert state.state == "4.1"
