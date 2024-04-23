@@ -1,6 +1,7 @@
 """Test openevse services."""
 
 import logging
+import json
 from unittest.mock import patch
 
 import pytest
@@ -12,7 +13,7 @@ from homeassistant.const import CONF_DEVICE_ID
 from homeassistant.helpers import entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.openevse.const import DOMAIN, SERVICE_LIST_CLAIMS
+from custom_components.openevse.const import DOMAIN, SERVICE_LIST_CLAIMS, SERVICE_LIST_OVERRIDES
 
 from .const import CONFIG_DATA
 
@@ -20,6 +21,7 @@ pytestmark = pytest.mark.asyncio
 
 CHARGER_NAME = "openevse"
 TEST_URL_CLAIMS = "http://openevse.test.tld/claims"
+TEST_URL_OVERRIDE = "http://openevse.test.tld/override"
 
 
 async def test_list_claims(
@@ -74,3 +76,50 @@ async def test_list_claims(
                 "auto_release": False,
             },
         }
+
+async def test_list_overrides(
+    hass,
+    test_charger,
+    mock_aioclient,
+    mock_ws_start,
+    entity_registry: er.EntityRegistry,
+    caplog,
+):
+    """Test setup_entry."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA,
+    )
+    value = {
+        "state": "active",
+        "charge_current": 0,
+        "max_current": 0,
+        "energy_limit": 0,
+        "time_limit": 0,
+        "auto_release": True,
+    }    
+    mock_aioclient.get(
+        TEST_URL_OVERRIDE,
+        status=200,
+        body=json.dumps(value),
+        repeat=True,
+    )
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    entry = entity_registry.async_get("sensor.openevse_station_status")
+    assert entry
+    assert entry.device_id
+
+    # setup service call
+    with caplog.at_level(logging.DEBUG):
+        response = await hass.services.async_call(
+            DOMAIN,
+            SERVICE_LIST_OVERRIDES,
+            {CONF_DEVICE_ID: entry.device_id},
+            blocking=True,
+            return_response=True,
+        )
+        assert response == value

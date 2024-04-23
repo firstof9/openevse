@@ -434,7 +434,7 @@ class OpenEVSEServices:
         """Get the overrides."""
         data = service.data
         _LOGGER.debug("Data: %s", data)
-        for device in data[ATTR_DEVICE_ID]:
+        for device in data.values():
             device_id = device
             _LOGGER.debug("Device ID: %s", device_id)
 
@@ -451,4 +451,4 @@ class OpenEVSEServices:
 
             response = await manager.get_override()
             _LOGGER.debug("List overrides response %s.", response)
-            return response[0]
+            return response
