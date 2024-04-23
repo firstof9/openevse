@@ -1,15 +1,15 @@
 """Test config flow."""
 
-from tests.const import CONFIG_DATA
 from unittest.mock import patch
+
 import pytest
-
-from custom_components.openevse.const import DOMAIN
-
 from homeassistant import config_entries, data_entry_flow, setup
 from homeassistant.const import CONF_NAME
-from pytest_homeassistant_custom_component.common import MockConfigEntry
 from homeassistant.data_entry_flow import FlowResult, FlowResultType
+from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+from custom_components.openevse.const import DOMAIN
+from tests.const import CONFIG_DATA
 
 CHARGER_NAME = "openevse"
 

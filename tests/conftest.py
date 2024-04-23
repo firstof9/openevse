@@ -1,16 +1,15 @@
 """Global fixtures for openevse integration."""
 
-from aioresponses import aioresponses
+import json
+import os
 from unittest import mock
 from unittest.mock import patch
 
-import json
-import os
-
-import pytest
 import openevsehttp.__main__ as main
+import pytest
+from aioresponses import aioresponses
 
-from tests.const import CHARGER_DATA, GETFW_DATA, FW_DATA
+from tests.const import CHARGER_DATA, FW_DATA, GETFW_DATA
 
 pytest_plugins = "pytest_homeassistant_custom_component"
 
