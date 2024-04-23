@@ -421,7 +421,7 @@ class OpenEVSEServices:
 
             response = await manager.list_claims()
             _LOGGER.debug("List claims response %s.", response)
-            return response[0]
+            return response
 
     async def _list_overrides(self, service: ServiceCall) -> ServiceResponse:
         """Get the overrides."""
