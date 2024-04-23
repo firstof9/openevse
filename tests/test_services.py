@@ -15,9 +15,9 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.openevse.const import (
     DOMAIN,
+    SERVICE_GET_LIMIT,
     SERVICE_LIST_CLAIMS,
     SERVICE_LIST_OVERRIDES,
-    SERVICE_GET_LIMIT,
 )
 
 from .const import CONFIG_DATA
@@ -169,5 +169,3 @@ async def test_get_limit(
             return_response=True,
         )
         assert response == {"type": "energy", "value": 10}
-
-
