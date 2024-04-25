@@ -11,6 +11,7 @@ from homeassistant.core import (
     SupportsResponse,
     callback,
 )
+from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import device_registry as dr
 
 from .const import (
@@ -60,7 +61,7 @@ class OpenEVSEServices:
             self._set_override,
             schema=vol.Schema(
                 {
-                    vol.Required(ATTR_DEVICE_ID): vol.Coerce(str),
+                    vol.Required(ATTR_DEVICE_ID): vol.All(cv.ensure_list, [cv.string]),
                     vol.Optional(ATTR_STATE): vol.Coerce(str),
                     vol.Optional(ATTR_CHARGE_CURRENT): vol.All(
                         vol.Coerce(int), vol.Range(min=1, max=48)
@@ -85,7 +86,7 @@ class OpenEVSEServices:
             self._set_limit,
             schema=vol.Schema(
                 {
-                    vol.Required(ATTR_DEVICE_ID): vol.Coerce(str),
+                    vol.Required(ATTR_DEVICE_ID): vol.All(cv.ensure_list, [cv.string]),
                     vol.Required(ATTR_TYPE): vol.Coerce(str),
                     vol.Required(ATTR_VALUE): vol.Coerce(int),
                     vol.Optional(ATTR_AUTO_RELEASE): vol.Coerce(bool),
@@ -99,7 +100,7 @@ class OpenEVSEServices:
             self._clear_override,
             schema=vol.Schema(
                 {
-                    vol.Required(ATTR_DEVICE_ID): vol.Coerce(str),
+                    vol.Required(ATTR_DEVICE_ID): vol.All(cv.ensure_list, [cv.string]),
                 }
             ),
         )
@@ -110,7 +111,7 @@ class OpenEVSEServices:
             self._clear_limit,
             schema=vol.Schema(
                 {
-                    vol.Required(ATTR_DEVICE_ID): vol.Coerce(str),
+                    vol.Required(ATTR_DEVICE_ID): vol.All(cv.ensure_list, [cv.string]),
                 }
             ),
         )
@@ -121,7 +122,7 @@ class OpenEVSEServices:
             self._get_limit,
             schema=vol.Schema(
                 {
-                    vol.Required(ATTR_DEVICE_ID): vol.Coerce(str),
+                    vol.Required(ATTR_DEVICE_ID): vol.All(cv.ensure_list, [cv.string]),
                 }
             ),
             supports_response=SupportsResponse.ONLY,
@@ -133,7 +134,7 @@ class OpenEVSEServices:
             self._make_claim,
             schema=vol.Schema(
                 {
-                    vol.Required(ATTR_DEVICE_ID): vol.Coerce(str),
+                    vol.Required(ATTR_DEVICE_ID): vol.All(cv.ensure_list, [cv.string]),
                     vol.Optional(ATTR_STATE): vol.Coerce(str),
                     vol.Optional(ATTR_CHARGE_CURRENT): vol.All(
                         vol.Coerce(int), vol.Range(min=1, max=48)
@@ -152,7 +153,7 @@ class OpenEVSEServices:
             self._list_claims,
             schema=vol.Schema(
                 {
-                    vol.Required(ATTR_DEVICE_ID): vol.Coerce(str),
+                    vol.Required(ATTR_DEVICE_ID): vol.All(cv.ensure_list, [cv.string]),
                 }
             ),
             supports_response=SupportsResponse.ONLY,
@@ -164,7 +165,7 @@ class OpenEVSEServices:
             self._release_claim,
             schema=vol.Schema(
                 {
-                    vol.Required(ATTR_DEVICE_ID): vol.Coerce(str),
+                    vol.Required(ATTR_DEVICE_ID): vol.All(cv.ensure_list, [cv.string]),
                 }
             ),
         )
@@ -175,7 +176,7 @@ class OpenEVSEServices:
             self._list_overrides,
             schema=vol.Schema(
                 {
-                    vol.Required(ATTR_DEVICE_ID): vol.Coerce(str),
+                    vol.Required(ATTR_DEVICE_ID): vol.All(cv.ensure_list, [cv.string]),
                 }
             ),
             supports_response=SupportsResponse.ONLY,
@@ -185,7 +186,7 @@ class OpenEVSEServices:
     async def _set_override(self, service: ServiceCall) -> None:
         """Set the override."""
         data = service.data
-        for device in data.values():
+        for device in data[ATTR_DEVICE_ID]:
             device_id = device
             _LOGGER.debug("Device ID: %s", device_id)
 
@@ -239,7 +240,7 @@ class OpenEVSEServices:
         """Clear the manual override."""
         data = service.data
         _LOGGER.debug("Data: %s", data)
-        for device in data.values():
+        for device in data[ATTR_DEVICE_ID]:
             device_id = device
             _LOGGER.debug("Device ID: %s", device_id)
 
@@ -260,7 +261,7 @@ class OpenEVSEServices:
     async def _set_limit(self, service: ServiceCall) -> None:
         """Set the limit."""
         data = service.data
-        for device in data.values():
+        for device in data[ATTR_DEVICE_ID]:
             device_id = device
             _LOGGER.debug("Device ID: %s", device_id)
 
@@ -294,7 +295,7 @@ class OpenEVSEServices:
         """Clear the limit."""
         data = service.data
         _LOGGER.debug("Data: %s", data)
-        for device in data.values():
+        for device in data[ATTR_DEVICE_ID]:
             device_id = device
             _LOGGER.debug("Device ID: %s", device_id)
 
@@ -316,7 +317,7 @@ class OpenEVSEServices:
         """Get the limit."""
         data = service.data
         _LOGGER.debug("Data: %s", data)
-        for device in data.values():
+        for device in data[ATTR_DEVICE_ID]:
             device_id = device
             _LOGGER.debug("Device ID: %s", device_id)
 
@@ -338,7 +339,7 @@ class OpenEVSEServices:
     async def _make_claim(self, service: ServiceCall) -> None:
         """Make a claim."""
         data = service.data
-        for device in data.values():
+        for device in data[ATTR_DEVICE_ID]:
             device_id = device
             _LOGGER.debug("Device ID: %s", device_id)
 
@@ -382,7 +383,7 @@ class OpenEVSEServices:
         """Release a claim."""
         data = service.data
         _LOGGER.debug("Data: %s", data)
-        for device in data.values():
+        for device in data[ATTR_DEVICE_ID]:
             device_id = device
             _LOGGER.debug("Device ID: %s", device_id)
 
@@ -404,7 +405,7 @@ class OpenEVSEServices:
         """Get the claims."""
         data = service.data
         _LOGGER.debug("Data: %s", data)
-        for device in data.values():
+        for device in data[ATTR_DEVICE_ID]:
             device_id = device
             _LOGGER.debug("Device ID: %s", device_id)
 
@@ -433,7 +434,7 @@ class OpenEVSEServices:
         """Get the overrides."""
         data = service.data
         _LOGGER.debug("Data: %s", data)
-        for device in data.values():
+        for device in data[ATTR_DEVICE_ID]:
             device_id = device
             _LOGGER.debug("Device ID: %s", device_id)
 
