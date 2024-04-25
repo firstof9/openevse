@@ -12,7 +12,6 @@ from homeassistant.core import (
     callback,
 )
 from homeassistant.helpers import device_registry as dr
-from homeassistant.helpers import config_validation as cv
 
 from .const import (
     ATTR_AUTO_RELEASE,
