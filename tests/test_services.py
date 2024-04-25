@@ -172,6 +172,7 @@ async def test_get_limit(
         )
         assert response == {"type": "energy", "value": 10}
 
+
 async def test_release_claim(
     hass,
     test_charger,
@@ -210,6 +211,7 @@ async def test_release_claim(
         )
         assert "Release claim command sent." in caplog.text
 
+
 async def test_clear_override(
     hass,
     test_charger,
@@ -245,4 +247,4 @@ async def test_clear_override(
             {CONF_DEVICE_ID: entry.device_id},
             blocking=True,
         )
-        assert "Override clear command sent." in caplog.text        
+        assert "Override clear command sent." in caplog.text
