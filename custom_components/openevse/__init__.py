@@ -17,7 +17,7 @@ from homeassistant.const import (
 from homeassistant.core import Config, CoreState, Event, HomeAssistant, State, callback
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers import device_registry as dr
-from homeassistant.helpers.event import async_track_state_change
+from homeassistant.helpers.event import async_track_state_change_event
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from openevsehttp.__main__ import OpenEVSE
 from openevsehttp.exceptions import MissingSerial
@@ -99,7 +99,7 @@ async def homeassistant_started_listener(
     """Start tracking state changes after HomeAssistant has started."""
     # Listen to sensor state changes so we can fire an event
     hass.data[DOMAIN][config_entry.entry_id][UNSUB_LISTENERS].append(
-        async_track_state_change(
+        async_track_state_change_event(
             hass,
             sensors,
             functools.partial(handle_state_change, hass, config_entry),
