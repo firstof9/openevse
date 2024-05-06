@@ -14,7 +14,7 @@ from homeassistant.const import (
     CONF_USERNAME,
     EVENT_HOMEASSISTANT_STARTED,
 )
-from homeassistant.core import Config, CoreState, Event, HomeAssistant, State, callback
+from homeassistant.core import Config, CoreState, Event, EventStateChangedData, HomeAssistant, callback
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.event import async_track_state_change_event
@@ -44,13 +44,11 @@ from .services import OpenEVSEServices
 
 _LOGGER = logging.getLogger(__name__)
 
-
+@callback
 async def handle_state_change(
     hass: HomeAssistant,
     config_entry: ConfigEntry,
-    changed_entity: str,  # pylint: disable-next=unused-argument
-    old_state: State,  # pylint: disable-next=unused-argument
-    new_state: State,
+    event: Event[EventStateChangedData] | None = None
 ) -> None:
     """Track state changes to sensor entities."""
     manager = hass.data[DOMAIN][config_entry.entry_id][MANAGER]
@@ -58,6 +56,7 @@ async def handle_state_change(
     grid_sensor = config_entry.data.get(CONF_GRID)
     solar_sensor = config_entry.data.get(CONF_SOLAR)
     voltage_sensor = config_entry.data.get(CONF_VOLTAGE)
+    changed_entity = event.data["entity_id"]
 
     if grid_sensor is not None and changed_entity == grid_sensor:
         grid = hass.states.get(grid_sensor).state
