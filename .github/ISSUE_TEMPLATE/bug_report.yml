@@ -27,6 +27,8 @@ body:
 
         [![Open your Home Assistant instance and show the system information.](https://my.home-assistant.io/badges/system_health.svg)](https://my.home-assistant.io/redirect/system_health/)
   - type: input
+    validations:
+      required: true  
     attributes:
       label: What version of OpenEVSE?
       description: >
