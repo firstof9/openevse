@@ -36,7 +36,7 @@ body:
       description: >
         Can be found in: [Settings ⇒ Devices & services ⇒ OpenEVSE under the OpenEVSE logo](https://my.home-assistant.io/redirect/integration/?domain=openevse)
 
-        [![Open your Home Assistant instance and show the integration information.](https://my.home-assistant.io/badges/brand.svg)](https://my.home-assistant.io/redirect/integration/?domain=openevse)
+        [![Open your Home Assistant instance and show the integration information.](https://my.home-assistant.io/badges/integration.svg)](https://my.home-assistant.io/redirect/integration/?domain=openevse)
   - type: markdown
     attributes:
       value: |
