@@ -1,4 +1,6 @@
 name: Report an issue with OpenEVSE
+labels: ["pending"]
+title: "[Bug]: "
 description: Report an issue with OpenEVSE.
 body:
   - type: textarea

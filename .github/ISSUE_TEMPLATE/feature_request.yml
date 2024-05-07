@@ -1,4 +1,6 @@
 name: Request a feature for OpenEVSE
+labels: ["feature"]
+title: "[Feature Request]: "
 description: Request a feature for OpenEVSE.
 body:
   - type: textarea
