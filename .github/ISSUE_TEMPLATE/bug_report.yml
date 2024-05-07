@@ -34,7 +34,7 @@ body:
     attributes:
       label: What version of OpenEVSE?
       description: >
-        Can be found in: Settings ⇒ Devices & services ⇒ OpenEVSE under the OpenEVSE logo
+        Can be found in: [Settings ⇒ Devices & services ⇒ OpenEVSE under the OpenEVSE logo](https://my.home-assistant.io/redirect/integration/?domain=openevse)
   - type: markdown
     attributes:
       value: |
