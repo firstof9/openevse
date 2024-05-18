@@ -17,11 +17,12 @@ _Component to integrate with [OpenEVSE][openevse] chargers._
 
 Platform | Description
 -- | --
+`binary_sensor` | On/Off sensors for various settings.
+`button` | Button to restart the ESP chip or the EVSE.
+`select` | Select the ampers limit and service level.
 `sensor` | Show info from an OpenEVSE charger's API.
 `switch` | Switch to toggle various charger modes.
-`select` | Select the ampers limit and service level.
-`button` | Button to restart the ESP chip or the EVSE.
-`binary_sensor` | On/Off sensors for various settings.
+`update` | Idicate when a firmware update is available.
 
 
 **Services**
