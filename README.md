@@ -29,7 +29,7 @@ Platform | Description
 Services are prefixed with `openevse` (ie: `openevse.set_override`)
 
 Service | Return Value | Description
--- | --
+-- | -- | --
 `set_override` | n | Sets override settings on a charger.
 `clear_override` | n | Clears an override on a charger.
 `set_limit` | n | This will set the limit type, value and auto release.
