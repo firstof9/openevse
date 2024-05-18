@@ -25,7 +25,9 @@ Platform | Description
 
 
 **Services**
+
 Services are prefixed with `openevse` (ie: `openevse.set_override`)
+
 Service | Return Value | Description
 -- | --
 `set_override` | n | Sets override settings on a charger.
