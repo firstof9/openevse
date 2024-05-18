@@ -20,6 +20,23 @@ Platform | Description
 `sensor` | Show info from an OpenEVSE charger's API.
 `switch` | Switch to toggle various charger modes.
 `select` | Select the ampers limit and service level.
+`button` | Button to restart the ESP chip or the EVSE.
+`binary_sensor` | On/Off sensors for various settings.
+
+
+**Services**
+Services are prefixed with `openevse` (ie: `openevse.set_override`)
+Service | Return Value | Description
+-- | --
+`set_override` | n | Sets override settings on a charger.
+`clear_override` | n | Clears an override on a charger.
+`set_limit` | n | This will set the limit type, value and auto release.
+`clear_limit` | n | Clears a limit on a charger.
+`get_limit` | y | Gets a limit on a charger.
+`make_claim` | n | Make/Update a claim on a charger.
+`release_claim` | n | Releases a claim on a charger.
+`list_claims` | y | Lists claims on an EVSE.
+`list_overrides` | y | Lists overrides on an EVSE.
 
 ## Installation via HACS (recommended)
 
@@ -61,6 +78,7 @@ If you want to contribute to this please read the [Contribution guidelines](CONT
 
 ## TODO
 
+- [ ] Update documentation
 - [ ] Add tests
 - [x] Current
 - [x] Voltage
