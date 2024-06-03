@@ -53,6 +53,10 @@ PLATFORMS = ["binary_sensor", "button", "sensor", "select", "switch", "update"]
 USER_AGENT = "Home Assistant"
 MANAGER = "manager"
 
+TIMEOUT_ERROR = (
+    "Timeout error connecting to device: %s, please check your network connection."
+)
+
 SERVICE_SET_OVERRIDE = "set_override"
 SERVICE_CLEAR_OVERRIDE = "clear_override"
 SERVICE_SET_LIMIT = "set_limit"
