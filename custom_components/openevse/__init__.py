@@ -44,6 +44,7 @@ from .const import (
     PLATFORMS,
     SELECT_TYPES,
     SENSOR_TYPES,
+    TIMEOUT_ERROR,
     UNSUB_LISTENERS,
     VERSION,
 )
@@ -74,7 +75,10 @@ async def handle_state_change(
             grid = round(float(hass.states.get(grid_sensor).state))
 
         _LOGGER.debug("Sending sensor data to OpenEVSE: (grid: %s)", grid)
-        await manager.self_production(grid=grid, solar=None, invert=invert)
+        try:
+            await manager.self_production(grid=grid, solar=None, invert=invert)
+        except TimeoutError as err:
+            _LOGGER.error(TIMEOUT_ERROR, err)
 
     elif solar_sensor is not None and changed_entity == solar_sensor:
         solar = hass.states.get(solar_sensor).state
@@ -84,7 +88,10 @@ async def handle_state_change(
             solar = round(float(hass.states.get(solar_sensor).state))
 
         _LOGGER.debug("Sending sensor data to OpenEVSE: (solar: %s)", solar)
-        await manager.self_production(grid=None, solar=solar, invert=False)
+        try:
+            await manager.self_production(grid=None, solar=solar, invert=False)
+        except TimeoutError as err:
+            _LOGGER.error(TIMEOUT_ERROR, err)
 
     if voltage_sensor is not None and changed_entity == voltage_sensor:
         voltage = hass.states.get(voltage_sensor).state
@@ -94,7 +101,10 @@ async def handle_state_change(
             voltage = round(float(hass.states.get(voltage_sensor).state))
 
         _LOGGER.debug("Sending sensor data to OpenEVSE: (voltage: %s)", voltage)
-        await manager.grid_voltage(voltage=voltage)
+        try:
+            await manager.grid_voltage(voltage=voltage)
+        except TimeoutError as err:
+            _LOGGER.error(TIMEOUT_ERROR, err)
 
 
 async def homeassistant_started_listener(
