@@ -81,6 +81,12 @@ def test_charger(mock_aioclient):
         body=load_fixture("status.json"),
         repeat=True,
     )
+    mock_aioclient.post(
+        TEST_URL_STATUS,
+        status=200,
+        body='{ "msg": "OK" }',
+        repeat=True,
+    )    
     mock_aioclient.get(
         TEST_URL_CONFIG,
         status=200,

@@ -52,3 +52,20 @@ CONFIG_DATA = {
     "username": "",
     "password": "",
 }
+CONFIG_DATA_GRID = {
+    "name": "openevse",
+    "host": "openevse.test.tld",
+    "username": "",
+    "password": "",
+    "grid": "sensor.grid_usage",
+    "invert_grid": False,
+}
+CONFIG_DATA_SOLAR = {
+    "name": "openevse",
+    "host": "openevse.test.tld",
+    "username": "",
+    "password": "",
+    "solar": "sensor.solar_production",
+    "voltage": "sensor.grid_voltage",
+    "invert_grid": False,
+}
