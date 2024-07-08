@@ -115,6 +115,36 @@ async def test_setup_entry_state_change(hass, test_charger, mock_ws_start, caplo
     assert "Sending sensor data to OpenEVSE: (grid: -200)" in caplog.text
 
 
+async def test_setup_entry_state_change_timeout(
+    hass, test_charger_bad_post, mock_ws_start, caplog
+):
+    """Test state change with grid sensor."""
+    grid_entity = "sensor.grid_usage"
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA_GRID,
+    )
+    # set a fake sensor for grid usage
+    hass.states.async_set(grid_entity, "4100")
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    assert len(hass.states.async_entity_ids(BINARY_SENSOR_DOMAIN)) == 4
+    assert len(hass.states.async_entity_ids(SENSOR_DOMAIN)) == 21
+    assert len(hass.states.async_entity_ids(SWITCH_DOMAIN)) == 4
+    assert len(hass.states.async_entity_ids(SELECT_DOMAIN)) == 2
+    entries = hass.config_entries.async_entries(DOMAIN)
+    assert len(entries) == 1
+    await hass.async_block_till_done()
+
+    hass.states.async_set(grid_entity, "-200")
+    await hass.async_block_till_done()
+
+    assert "Self-production response: {'msg': 'Timeout while updating'}" in caplog.text
+
+
 async def test_setup_entry_state_change_2(hass, test_charger, mock_ws_start, caplog):
     """Test state change with solar sensor."""
     solar_entity = "sensor.solar_production"
@@ -146,3 +176,38 @@ async def test_setup_entry_state_change_2(hass, test_charger, mock_ws_start, cap
     hass.states.async_set(voltage_entity, "113")
     await hass.async_block_till_done()
     assert "Sending sensor data to OpenEVSE: (voltage: 113)" in caplog.text
+
+
+async def test_setup_entry_state_change_2_bad_post(
+    hass, test_charger_bad_post, mock_ws_start, caplog
+):
+    """Test state change with solar sensor."""
+    solar_entity = "sensor.solar_production"
+    voltage_entity = "sensor.grid_voltage"
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA_SOLAR,
+    )
+    # set a fake sensor for grid usage
+    hass.states.async_set(solar_entity, "100")
+    hass.states.async_set(voltage_entity, "110")
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    assert len(hass.states.async_entity_ids(BINARY_SENSOR_DOMAIN)) == 4
+    assert len(hass.states.async_entity_ids(SENSOR_DOMAIN)) == 22
+    assert len(hass.states.async_entity_ids(SWITCH_DOMAIN)) == 4
+    assert len(hass.states.async_entity_ids(SELECT_DOMAIN)) == 2
+    entries = hass.config_entries.async_entries(DOMAIN)
+    assert len(entries) == 1
+    await hass.async_block_till_done()
+
+    hass.states.async_set(solar_entity, "2317")
+    await hass.async_block_till_done()
+    assert "Self-production response: {'msg': 'Timeout while updating'}" in caplog.text
+
+    hass.states.async_set(voltage_entity, "113")
+    await hass.async_block_till_done()
+    assert "Self-production response: {'msg': 'Timeout while updating'}" in caplog.text
