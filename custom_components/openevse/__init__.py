@@ -264,6 +264,7 @@ async def async_unload_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> 
 
     return unload_ok
 
+
 class OpenEVSEFirmwareCheck(DataUpdateCoordinator):
     """Class to fetch OpenEVSE firmware update data."""
 

@@ -41,6 +41,8 @@ class OpenEVSEFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
     def __init__(self):
         """Set up the instance."""
         self.discovery_info = {}
+        self._errors = {}
+        self._data = {}
 
     async def async_step_discovery_confirm(
         self, user_input: dict[str, Any] | None = None
@@ -172,7 +174,7 @@ class OpenEVSEFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
         if user_input is not None:
             user_input[CONF_NAME] = slugify(user_input[CONF_NAME].lower())
-            self._data.update(user_input)            
+            self._data.update(user_input)
 
             charger = OpenEVSE(
                 user_input[CONF_HOST],
