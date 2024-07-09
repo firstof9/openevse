@@ -3,13 +3,12 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, Optional
 
 import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.components import zeroconf
 from homeassistant.const import CONF_HOST, CONF_PASSWORD, CONF_USERNAME
-from homeassistant.core import HomeAssistant, callback
 from homeassistant.data_entry_flow import AbortFlow, FlowResult
 from homeassistant.helpers import config_validation as cv
 from homeassistant.util import slugify
@@ -41,6 +40,9 @@ class OpenEVSEFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
     def __init__(self):
         """Set up the instance."""
         self.discovery_info = {}
+        self._errors = {}
+        self._data = {}
+        self._entry = {}
 
     async def async_step_discovery_confirm(
         self, user_input: dict[str, Any] | None = None
@@ -126,48 +128,94 @@ class OpenEVSEFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         self, user_input: Dict[str, Any] = None
     ) -> Dict[str, Any]:
         """Handle a flow initialized by the user."""
-        return await _start_config_flow(
-            self,
-            "user",
-            user_input[CONF_NAME] if user_input else None,
-            user_input,
-            self.DEFAULTS,
+        self._errors = {}
+
+        if user_input is not None:
+            user_input[CONF_NAME] = slugify(user_input[CONF_NAME].lower())
+
+            charger = OpenEVSE(
+                user_input[CONF_HOST],
+                user=user_input[CONF_USERNAME],
+                pwd=user_input[CONF_PASSWORD],
+            )
+
+            try:
+                await charger.update()
+                await charger.ws_disconnect()
+            except Exception as ex:
+                _LOGGER.exception(
+                    "Error connecting with OpenEVSE at %s: %s",
+                    user_input[CONF_HOST],
+                    ex,
+                )
+                self._errors[CONF_HOST] = "communication"
+
+            if not self._errors:
+                return self.async_create_entry(
+                    title=user_input[CONF_NAME], data=user_input
+                )
+
+        return await self._show_config_form(user_input)
+
+    async def _show_config_form(self, user_input):
+        """Show the configuration form."""
+        return self.async_show_form(
+            step_id="user",
+            data_schema=_get_schema(user_input, self.DEFAULTS),
+            errors=self._errors,
         )
 
-    @staticmethod
-    @callback
-    def async_get_options_flow(config_entry: config_entries.ConfigEntry):
-        """Handle options flow."""
-        return OpenEVSEOptionsFlow(config_entry)
+    async def async_step_reconfigure(self, user_input: dict[str, Any] | None = None):
+        """Add reconfigure step to allow to reconfigure a config entry."""
+        self._entry = self.hass.config_entries.async_get_entry(self.context["entry_id"])
+        assert self._entry
+        self._data = dict(self._entry.data)
+        self._errors = {}
 
+        if user_input is not None:
+            user_input[CONF_NAME] = slugify(user_input[CONF_NAME].lower())
+            self._data.update(user_input)
 
-class OpenEVSEOptionsFlow(config_entries.OptionsFlow):
-    """Options flow for KeyMaster."""
+            charger = OpenEVSE(
+                user_input[CONF_HOST],
+                user=user_input[CONF_USERNAME],
+                pwd=user_input[CONF_PASSWORD],
+            )
 
-    def __init__(self, config_entry: config_entries.ConfigEntry):
-        """Initialize."""
-        self.config_entry = config_entry
+            try:
+                await charger.update()
+                await charger.ws_disconnect()
+            except Exception as ex:
+                _LOGGER.exception(
+                    "Error connecting with OpenEVSE at %s: %s",
+                    user_input[CONF_HOST],
+                    ex,
+                )
+                self._errors[CONF_HOST] = "communication"
 
-    async def async_step_init(
-        self, user_input: Dict[str, Any] = None
-    ) -> Dict[str, Any]:
-        """Handle a flow initialized by the user."""
-        return await _start_config_flow(
-            self,
-            "init",
-            "",
-            user_input,
-            self.config_entry.data,
-            self.config_entry.entry_id,
+            if not self._errors:
+                self.hass.config_entries.async_update_entry(
+                    self._entry, data=self._data
+                )
+                await self.hass.config_entries.async_reload(self._entry.entry_id)
+                _LOGGER.debug("%s reconfigured.", DOMAIN)
+                return self.async_abort(reason="reconfigure_successful")
+
+        return await self._show_reconfig_form(user_input)
+
+    async def _show_reconfig_form(self, user_input):
+        """Show the configuration form to edit configuration data."""
+        return self.async_show_form(
+            step_id="reconfigure",
+            data_schema=_get_schema(user_input, self._data),
+            errors=self._errors,
         )
 
 
 def _get_schema(  # pylint: disable-next=unused-argument
-    hass: HomeAssistant,
     user_input: Optional[Dict[str, Any]],
     default_dict: Dict[str, Any],
     # pylint: disable-next=unused-argument
-    entry_id: str = None,
 ) -> vol.Schema:
     """Get a schema using the default_dict as a backup."""
     if user_input is None:
@@ -198,78 +246,4 @@ def _get_schema(  # pylint: disable-next=unused-argument
             ): cv.string,
             vol.Optional(CONF_INVERT, default=_get_default(CONF_INVERT, False)): bool,
         },
-    )
-
-
-def _show_config_form(
-    cls: Union[OpenEVSEFlowHandler, OpenEVSEOptionsFlow],
-    step_id: str,
-    user_input: Dict[str, Any],
-    errors: Dict[str, str],
-    description_placeholders: Dict[str, str],
-    defaults: Dict[str, Any] = None,
-    entry_id: str = None,
-) -> Dict[str, Any]:
-    """Show the configuration form to edit location data."""
-    return cls.async_show_form(
-        step_id=step_id,
-        data_schema=_get_schema(cls.hass, user_input, defaults, entry_id),
-        errors=errors,
-        description_placeholders=description_placeholders,
-    )
-
-
-async def _start_config_flow(
-    cls: Union[OpenEVSEFlowHandler, OpenEVSEOptionsFlow],
-    step_id: str,
-    title: str,
-    user_input: Dict[str, Any],
-    defaults: Dict[str, Any] = None,
-    entry_id: str = None,
-):
-    """Start a config flow."""
-    errors = {}
-    description_placeholders = {}
-
-    if user_input is not None:
-        user_input[CONF_NAME] = slugify(user_input[CONF_NAME].lower())
-
-        charger = OpenEVSE(
-            user_input[CONF_HOST],
-            user=user_input[CONF_USERNAME],
-            pwd=user_input[CONF_PASSWORD],
-        )
-
-        try:
-            await charger.update()
-            await charger.ws_disconnect()
-        except Exception as ex:
-            _LOGGER.exception(
-                "Error connecting with OpenEVSE at %s: %s",
-                user_input[CONF_HOST],
-                ex,
-            )
-            errors[CONF_HOST] = "communication"
-
-        if not errors:
-            return cls.async_create_entry(title=title, data=user_input)
-
-        return _show_config_form(
-            cls,
-            step_id,
-            user_input,
-            errors,
-            description_placeholders,
-            defaults,
-            entry_id,
-        )
-
-    return _show_config_form(
-        cls,
-        step_id,
-        user_input,
-        errors,
-        description_placeholders,
-        defaults,
-        entry_id,
     )
