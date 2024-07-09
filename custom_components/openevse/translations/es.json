@@ -17,34 +17,21 @@
           },
           "description": "Por favor, introduce la información de conexión al cargador OpenEVSE.\nTambién puede ingresar la importación/exportación de su red o los sensores de producción solar para enviar datos a OpenEVSE.\n\nNOTA IMPORTANTE: OpenEVSE espera una importación positiva y una exportación negativa.",
           "title": "Configuración OpenEVSE"
-        }
-      }
-    },
-    "options": {
-      "error": {
-        "communication": "No es posible conectar o iniciar sesión con el servidor de email. Por favor, revisa los detalles en el registro.",
-        "invalid_path": "Por favor, almacena las imagenes en otro directorio.",
-        "ffmpeg_not_found": "Generar MP4 requiere ffmpeg",
-        "amazon_domain": "Email de envio no válido.",
-        "file_not_found": "No se ha encontrado el archivod e imagen",
-        "scan_too_low": "Intercalo de escaneo muy bajo (mínimo 5)",
-        "timeout_too_low": "IMAP timeout demasiado bajo (mínimo 10)"      
-      },
-      "step": {
-        "init": {
-            "data": {
-                "name": "Alias",
-                "host": "Host/IP",
-                "password": "Contraseña (opcional)",
-                "username": "Usuario (opcional)",
-                "grid": "Sensor de importación/exportación de red (opcional)",
-                "solar": "Sensor de producción solar (opcional)",
-                "invert_grid": "Importación/exportación de cuadrícula inversa",
-                "voltage": "Sensor de tensión de red (opcional)"
-            },
-            "description": "Por favor, introduce la información de conexión al cargador OpenEVSE.\nTambién puede ingresar la importación/exportación de su red o los sensores de producción solar para enviar datos a OpenEVSE.\n\nNOTA IMPORTANTE: OpenEVSE espera una importación positiva y una exportación negativa.",
-            "title": "Configuración OpenEVSE"
-        }
+        },
+        "reconfigure": {
+          "data": {
+            "name": "Alias",
+            "host": "Hostname/IP",
+            "password": "Contraseña (opcional)",
+            "username": "Usuario (opcional)",
+            "grid": "Sensor de importación/exportación de red (opcional)",
+            "solar": "Sensor de producción solar (opcional)",
+            "invert_grid": "Importación/exportación de cuadrícula inversa",
+            "voltage": "Sensor de tensión de red (opcional)"
+          },
+          "description": "Por favor, introduce la información de conexión al cargador OpenEVSE.\nTambién puede ingresar la importación/exportación de su red o los sensores de producción solar para enviar datos a OpenEVSE.\n\nNOTA IMPORTANTE: OpenEVSE espera una importación positiva y una exportación negativa.",
+          "title": "Configuración OpenEVSE"
+        }        
       }
     }
 }
