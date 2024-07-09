@@ -126,12 +126,10 @@ async def test_form_user_connection_error(
     assert result["type"] == FlowResultType.FORM
     assert result["step_id"] == step_id
 
-    result = await hass.config_entries.flow.async_configure(
-        result["flow_id"], input
-    )
+    result = await hass.config_entries.flow.async_configure(result["flow_id"], input)
 
     assert result["type"] == FlowResultType.FORM
-    assert result["errors"] == {'host': 'communication'}
+    assert result["errors"] == {"host": "communication"}
     await hass.async_block_till_done()
 
 
@@ -229,7 +227,7 @@ async def test_form_reconfigure_connect_error(
     step_id,
     hass,
     test_charger,
-    mock_ws_start,    
+    mock_ws_start,
 ):
     """Test we get the form."""
     await setup.async_setup_component(hass, "persistent_notification", {})
@@ -257,5 +255,5 @@ async def test_form_reconfigure_connect_error(
     )
 
     assert result["type"] is FlowResultType.FORM
-    assert result["errors"] == {'host': 'communication'}
+    assert result["errors"] == {"host": "communication"}
     await hass.async_block_till_done()
