@@ -140,7 +140,6 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
         ISSUE_URL,
     )
 
-    config_entry.add_update_listener(update_listener)
     manager = OpenEVSEManager(hass, config_entry).charger
     interval = 60
     coordinator = OpenEVSEUpdateCoordinator(hass, interval, config_entry, manager)
@@ -264,25 +263,6 @@ async def async_unload_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> 
         hass.data[DOMAIN].pop(config_entry.entry_id)
 
     return unload_ok
-
-
-async def update_listener(hass: HomeAssistant, config_entry: ConfigEntry) -> None:
-    """Update listener."""
-    _LOGGER.debug("Attempting to reload entities from the %s integration", DOMAIN)
-
-    if config_entry.data == config_entry.options:
-        _LOGGER.debug("No changes detected not reloading entities.")
-        return
-
-    new_data = config_entry.options.copy()
-
-    hass.config_entries.async_update_entry(
-        entry=config_entry,
-        data=new_data,
-    )
-
-    await hass.config_entries.async_reload(config_entry.entry_id)
-
 
 class OpenEVSEFirmwareCheck(DataUpdateCoordinator):
     """Class to fetch OpenEVSE firmware update data."""
