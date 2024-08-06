@@ -6,7 +6,7 @@ mypy==1.11.1
 pydocstyle==6.3.0
 isort
 pylint==3.2.6
-tox==4.16.0
+tox==4.17.0
 aioresponses
 pytest
 aiohttp_cors
