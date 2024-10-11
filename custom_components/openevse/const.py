@@ -321,7 +321,7 @@ SENSOR_TYPES: Final[dict[str, SensorEntityDescription]] = {
         icon="mdi:car-electric",
         device_class=SensorDeviceClass.TIMESTAMP,
         entity_registry_enabled_default=False,
-    ),    
+    ),
     "total_day": SensorEntityDescription(
         key="total_day",
         name="Usage (Today)",

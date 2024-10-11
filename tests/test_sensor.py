@@ -21,7 +21,9 @@ pytestmark = pytest.mark.asyncio
 CHARGER_NAME = "openevse"
 
 
-async def test_sensors(hass, test_charger, mock_ws_start, entity_registry: er.EntityRegistry):
+async def test_sensors(
+    hass, test_charger, mock_ws_start, entity_registry: er.EntityRegistry
+):
     """Test setup_entry."""
     entry = MockConfigEntry(
         domain=DOMAIN,
@@ -76,4 +78,6 @@ async def test_sensors(hass, test_charger, mock_ws_start, entity_registry: er.En
 
     state = hass.states.get("sensor.openevse_vehicle_charge_completion_time")
     assert state
-    assert state.state == (dt_util.utcnow() + timedelta(seconds=18000)).isoformat(timespec="seconds")
+    assert state.state == (dt_util.utcnow() + timedelta(seconds=18000)).isoformat(
+        timespec="seconds"
+    )
