@@ -315,6 +315,13 @@ SENSOR_TYPES: Final[dict[str, SensorEntityDescription]] = {
         state_class=SensorStateClass.MEASUREMENT,
         entity_registry_enabled_default=False,
     ),
+    "vehicle_eta_timestamp": SensorEntityDescription(
+        name="Vehicle Charge Completion Time",
+        key="vehicle_eta",
+        icon="mdi:car-electric",
+        device_class=SensorDeviceClass.TIMESTAMP,
+        entity_registry_enabled_default=False,
+    ),
     "total_day": SensorEntityDescription(
         key="total_day",
         name="Usage (Today)",
