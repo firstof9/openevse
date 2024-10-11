@@ -354,7 +354,7 @@ SENSOR_TYPES: Final[dict[str, SensorEntityDescription]] = {
         device_class=SensorDeviceClass.CURRENT,
         state_class=SensorStateClass.MEASUREMENT,
         entity_category=EntityCategory.DIAGNOSTIC,
-    ),    
+    ),
 }
 
 SWITCH_TYPES: Final[dict[str, OpenEVSESwitchEntityDescription]] = {
