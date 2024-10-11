@@ -347,6 +347,14 @@ SENSOR_TYPES: Final[dict[str, SensorEntityDescription]] = {
         device_class=SensorDeviceClass.ENERGY,
         entity_registry_enabled_default=False,
     ),
+    "max_current": SensorEntityDescription(
+        key="max_current",
+        name="Max Current",
+        native_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
+        device_class=SensorDeviceClass.CURRENT,
+        state_class=SensorStateClass.MEASUREMENT,
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),    
 }
 
 SWITCH_TYPES: Final[dict[str, OpenEVSESwitchEntityDescription]] = {
@@ -388,7 +396,7 @@ SELECT_TYPES: Final[dict[str, OpenEVSESelectEntityDescription]] = {
     #     entity_category=EntityCategory.CONFIG,
     # ),
     "max_current_soft": OpenEVSESelectEntityDescription(
-        name="Max Current",
+        name="Charge Rate",
         key="current_capacity",
         default_options=None,
         command="set_current",

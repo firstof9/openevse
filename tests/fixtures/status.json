@@ -16,7 +16,7 @@
     "evse_connected": 1,
     "amp": 32.2,
     "voltage": 240,
-    "pilot": 48,
+    "pilot": 40,
     "wh": 64582,
     "temp": 503,
     "temp1": false,
@@ -49,5 +49,6 @@
     "shaper_cur": 21,
     "vehicle_soc": 75,
     "vehicle_range": 468,
-    "vehicle_eta": 18000
+    "vehicle_eta": 18000,
+    "max_current": 48
   }

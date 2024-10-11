@@ -31,7 +31,7 @@ async def test_sensors(hass, test_charger, mock_ws_start):
     await hass.async_block_till_done()
 
     assert len(hass.states.async_entity_ids(BINARY_SENSOR_DOMAIN)) == 4
-    assert len(hass.states.async_entity_ids(SENSOR_DOMAIN)) == 20
+    assert len(hass.states.async_entity_ids(SENSOR_DOMAIN)) == 21
     assert len(hass.states.async_entity_ids(SWITCH_DOMAIN)) == 4
     assert len(hass.states.async_entity_ids(SELECT_DOMAIN)) == 2
     entries = hass.config_entries.async_entries(DOMAIN)
@@ -48,3 +48,6 @@ async def test_sensors(hass, test_charger, mock_ws_start):
     state = hass.states.get("sensor.openevse_total_usage")
     assert state
     assert state.state == "64.582"
+    state = hass.states.get("sensor.openevse_max_current")
+    assert state
+    assert state.state == "48"
