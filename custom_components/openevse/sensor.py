@@ -4,10 +4,12 @@ from __future__ import annotations
 
 import logging
 from typing import Any
+from datetime import timedelta
 
-from homeassistant.components.sensor import SensorEntity, SensorEntityDescription
+from homeassistant.components.sensor import SensorDeviceClass, SensorEntity, SensorEntityDescription
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
+from homeassistant.util import dt as dt_util
 
 from .const import CONF_NAME, COORDINATOR, DOMAIN, SENSOR_TYPES
 
@@ -71,20 +73,26 @@ class OpenEVSESensor(CoordinatorEntity, SensorEntity):
         if data is None:
             self._state = None
         if self._type in data.keys():
+            value = data[self._type]
             if self._type == "charge_time_elapsed":
-                self._state = data[self._type] / 60
-            elif self._type == "usage_total" and isinstance(data[self._type], int):
-                self._state = data[self._type] / 1000
+                self._state = value / 60
+            elif self._type == "usage_total" and isinstance(value, int):
+                self._state = value / 1000
             elif self._type in [
                 "usage_session",
                 "charging_current",
                 "charging_power",
             ]:
-                self._state = data[self._type] / 1000
+                self._state = value / 1000
             elif self._type == "charging_voltage":
-                self._state = data[self._type]
+                self._state = value
+            elif self.device_class == SensorDeviceClass.TIMESTAMP:
+                if self._type == "vehicle_eta":
+                    # Timestamp in the future
+                    value = dt_util.utcnow() + timedelta(seconds=value)
+                self._state = value
             else:
-                self._state = data[self._type]
+                self._state = value
 
         _LOGGER.debug("Sensor [%s] updated value: %s", self._type, self._state)
         self.update_icon()
