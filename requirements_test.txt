@@ -1,12 +1,12 @@
 -r requirements.txt
 pytest-homeassistant-custom-component
-black==24.8.0
+black==24.10.0
 flake8==7.1.1
-mypy==1.11.1
+mypy==1.11.2
 pydocstyle==6.3.0
 isort
-pylint==3.2.6
-tox==4.17.1
+pylint==3.3.1
+tox==4.21.2
 aioresponses
 pytest
 aiohttp_cors
