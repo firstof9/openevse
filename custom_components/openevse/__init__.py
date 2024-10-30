@@ -15,7 +15,6 @@ from homeassistant.const import (
     EVENT_HOMEASSISTANT_STARTED,
 )
 from homeassistant.core import (
-    Config,
     CoreState,
     Event,
     EventStateChangedData,
@@ -25,6 +24,7 @@ from homeassistant.core import (
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.event import async_track_state_change_event
+from homeassistant.helpers.typing import ConfigType
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from openevsehttp.__main__ import OpenEVSE
 from openevsehttp.exceptions import MissingSerial
@@ -125,7 +125,7 @@ async def homeassistant_started_listener(
 
 
 async def async_setup(  # pylint: disable-next=unused-argument
-    hass: HomeAssistant, config: Config
+    hass: HomeAssistant, config: ConfigType
 ) -> bool:
     """Disallow configuration via YAML."""
     return True
