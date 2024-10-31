@@ -3,14 +3,10 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, cast
 
-from homeassistant.components.number import DOMAIN as NUMBER_DOMAIN, NumberEntity
+from homeassistant.components.number import NumberEntity
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import EntityCategory
-from homeassistant.core import HomeAssistant, callback
-from homeassistant.exceptions import HomeAssistantError
-from homeassistant.helpers.dispatcher import async_dispatcher_connect
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
@@ -69,6 +65,7 @@ class OpenEVSENumberEntity(CoordinatorEntity, NumberEntity):
         self._command = description.command
         self._min = description.min
         self._max = description.max
+        self._manager = manager
         # Entity class attributes
         self._attr_name = f"{config_entry.data[CONF_NAME]} {self._name}"
         self._attr_unique_id = f"{self._name}_{self._unique_id}"
