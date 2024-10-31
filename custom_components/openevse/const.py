@@ -28,7 +28,11 @@ from homeassistant.const import (
 )
 from homeassistant.helpers.entity import EntityCategory
 
-from .entity import OpenEVSESelectEntityDescription, OpenEVSESwitchEntityDescription
+from .entity import (
+    OpenEVSESelectEntityDescription,
+    OpenEVSESwitchEntityDescription,
+    OpenEVSENumberEntityDescription,
+)
 
 # config flow
 CONF_NAME = "name"
@@ -49,7 +53,15 @@ COORDINATOR = "coordinator"
 FW_COORDINATOR = "fw_coordinator"
 VERSION = "1.0.0"
 ISSUE_URL = "http://github.com/firstof9/openevse/"
-PLATFORMS = ["binary_sensor", "button", "sensor", "select", "switch", "update"]
+PLATFORMS = [
+    "binary_sensor",
+    "button",
+    "number",
+    "sensor",
+    "select",
+    "switch",
+    "update",
+]
 USER_AGENT = "Home Assistant"
 MANAGER = "manager"
 
@@ -482,5 +494,16 @@ BUTTON_TYPES: Final[dict[str, ButtonEntityDescription]] = {
         name="Restart EVSE",
         device_class=ButtonDeviceClass.RESTART,
         entity_category=EntityCategory.CONFIG,
+    ),
+}
+
+NUMBER_TYPES: Final[dict[str, OpenEVSENumberEntityDescription]] = {
+    "max_current_soft": OpenEVSENumberEntityDescription(
+        name="Charge Rate",
+        key="current_capacity",
+        default_options=None,
+        command="set_current",
+        entity_category=EntityCategory.CONFIG,
+        native_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
     ),
 }

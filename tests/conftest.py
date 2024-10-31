@@ -18,6 +18,7 @@ TEST_URL_GITHUB = (
 )
 TEST_URL_STATUS = "http://openevse.test.tld/status"
 TEST_URL_CONFIG = "http://openevse.test.tld/config"
+TEST_URL_OVERRIDE = "http://openevse.test.tld/override"
 TEST_URL_RAPI = "http://openevse.test.tld/r"
 TEST_URL_WS = "ws://openevse.test.tld/ws"
 TEST_TLD = "openevse.test.tld"
@@ -103,6 +104,12 @@ def test_charger(mock_aioclient):
         TEST_URL_GITHUB,
         status=200,
         body=load_fixture("github.json"),
+        repeat=True,
+    )
+    mock_aioclient.post(
+        TEST_URL_OVERRIDE,
+        status=200,
+        body='{ "msg": "OK" }',
         repeat=True,
     )
     return main.OpenEVSE(TEST_TLD)
