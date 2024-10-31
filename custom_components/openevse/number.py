@@ -69,6 +69,7 @@ class OpenEVSENumberEntity(CoordinatorEntity, NumberEntity):
         # Entity class attributes
         self._attr_name = f"{config_entry.data[CONF_NAME]} {self._name}"
         self._attr_unique_id = f"{self._name}_{self._unique_id}"
+        self._attr_native_step = 1.0
 
     @property
     def device_info(self):
@@ -110,20 +111,6 @@ class OpenEVSENumberEntity(CoordinatorEntity, NumberEntity):
     async def async_set_native_value(self, value: float) -> None:
         """Set new value."""
         charger = self._manager
+        _LOGGER.debug("Command: %s Value: %s", self._command, value)
+        await getattr(self._manager, self._command)(value)
 
-        try:
-            if self._command.startswith("$"):
-                command = f"{self._command} {value}"
-                _LOGGER.debug("Command: %s", command)
-                await send_command(charger, command)
-            else:
-                _LOGGER.debug("Command: %s Value: %s", self._command, value)
-                await getattr(self._manager, self._command)(value)
-        except (ValueError, KeyError) as err:
-            _LOGGER.warning(
-                "Could not set status for %s error: %s", self._attr_name, err
-            )
-        except InvalidValue:
-            _LOGGER.error("Value %s invalid for command %s.", value, self._command)
-        except CommandFailed:
-            _LOGGER.error("Command %s failed.", self._command)
