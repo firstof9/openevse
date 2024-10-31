@@ -9,6 +9,7 @@ from homeassistant.components.binary_sensor import (
     BinarySensorEntityDescription,
 )
 from homeassistant.components.button import ButtonDeviceClass, ButtonEntityDescription
+from homeassistant.components.number import NumberDeviceClass, NumberMode
 from homeassistant.components.sensor import (
     SensorDeviceClass,
     SensorEntityDescription,
@@ -505,5 +506,7 @@ NUMBER_TYPES: Final[dict[str, OpenEVSENumberEntityDescription]] = {
         command="set_current",
         entity_category=EntityCategory.CONFIG,
         native_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
+        device_class=NumberDeviceClass.CURRENT,
+        mode=NumberMode.AUTO,
     ),
 }

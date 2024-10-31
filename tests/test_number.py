@@ -73,3 +73,9 @@ async def test_number(
     state = hass.states.get(entity_id)
     assert state
     assert state.state == "21.0"
+
+    hass.states.async_set(entity_id, "30.0")
+
+    state = hass.states.get(entity_id)
+    assert state
+    assert state.state == "30.0"

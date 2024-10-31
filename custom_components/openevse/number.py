@@ -117,7 +117,7 @@ class OpenEVSENumberEntity(CoordinatorEntity, NumberEntity):
                 _LOGGER.debug("Command: %s", command)
                 await send_command(charger, command)
             else:
-                _LOGGER.debug("Command: %s Option: %s", self._command, value)
+                _LOGGER.debug("Command: %s Value: %s", self._command, value)
                 await getattr(self._manager, self._command)(value)
         except (ValueError, KeyError) as err:
             _LOGGER.warning(
