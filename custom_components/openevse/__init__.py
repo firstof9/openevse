@@ -391,19 +391,6 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
         _LOGGER.debug("DEBUG: %s", data)
         self._data = data
 
-    async def get_sensors(self) -> dict:
-        """Trigger sensor data update."""
-        try:
-            await self._manager.update()
-        except RuntimeError:
-            pass
-        except Exception as error:
-            _LOGGER.error(
-                "Error updating sesnors [%s]: %s", type(error).__name__, error
-            )
-
-        self.parse_sensors()
-
 
 async def send_command(handler, command) -> None:
     """Send command to OpenEVSE device via RAPI."""

@@ -9,7 +9,6 @@ from homeassistant.components.select import DOMAIN as SELECT_DOMAIN
 from homeassistant.components.sensor import DOMAIN as SENSOR_DOMAIN
 from homeassistant.components.switch import DOMAIN as SWITCH_DOMAIN
 from homeassistant.helpers import entity_registry as er
-from homeassistant.util import dt as dt_util
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.openevse.const import DOMAIN
@@ -73,3 +72,9 @@ async def test_number(
     state = hass.states.get(entity_id)
     assert state
     assert state.state == "21.0"
+
+    hass.states.async_set(entity_id, "30.0")
+
+    state = hass.states.get(entity_id)
+    assert state
+    assert state.state == "30.0"
