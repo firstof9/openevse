@@ -14,11 +14,8 @@ from .const import CONF_NAME, COORDINATOR, DOMAIN, NUMBER_TYPES, MANAGER
 from .entity import OpenEVSESelectEntityDescription
 
 from . import (
-    CommandFailed,
-    InvalidValue,
     OpenEVSEManager,
     OpenEVSEUpdateCoordinator,
-    send_command,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -110,6 +107,5 @@ class OpenEVSENumberEntity(CoordinatorEntity, NumberEntity):
 
     async def async_set_native_value(self, value: float) -> None:
         """Set new value."""
-        charger = self._manager
         _LOGGER.debug("Command: %s Value: %s", self._command, value)
         await getattr(self._manager, self._command)(value)
