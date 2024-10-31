@@ -1,0 +1,75 @@
+"""Test OpenEVSE number platform."""
+
+import logging
+
+import pytest
+from homeassistant.components.binary_sensor import DOMAIN as BINARY_SENSOR_DOMAIN
+from homeassistant.components.number import DOMAIN as NUMBER_DOMAIN, SERVICE_SET_VALUE
+from homeassistant.components.select import DOMAIN as SELECT_DOMAIN
+from homeassistant.components.sensor import DOMAIN as SENSOR_DOMAIN
+from homeassistant.components.switch import DOMAIN as SWITCH_DOMAIN
+from homeassistant.helpers import entity_registry as er
+from homeassistant.util import dt as dt_util
+from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+from custom_components.openevse.const import DOMAIN
+
+from .const import CONFIG_DATA
+
+pytestmark = pytest.mark.asyncio
+
+CHARGER_NAME = "openevse"
+COORDINATOR = "coordinator"
+# SERVICE_SET_VALUE = "set_value"
+
+
+async def test_number(
+    hass, test_charger, mock_ws_start, entity_registry: er.EntityRegistry, caplog
+):
+    """Test setup_entry."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA,
+    )
+
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    assert len(hass.states.async_entity_ids(BINARY_SENSOR_DOMAIN)) == 4
+    assert len(hass.states.async_entity_ids(SENSOR_DOMAIN)) == 21
+    assert len(hass.states.async_entity_ids(SWITCH_DOMAIN)) == 4
+    assert len(hass.states.async_entity_ids(SELECT_DOMAIN)) == 2
+    assert len(hass.states.async_entity_ids(NUMBER_DOMAIN)) == 1
+    entries = hass.config_entries.async_entries(DOMAIN)
+    assert len(entries) == 1
+
+    assert DOMAIN in hass.config.components
+
+    entity_id = "number.openevse_charge_rate"
+
+    state = hass.states.get(entity_id)
+    assert state
+    assert state.state == "40.0"
+
+    servicedata = {
+        "entity_id": entity_id,
+        "value": 21,
+    }
+
+    await hass.services.async_call(
+        NUMBER_DOMAIN, SERVICE_SET_VALUE, servicedata, blocking=True
+    )
+    await hass.async_block_till_done()
+
+    with caplog.at_level(logging.DEBUG):
+        coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
+        coordinator._data["current_capacity"] = 21
+        updated_data = coordinator._data
+        coordinator.async_set_updated_data(updated_data)
+        await hass.async_block_till_done()
+
+    state = hass.states.get(entity_id)
+    assert state
+    assert state.state == "21.0"
