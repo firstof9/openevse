@@ -5,6 +5,7 @@ from unittest.mock import patch
 
 import pytest
 from homeassistant.components.binary_sensor import DOMAIN as BINARY_SENSOR_DOMAIN
+from homeassistant.components.number import DOMAIN as NUMBER_DOMAIN
 from homeassistant.components.select import DOMAIN as SELECT_DOMAIN
 from homeassistant.components.sensor import DOMAIN as SENSOR_DOMAIN
 from homeassistant.components.switch import DOMAIN as SWITCH_DOMAIN
@@ -39,6 +40,7 @@ async def test_sensors(
     assert len(hass.states.async_entity_ids(SENSOR_DOMAIN)) == 21
     assert len(hass.states.async_entity_ids(SWITCH_DOMAIN)) == 4
     assert len(hass.states.async_entity_ids(SELECT_DOMAIN)) == 2
+    assert len(hass.states.async_entity_ids(NUMBER_DOMAIN)) == 1
     entries = hass.config_entries.async_entries(DOMAIN)
     assert len(entries) == 1
 
