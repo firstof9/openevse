@@ -113,4 +113,3 @@ class OpenEVSENumberEntity(CoordinatorEntity, NumberEntity):
         charger = self._manager
         _LOGGER.debug("Command: %s Value: %s", self._command, value)
         await getattr(self._manager, self._command)(value)
-
