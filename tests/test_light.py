@@ -86,3 +86,14 @@ async def test_light(
     mock_aioclient.assert_any_call(
         TEST_URL_CONFIG, method="POST", data={ATTR_BRIGHTNESS: 128}
     )
+
+    await hass.services.async_call(
+        LIGHT_DOMAIN,
+        "turn_on",
+        {"entity_id": entity_id, "brightness": 26},
+        blocking=True,
+    )
+
+    mock_aioclient.assert_any_call(
+        TEST_URL_CONFIG, method="POST", data={ATTR_BRIGHTNESS: 26}
+    )
