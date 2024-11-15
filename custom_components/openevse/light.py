@@ -9,7 +9,6 @@ from homeassistant.components.light import (
     ATTR_BRIGHTNESS,
     ColorMode,
     LightEntity,
-    LightEntityDescription,
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -56,9 +55,9 @@ class OpenEVSELight(CoordinatorEntity, LightEntity):
     def __init__(
         self,
         config: ConfigEntry,
-        coordinator: str,
-        light_description: LightEntityDescription,
-        manager: str,
+        coordinator: OpenEVSEUpdateCoordinator,
+        light_description: OpenEVSELightEntityDescription,
+        manager: OpenEVSEManager,
     ) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator)
