@@ -519,6 +519,6 @@ LIGHT_TYPES: Final[dict[str, OpenEVSELightEntityDescription]] = {
         key="led_brightness",
         name="LED Brightness",
         entity_category=EntityCategory.CONFIG,
-        command="set_led_brightness"
+        command="set_led_brightness",
     ),
 }

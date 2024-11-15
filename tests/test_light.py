@@ -23,8 +23,12 @@ pytestmark = pytest.mark.asyncio
 
 CHARGER_NAME = "openevse"
 
+
 async def test_light(
-    hass, test_charger, mock_ws_start, mock_aioclient,
+    hass,
+    test_charger,
+    mock_ws_start,
+    mock_aioclient,
 ):
     """Test setup_entry."""
     entry = MockConfigEntry(
@@ -59,7 +63,7 @@ async def test_light(
         status=200,
         body='{"msg": "Ok"}',
         repeat=True,
-    )    
+    )
 
     await hass.services.async_call(
         LIGHT_DOMAIN,
@@ -69,20 +73,16 @@ async def test_light(
     )
 
     mock_aioclient.assert_any_call(
-            TEST_URL_CONFIG,
-            method='POST',
-            data={ATTR_BRIGHTNESS: 0}
-        )
-    
+        TEST_URL_CONFIG, method="POST", data={ATTR_BRIGHTNESS: 0}
+    )
+
     await hass.services.async_call(
         LIGHT_DOMAIN,
         "turn_on",
         {"entity_id": entity_id},
         blocking=True,
-    )    
+    )
 
     mock_aioclient.assert_any_call(
-            TEST_URL_CONFIG,
-            method='POST',
-            data={ATTR_BRIGHTNESS: 128}
-        )
+        TEST_URL_CONFIG, method="POST", data={ATTR_BRIGHTNESS: 128}
+    )

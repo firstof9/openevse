@@ -34,6 +34,7 @@ class OpenEVSENumberEntityDescription(NumberEntityDescription):
     min: int | None = None
     max: int | None = None
 
+
 @dataclass
 class OpenEVSELightEntityDescription(LightEntityDescription):
     """Class describing OpenEVSE light entities."""

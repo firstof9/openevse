@@ -406,7 +406,7 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
                     "Could not update status for %s",
                     light,
                 )
-            data.update(_sensor)            
+            data.update(_sensor)
         _LOGGER.debug("DEBUG: %s", data)
         self._data = data
 

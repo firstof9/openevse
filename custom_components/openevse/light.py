@@ -5,7 +5,12 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from homeassistant.components.light import ATTR_BRIGHTNESS, ColorMode, LightEntity, LightEntityDescription
+from homeassistant.components.light import (
+    ATTR_BRIGHTNESS,
+    ColorMode,
+    LightEntity,
+    LightEntityDescription,
+)
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -37,11 +42,10 @@ async def async_setup_entry(
 
     for light in LIGHT_TYPES:  # pylint: disable=consider-using-dict-items
         entities.append(
-            OpenEVSELight(
-                config_entry, coordinator, LIGHT_TYPES[light], manager
-            )
+            OpenEVSELight(config_entry, coordinator, LIGHT_TYPES[light], manager)
         )
     async_add_entities(entities)
+
 
 class OpenEVSELight(CoordinatorEntity, LightEntity):
     """Implementation of an OpenEVSE light."""
@@ -93,7 +97,7 @@ class OpenEVSELight(CoordinatorEntity, LightEntity):
     def is_on(self) -> bool:
         """Return true if light is on."""
         return bool(self._attr_brightness != 0)
-    
+
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Instruct the light to turn on."""
         brightness = kwargs.get(ATTR_BRIGHTNESS, self.brightness)
@@ -106,4 +110,3 @@ class OpenEVSELight(CoordinatorEntity, LightEntity):
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Instruct the light to turn off."""
         await self.manager.set_led_brightness(DEFAULT_OFF)
-
