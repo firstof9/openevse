@@ -19,6 +19,8 @@ Platform | Description
 -- | --
 `binary_sensor` | On/Off sensors for various settings.
 `button` | Button to restart the ESP chip or the EVSE.
+`light`  | Set the LED brightness.
+`number` | Set the charge rate.
 `select` | Select the ampers limit and service level.
 `sensor` | Show info from an OpenEVSE charger's API.
 `switch` | Switch to toggle various charger modes.

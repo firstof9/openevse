@@ -45,6 +45,7 @@ CHARGER_DATA = {
     "using_ethernet": False,
     "shaper_active": False,
     "max_current_soft": 48,
+    "led_brightness": 128,
 }
 CONFIG_DATA = {
     "name": "openevse",

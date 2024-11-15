@@ -18,6 +18,7 @@ from homeassistant.components.sensor import (
 from homeassistant.components.switch import SwitchDeviceClass
 from homeassistant.const import (
     PERCENTAGE,
+    Platform,
     SIGNAL_STRENGTH_DECIBELS,
     UnitOfElectricCurrent,
     UnitOfElectricPotential,
@@ -33,6 +34,7 @@ from .entity import (
     OpenEVSESelectEntityDescription,
     OpenEVSESwitchEntityDescription,
     OpenEVSENumberEntityDescription,
+    OpenEVSELightEntityDescription,
 )
 
 # config flow
@@ -55,13 +57,14 @@ FW_COORDINATOR = "fw_coordinator"
 VERSION = "1.0.0"
 ISSUE_URL = "http://github.com/firstof9/openevse/"
 PLATFORMS = [
-    "binary_sensor",
-    "button",
-    "number",
-    "sensor",
-    "select",
-    "switch",
-    "update",
+    Platform.BINARY_SENSOR,
+    Platform.BUTTON,
+    Platform.LIGHT,
+    Platform.NUMBER,
+    Platform.SENSOR,
+    Platform.SELECT,
+    Platform.SWITCH,
+    Platform.UPDATE,
 ]
 USER_AGENT = "Home Assistant"
 MANAGER = "manager"
@@ -508,5 +511,14 @@ NUMBER_TYPES: Final[dict[str, OpenEVSENumberEntityDescription]] = {
         native_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
         device_class=NumberDeviceClass.CURRENT,
         mode=NumberMode.AUTO,
+    ),
+}
+
+LIGHT_TYPES: Final[dict[str, OpenEVSELightEntityDescription]] = {
+    "led_brightness": OpenEVSELightEntityDescription(
+        key="led_brightness",
+        name="LED Brightness",
+        entity_category=EntityCategory.CONFIG,
+        command="set_led_brightness",
     ),
 }

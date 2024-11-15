@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from homeassistant.components.light import LightEntityDescription
 from homeassistant.components.number import NumberEntityDescription
 from homeassistant.components.select import SelectEntityDescription
 from homeassistant.components.switch import SwitchEntityDescription
@@ -32,3 +33,10 @@ class OpenEVSENumberEntityDescription(NumberEntityDescription):
     default_options: list | None = None
     min: int | None = None
     max: int | None = None
+
+
+@dataclass
+class OpenEVSELightEntityDescription(LightEntityDescription):
+    """Class describing OpenEVSE light entities."""
+
+    command: str | None = None

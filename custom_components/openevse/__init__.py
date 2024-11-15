@@ -39,6 +39,7 @@ from .const import (
     DOMAIN,
     FW_COORDINATOR,
     ISSUE_URL,
+    LIGHT_TYPES,
     MANAGER,
     PLATFORMS,
     SELECT_TYPES,
@@ -386,6 +387,24 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
                 _LOGGER.info(
                     "Could not update status for %s",
                     select,
+                )
+            data.update(_sensor)
+        for light in LIGHT_TYPES:  # pylint: disable=consider-using-dict-items
+            _sensor = {}
+            try:
+                sensor_property = LIGHT_TYPES[light].key
+                # Data can be sent as boolean or as 1/0
+                _sensor[light] = getattr(self._manager, sensor_property)
+                _LOGGER.debug(
+                    "light: %s sensor_property: %s value %s",
+                    select,
+                    sensor_property,
+                    _sensor[light],
+                )
+            except (ValueError, KeyError):
+                _LOGGER.info(
+                    "Could not update status for %s",
+                    light,
                 )
             data.update(_sensor)
         _LOGGER.debug("DEBUG: %s", data)
