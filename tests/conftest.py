@@ -119,7 +119,7 @@ def test_charger(mock_aioclient):
         status=200,
         body='{"properties":{"state":"disabled","charge_current":28,"max_current":23,"auto_release":false},"claims":{"state":65540,"charge_current":65537,"max_current":65548}}',
         repeat=True,
-    )    
+    )
     return main.OpenEVSE(TEST_TLD)
 
 
@@ -155,7 +155,7 @@ def test_charger_bad_serial(mock_aioclient):
         status=200,
         body='{"properties":{"state":"disabled","charge_current":28,"max_current":23,"auto_release":false},"claims":{"state":65540,"charge_current":65537,"max_current":65548}}',
         repeat=True,
-    )        
+    )
     return main.OpenEVSE(TEST_TLD)
 
 
@@ -196,7 +196,7 @@ def test_charger_bad_post(mock_aioclient):
         status=200,
         body='{"properties":{"state":"disabled","charge_current":28,"max_current":23,"auto_release":false},"claims":{"state":65540,"charge_current":65537,"max_current":65548}}',
         repeat=True,
-    )        
+    )
     return main.OpenEVSE(TEST_TLD)
 
 

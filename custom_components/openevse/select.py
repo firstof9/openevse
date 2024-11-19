@@ -108,7 +108,9 @@ class OpenEVSESelect(CoordinatorEntity, SelectEntity):
         attributes = ("charge_mode", "divert_active")
         if set(attributes).issubset(data.keys()) and self._type == "max_current_soft":
             if data["divert_active"] and data["charge_mode"] == "eco":
-                _LOGGER.debug("Disabling %s due to PV Divert being active.", self._attr_name)
+                _LOGGER.debug(
+                    "Disabling %s due to PV Divert being active.", self._attr_name
+                )
                 return False
         return self.coordinator.last_update_success
 

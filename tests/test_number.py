@@ -85,8 +85,11 @@ async def test_number(
         updated_data = coordinator._data
         coordinator.async_set_updated_data(updated_data)
         await hass.async_block_till_done()
-        
+
         state = hass.states.get(entity_id)
         assert state
-        assert state.state == 'unavailable'    
-        assert "Disabling openevse Charge Rate due to PV Divert being active." in caplog.text
+        assert state.state == "unavailable"
+        assert (
+            "Disabling openevse Charge Rate due to PV Divert being active."
+            in caplog.text
+        )
