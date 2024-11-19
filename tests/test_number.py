@@ -50,7 +50,7 @@ async def test_number(
 
     state = hass.states.get(entity_id)
     assert state
-    assert state.state == "40.0"
+    assert state.state == "28.0"
 
     servicedata = {
         "entity_id": entity_id,
@@ -64,7 +64,7 @@ async def test_number(
 
     with caplog.at_level(logging.DEBUG):
         coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
-        coordinator._data["current_capacity"] = 21
+        coordinator._data["max_current_soft"] = 21
         updated_data = coordinator._data
         coordinator.async_set_updated_data(updated_data)
         await hass.async_block_till_done()
@@ -78,3 +78,15 @@ async def test_number(
     state = hass.states.get(entity_id)
     assert state
     assert state.state == "30.0"
+
+    with caplog.at_level(logging.DEBUG):
+        coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
+        coordinator._data["divert_active"] = True
+        updated_data = coordinator._data
+        coordinator.async_set_updated_data(updated_data)
+        await hass.async_block_till_done()
+        
+        state = hass.states.get(entity_id)
+        assert state
+        assert state.state == 'unavailable'    
+        assert "Disabling openevse Charge Rate due to PV Divert being active." in caplog.text

@@ -420,11 +420,13 @@ SELECT_TYPES: Final[dict[str, OpenEVSESelectEntityDescription]] = {
     # ),
     "max_current_soft": OpenEVSESelectEntityDescription(
         name="Charge Rate",
-        key="current_capacity",
+        key="max_current_soft",
         default_options=None,
         command="set_current",
         entity_category=EntityCategory.CONFIG,
         entity_registry_enabled_default=False,
+        is_async_value=True,
+        value="async_charge_current",
     ),
     "charge_mode": OpenEVSESelectEntityDescription(
         name="Divert Mode",
@@ -504,13 +506,15 @@ BUTTON_TYPES: Final[dict[str, ButtonEntityDescription]] = {
 NUMBER_TYPES: Final[dict[str, OpenEVSENumberEntityDescription]] = {
     "max_current_soft": OpenEVSENumberEntityDescription(
         name="Charge Rate",
-        key="current_capacity",
+        key="max_current_soft",
         default_options=None,
         command="set_current",
         entity_category=EntityCategory.CONFIG,
         native_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
         device_class=NumberDeviceClass.CURRENT,
         mode=NumberMode.AUTO,
+        is_async_value=True,
+        value="async_charge_current",
     ),
 }
 

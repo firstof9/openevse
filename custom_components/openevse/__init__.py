@@ -42,6 +42,7 @@ from .const import (
     LIGHT_TYPES,
     MANAGER,
     PLATFORMS,
+    NUMBER_TYPES,
     SELECT_TYPES,
     SENSOR_TYPES,
     TIMEOUT_ERROR,
@@ -323,13 +324,16 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
             raise UpdateFailed(error) from error
 
         self.parse_sensors()
+        await self.async_parse_sensors()
+        _LOGGER.debug("Coordinator data: %s", self._data)
         return self._data
 
     @callback
-    def websocket_update(self):
+    async def websocket_update(self):
         """Trigger processing updated websocket data."""
         _LOGGER.debug("Websocket update!")
         self.parse_sensors()
+        await self.async_parse_sensors()
         coordinator = self.hass.data[DOMAIN][self.config.entry_id][COORDINATOR]
         coordinator.async_set_updated_data(self._data)
 
@@ -373,6 +377,8 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
             data.update(_sensor)
         for select in SELECT_TYPES:  # pylint: disable=consider-using-dict-items
             _sensor = {}
+            if SELECT_TYPES[select].is_async_value:
+                continue
             try:
                 sensor_property = SELECT_TYPES[select].key
                 # Data can be sent as boolean or as 1/0
@@ -389,6 +395,26 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
                     select,
                 )
             data.update(_sensor)
+        for number in NUMBER_TYPES:  # pylint: disable=consider-using-dict-items
+            _sensor = {}
+            if NUMBER_TYPES[number].is_async_value:
+                continue
+            try:
+                sensor_property = NUMBER_TYPES[number].key
+                # Data can be sent as boolean or as 1/0
+                _sensor[number] = getattr(self._manager, sensor_property)
+                _LOGGER.debug(
+                    "number: %s sensor_property: %s value %s",
+                    number,
+                    sensor_property,
+                    _sensor[number],
+                )
+            except (ValueError, KeyError):
+                _LOGGER.info(
+                    "Could not update status for %s",
+                    number,
+                )
+            data.update(_sensor)            
         for light in LIGHT_TYPES:  # pylint: disable=consider-using-dict-items
             _sensor = {}
             try:
@@ -397,7 +423,7 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
                 _sensor[light] = getattr(self._manager, sensor_property)
                 _LOGGER.debug(
                     "light: %s sensor_property: %s value %s",
-                    select,
+                    light,
                     sensor_property,
                     _sensor[light],
                 )
@@ -408,7 +434,55 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
                 )
             data.update(_sensor)
         _LOGGER.debug("DEBUG: %s", data)
-        self._data = data
+        self._data.update(data)
+
+    async def async_parse_sensors(self) -> None:
+        """Parse updated sensor data using async."""
+        data = {}
+        for select in SELECT_TYPES:  # pylint: disable=consider-using-dict-items
+            _sensor = {}
+            if not SELECT_TYPES[select].is_async_value:
+                continue
+            try:
+                sensor_property = SELECT_TYPES[select].key
+                sensor_value = SELECT_TYPES[select].value
+                # Data can be sent as boolean or as 1/0
+                _sensor[select] = await getattr(self._manager, sensor_value)
+                _LOGGER.debug(
+                    "select: %s sensor_property: %s value %s",
+                    select,
+                    sensor_property,
+                    _sensor[select],
+                )
+            except (ValueError, KeyError):
+                _LOGGER.info(
+                    "Could not update status for %s",
+                    select,
+                )
+            data.update(_sensor)
+        for number in NUMBER_TYPES:  # pylint: disable=consider-using-dict-items
+            _sensor = {}
+            if not NUMBER_TYPES[number].is_async_value:
+                continue
+            try:
+                sensor_property = NUMBER_TYPES[number].key
+                sensor_value = NUMBER_TYPES[number].value
+                # Data can be sent as boolean or as 1/0
+                _sensor[number] = await getattr(self._manager, sensor_value)
+                _LOGGER.debug(
+                    "number: %s sensor_property: %s value %s",
+                    number,
+                    sensor_property,
+                    _sensor[number],
+                )
+            except (ValueError, KeyError):
+                _LOGGER.info(
+                    "Could not update status for %s",
+                    number,
+                )
+            data.update(_sensor)            
+        _LOGGER.debug("DEBUG: %s", data)
+        self._data.update(data)
 
 
 async def send_command(handler, command) -> None:

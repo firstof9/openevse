@@ -11,7 +11,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import CONF_NAME, COORDINATOR, DOMAIN, NUMBER_TYPES, MANAGER
-from .entity import OpenEVSESelectEntityDescription
+from .entity import OpenEVSENumberEntityDescription
 
 from . import (
     OpenEVSEManager,
@@ -48,7 +48,7 @@ class OpenEVSENumberEntity(CoordinatorEntity, NumberEntity):
         self,
         config_entry: ConfigEntry,
         coordinator: OpenEVSEUpdateCoordinator,
-        description: OpenEVSESelectEntityDescription,
+        description: OpenEVSENumberEntityDescription,
         manager: OpenEVSEManager,
     ) -> None:
         """Initialize a ZwaveNumberEntity entity."""
@@ -62,6 +62,7 @@ class OpenEVSENumberEntity(CoordinatorEntity, NumberEntity):
         self._command = description.command
         self._min = description.min
         self._max = description.max
+        self._value = description.value
         self._manager = manager
         # Entity class attributes
         self._attr_name = f"{config_entry.data[CONF_NAME]} {self._name}"
@@ -79,6 +80,17 @@ class OpenEVSENumberEntity(CoordinatorEntity, NumberEntity):
         return info
 
     @property
+    def available(self) -> bool:
+        """Return if entity is available."""
+        data = self.coordinator.data
+        attributes = ("charge_mode", "divert_active")
+        if set(attributes).issubset(data.keys()) and self._type == "max_current_soft":
+            if data["divert_active"] and data["charge_mode"] == "eco":
+                _LOGGER.debug("Disabling %s due to PV Divert being active.", self._attr_name)
+                return False
+        return self.coordinator.last_update_success
+
+    @property
     def native_min_value(self) -> float:
         """Return the minimum value."""
         min_ = self.coordinator.data["min_amps"]
@@ -94,9 +106,10 @@ class OpenEVSENumberEntity(CoordinatorEntity, NumberEntity):
     def native_value(self) -> float | None:
         """Return the entity value."""
         data = self.coordinator.data
+        value = None
         if self._type in data and data is not None:
             value = data[self._type]
-            _LOGGER.debug("Select [%s] updated value: %s", self._type, value)
+        _LOGGER.debug("Number [%s] updated value: %s", self._type, value)
         return None if value is None else float(value)
 
     @property
