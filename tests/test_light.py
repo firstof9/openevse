@@ -56,7 +56,7 @@ async def test_light(
     state = hass.states.get(entity_id)
     assert state
     assert state.state == "on"
-    assert state.attributes[ATTR_BRIGHTNESS] == 128
+    assert state.attributes[ATTR_BRIGHTNESS] == 64
 
     mock_aioclient.post(
         TEST_URL_CONFIG,

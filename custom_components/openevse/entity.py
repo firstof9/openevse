@@ -16,6 +16,8 @@ class OpenEVSESelectEntityDescription(SelectEntityDescription):
 
     command: str | None = None
     default_options: list | None = None
+    is_async_value: bool | None = False
+    value: int | None = None
 
 
 @dataclass
@@ -33,6 +35,8 @@ class OpenEVSENumberEntityDescription(NumberEntityDescription):
     default_options: list | None = None
     min: int | None = None
     max: int | None = None
+    is_async_value: bool | None = False
+    value: int | None = None
 
 
 @dataclass

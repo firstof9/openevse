@@ -104,13 +104,19 @@ class OpenEVSESelect(CoordinatorEntity, SelectEntity):
     @property
     def available(self) -> bool:
         """Return if entity is available."""
-        if self._type not in self.coordinator.data:
-            return False
+        data = self.coordinator.data
+        attributes = ("charge_mode", "divert_active")
+        if set(attributes).issubset(data.keys()) and self._type == "max_current_soft":
+            if data["divert_active"] and data["charge_mode"] == "eco":
+                _LOGGER.debug(
+                    "Disabling %s due to PV Divert being active.", self._attr_name
+                )
+                return False
         return self.coordinator.last_update_success
 
     def get_options(self) -> list[str]:
         """Return a set of selectable options."""
-        if self._type == "current_capacity":
+        if self._type == "max_current_soft":
             amps_min = self.coordinator.data["min_amps"]
             amps_max = self.coordinator.data["max_amps"] + 1
             # pylint: disable-next=consider-using-generator
