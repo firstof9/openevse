@@ -24,7 +24,7 @@ Platform | Description
 `select` | Select the ampers limit and service level.
 `sensor` | Show info from an OpenEVSE charger's API.
 `switch` | Switch to toggle various charger modes.
-`update` | Idicate when a firmware update is available.
+`update` | Indicate when a firmware update is available.
 
 
 **Services**
