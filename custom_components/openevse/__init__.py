@@ -26,7 +26,7 @@ from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.event import async_track_state_change_event
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from openevsehttp.__main__ import OpenEVSE
-from openevsehttp.exceptions import MissingSerial
+from openevsehttp.exceptions import MissingSerial, UnsupportedFeature
 
 from .const import (
     BINARY_SENSORS,
@@ -365,7 +365,7 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
                     sensor_property,
                     _sensor[binary_sensor],
                 )
-            except (ValueError, KeyError):
+            except (ValueError, KeyError, UnsupportedFeature):
                 _LOGGER.info(
                     "Could not update status for %s",
                     binary_sensor,
@@ -383,7 +383,7 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
                     sensor_property,
                     _sensor[select],
                 )
-            except (ValueError, KeyError):
+            except (ValueError, KeyError, UnsupportedFeature):
                 _LOGGER.info(
                     "Could not update status for %s",
                     select,
@@ -401,7 +401,7 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
                     sensor_property,
                     _sensor[light],
                 )
-            except (ValueError, KeyError):
+            except (ValueError, KeyError, UnsupportedFeature):
                 _LOGGER.info(
                     "Could not update status for %s",
                     light,
