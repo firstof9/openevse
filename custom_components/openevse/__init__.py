@@ -181,9 +181,6 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
     )
 
     await coordinator.async_refresh()
-    # Start the websocket listener
-    manager.ws_start()
-
     await hass.config_entries.async_forward_entry_setups(config_entry, PLATFORMS)
 
     services = OpenEVSEServices(hass, config_entry)
@@ -321,7 +318,17 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
                 "Error updating sensors [%s]: %s", type(error).__name__, error
             )
             raise UpdateFailed(error) from error
-
+        
+        if self._manager.websocket.state != "connected":
+            _LOGGER.info("Connecting to websocket...")
+            try:
+                await self._manager.ws_start()
+            except RuntimeError:
+                pass
+            except Exception as error:
+                _LOGGER.debug("Error connecting to websocket [%s]: %s", type(error).__name__, error)
+                raise UpdateFailed(error) from error
+            
         self.parse_sensors()
         return self._data
 
