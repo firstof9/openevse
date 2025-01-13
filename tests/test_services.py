@@ -108,7 +108,7 @@ async def test_make_claim(
         data=CONFIG_DATA,
     )
     mock_aioclient.post(
-        f"{TEST_URL_CLAIMS}/4",
+        f"{TEST_URL_CLAIMS}/20",
         status=200,
         body='[{"msg":"done"}]',
         repeat=True,
@@ -150,7 +150,7 @@ async def test_release_claim(
         data=CONFIG_DATA,
     )
     mock_aioclient.delete(
-        f"{TEST_URL_CLAIMS}/4",
+        f"{TEST_URL_CLAIMS}/20",
         status=200,
         body='[{"msg":"done"}]',
         repeat=True,

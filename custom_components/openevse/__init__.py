@@ -319,10 +319,11 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
             )
             raise UpdateFailed(error) from error
 
+        assert self._manager.websocket
         if self._manager.websocket.state != "connected":
             _LOGGER.info("Connecting to websocket...")
             try:
-                await self._manager.ws_start()
+                self._manager.ws_start()
             except RuntimeError:
                 pass
             except Exception as error:
