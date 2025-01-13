@@ -318,7 +318,7 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
                 "Error updating sensors [%s]: %s", type(error).__name__, error
             )
             raise UpdateFailed(error) from error
-        
+
         if self._manager.websocket.state != "connected":
             _LOGGER.info("Connecting to websocket...")
             try:
@@ -326,9 +326,13 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
             except RuntimeError:
                 pass
             except Exception as error:
-                _LOGGER.debug("Error connecting to websocket [%s]: %s", type(error).__name__, error)
+                _LOGGER.debug(
+                    "Error connecting to websocket [%s]: %s",
+                    type(error).__name__,
+                    error,
+                )
                 raise UpdateFailed(error) from error
-            
+
         self.parse_sensors()
         return self._data
 
