@@ -24,7 +24,7 @@ Platform | Description
 `select` | Select the ampers limit and service level.
 `sensor` | Show info from an OpenEVSE charger's API.
 `switch` | Switch to toggle various charger modes.
-`update` | Idicate when a firmware update is available.
+`update` | Indicate when a firmware update is available.
 
 
 **Services**
@@ -45,7 +45,7 @@ Service | Return Value | Description
 
 ## Installation via HACS (recommended)
 
-[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=firstof9&repository=openevse)
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=firstof9&repository=openevse&category=integration)
 
 1. Follow the link [here](https://hacs.xyz/docs/faq/custom_repositories/)
 2. Use the custom repo link https://github.com/firstof9/openevse

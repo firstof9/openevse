@@ -2,10 +2,10 @@
 pytest-homeassistant-custom-component
 black==24.10.0
 flake8==7.1.1
-mypy==1.13.0
+mypy==1.14.1
 pydocstyle==6.3.0
 isort
-pylint==3.3.1
+pylint==3.3.3
 tox==4.23.2
 aioresponses
 pytest
