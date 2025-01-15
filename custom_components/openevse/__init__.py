@@ -320,7 +320,12 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
             )
             raise UpdateFailed(error) from error
 
-        assert self._manager.websocket
+        try:
+            assert self._manager.websocket
+        except AssertionError as error:
+            _LOGGER.debug("Websocket not setup.")
+            raise UpdateFailed(error) from error
+
         if self._manager.websocket.state != "connected":
             _LOGGER.info("Connecting to websocket...")
             try:
