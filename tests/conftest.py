@@ -19,6 +19,8 @@ TEST_URL_GITHUB = (
 TEST_URL_STATUS = "http://openevse.test.tld/status"
 TEST_URL_CONFIG = "http://openevse.test.tld/config"
 TEST_URL_OVERRIDE = "http://openevse.test.tld/override"
+TEST_URL_CLAIMS = "http://openevse.test.tld/claims"
+TEST_URL_CLAIMS_TARGET = "http://openevse.test.tld/claims/target"
 TEST_URL_RAPI = "http://openevse.test.tld/r"
 TEST_URL_WS = "ws://openevse.test.tld/ws"
 TEST_TLD = "openevse.test.tld"
@@ -112,6 +114,12 @@ def test_charger(mock_aioclient):
         body='{ "msg": "OK" }',
         repeat=True,
     )
+    mock_aioclient.get(
+        TEST_URL_CLAIMS_TARGET,
+        status=200,
+        body='{"properties":{"state":"disabled","charge_current":28,"max_current":23,"auto_release":false},"claims":{"state":65540,"charge_current":65537,"max_current":65548}}',
+        repeat=True,
+    )
     return main.OpenEVSE(TEST_TLD)
 
 
@@ -140,6 +148,12 @@ def test_charger_bad_serial(mock_aioclient):
         TEST_URL_GITHUB,
         status=200,
         body=load_fixture("github.json"),
+        repeat=True,
+    )
+    mock_aioclient.get(
+        TEST_URL_CLAIMS_TARGET,
+        status=200,
+        body='{"properties":{"state":"disabled","charge_current":28,"max_current":23,"auto_release":false},"claims":{"state":65540,"charge_current":65537,"max_current":65548}}',
         repeat=True,
     )
     return main.OpenEVSE(TEST_TLD)
@@ -175,6 +189,12 @@ def test_charger_bad_post(mock_aioclient):
         TEST_URL_GITHUB,
         status=200,
         body=load_fixture("github.json"),
+        repeat=True,
+    )
+    mock_aioclient.get(
+        TEST_URL_CLAIMS_TARGET,
+        status=200,
+        body='{"properties":{"state":"disabled","charge_current":28,"max_current":23,"auto_release":false},"claims":{"state":65540,"charge_current":65537,"max_current":65548}}',
         repeat=True,
     )
     return main.OpenEVSE(TEST_TLD)
