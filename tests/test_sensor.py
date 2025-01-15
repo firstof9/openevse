@@ -48,7 +48,7 @@ async def test_sensors(
 
     state = hass.states.get("sensor.openevse_wifi_firmware_version")
     assert state
-    assert state.state == "5.1.0"
+    assert state.state == "v5.1.2"
     state = hass.states.get("sensor.openevse_charge_time_elapsed")
     assert state
     assert state.state == "4.1"
