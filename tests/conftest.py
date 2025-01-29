@@ -98,7 +98,7 @@ def test_charger(mock_aioclient):
     )
     mock_aioclient.get(
         TEST_URL_WS,
-        status=200,
+        status=101,
         body=load_fixture("status.json"),
         repeat=True,
     )
@@ -140,7 +140,7 @@ def test_charger_bad_serial(mock_aioclient):
     )
     mock_aioclient.get(
         TEST_URL_WS,
-        status=200,
+        status=101,
         body=load_fixture("status.json"),
         repeat=True,
     )
@@ -181,7 +181,7 @@ def test_charger_bad_post(mock_aioclient):
     )
     mock_aioclient.get(
         TEST_URL_WS,
-        status=200,
+        status=101,
         body=load_fixture("status.json"),
         repeat=True,
     )
