@@ -12,7 +12,6 @@ from homeassistant.components.button import ButtonDeviceClass, ButtonEntityDescr
 from homeassistant.components.number import NumberDeviceClass, NumberMode
 from homeassistant.components.sensor import (
     SensorDeviceClass,
-    SensorEntityDescription,
     SensorStateClass,
 )
 from homeassistant.components.switch import SwitchDeviceClass
@@ -32,6 +31,7 @@ from homeassistant.helpers.entity import EntityCategory
 
 from .entity import (
     OpenEVSESelectEntityDescription,
+    OpenEVSESensorEntityDescription,
     OpenEVSESwitchEntityDescription,
     OpenEVSENumberEntityDescription,
     OpenEVSELightEntityDescription,
@@ -98,12 +98,12 @@ SERVICE_LEVELS = ["1", "2", "A"]
 DIVERT_MODE = ["fast", "eco"]
 
 # Name, unit of measure, property, icon, device class, state class
-SENSOR_TYPES: Final[dict[str, SensorEntityDescription]] = {
-    "status": SensorEntityDescription(
+SENSOR_TYPES: Final[dict[str, OpenEVSESensorEntityDescription]] = {
+    "status": OpenEVSESensorEntityDescription(
         key="status", name="Station Status", icon="mdi:ev-station"
     ),
-    "state": SensorEntityDescription(key="state", name="Charging Status"),
-    "charge_time_elapsed": SensorEntityDescription(
+    "state": OpenEVSESensorEntityDescription(key="state", name="Charging Status"),
+    "charge_time_elapsed": OpenEVSESensorEntityDescription(
         key="charge_time_elapsed",
         name="Charge Time Elapsed",
         icon="mdi:camera-timer",
@@ -111,14 +111,14 @@ SENSOR_TYPES: Final[dict[str, SensorEntityDescription]] = {
         entity_category=EntityCategory.DIAGNOSTIC,
         suggested_display_precision=1,
     ),
-    "ambient_temperature": SensorEntityDescription(
+    "ambient_temperature": OpenEVSESensorEntityDescription(
         key="ambient_temperature",
         name="Ambient Temperature",
         native_unit_of_measurement=UnitOfTemperature.CELSIUS,
         state_class=SensorStateClass.MEASUREMENT,
         device_class=SensorDeviceClass.TEMPERATURE,
     ),
-    "ir_temperature": SensorEntityDescription(
+    "ir_temperature": OpenEVSESensorEntityDescription(
         key="ir_temperature",
         name="IR Temperature",
         native_unit_of_measurement=UnitOfTemperature.CELSIUS,
@@ -126,7 +126,7 @@ SENSOR_TYPES: Final[dict[str, SensorEntityDescription]] = {
         device_class=SensorDeviceClass.TEMPERATURE,
         entity_registry_enabled_default=False,
     ),
-    "rtc_temperature": SensorEntityDescription(
+    "rtc_temperature": OpenEVSESensorEntityDescription(
         key="rtc_temperature",
         name="RTC Temperature",
         native_unit_of_measurement=UnitOfTemperature.CELSIUS,
@@ -134,7 +134,7 @@ SENSOR_TYPES: Final[dict[str, SensorEntityDescription]] = {
         device_class=SensorDeviceClass.TEMPERATURE,
         entity_registry_enabled_default=False,
     ),
-    "esp_temperature": SensorEntityDescription(
+    "esp_temperature": OpenEVSESensorEntityDescription(
         key="esp_temperature",
         name="ESP32 Temperature",
         native_unit_of_measurement=UnitOfTemperature.CELSIUS,
@@ -142,7 +142,7 @@ SENSOR_TYPES: Final[dict[str, SensorEntityDescription]] = {
         device_class=SensorDeviceClass.TEMPERATURE,
         entity_registry_enabled_default=False,
     ),
-    "usage_session": SensorEntityDescription(
+    "usage_session": OpenEVSESensorEntityDescription(
         key="usage_session",
         name="Usage this Session",
         native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
@@ -150,7 +150,7 @@ SENSOR_TYPES: Final[dict[str, SensorEntityDescription]] = {
         device_class=SensorDeviceClass.ENERGY,
         suggested_display_precision=1,
     ),
-    "usage_total": SensorEntityDescription(
+    "usage_total": OpenEVSESensorEntityDescription(
         key="usage_total",
         name="Total Usage",
         native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
@@ -158,20 +158,20 @@ SENSOR_TYPES: Final[dict[str, SensorEntityDescription]] = {
         device_class=SensorDeviceClass.ENERGY,
         suggested_display_precision=1,
     ),
-    "openevse_firmware": SensorEntityDescription(
+    "openevse_firmware": OpenEVSESensorEntityDescription(
         key="openevse_firmware",
         name="Controller Firmware",
         icon="mdi:package-up",
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
-    "protocol_version": SensorEntityDescription(
+    "protocol_version": OpenEVSESensorEntityDescription(
         key="protocol_version",
         name="Protocol Version",
         icon="mdi:package-up",
         entity_category=EntityCategory.DIAGNOSTIC,
         entity_registry_enabled_default=False,
     ),
-    "charging_voltage": SensorEntityDescription(
+    "charging_voltage": OpenEVSESensorEntityDescription(
         key="charging_voltage",
         name="Charging Voltage",
         icon="mdi:sine-wave",
@@ -180,7 +180,7 @@ SENSOR_TYPES: Final[dict[str, SensorEntityDescription]] = {
         device_class=SensorDeviceClass.VOLTAGE,
         suggested_display_precision=1,
     ),
-    "charging_current": SensorEntityDescription(
+    "charging_current": OpenEVSESensorEntityDescription(
         key="charging_current",
         name="Charging Current",
         icon="mdi:sine-wave",
@@ -189,13 +189,13 @@ SENSOR_TYPES: Final[dict[str, SensorEntityDescription]] = {
         device_class=SensorDeviceClass.CURRENT,
         suggested_display_precision=1,
     ),
-    "service_level": SensorEntityDescription(
+    "service_level": OpenEVSESensorEntityDescription(
         key="service_level",
         name="Service Level",
         icon="mdi:leaf",
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
-    "max_amps": SensorEntityDescription(
+    "max_amps": OpenEVSESensorEntityDescription(
         key="max_amps",
         name="Max Amps",
         icon="mdi:sine-wave",
@@ -203,7 +203,7 @@ SENSOR_TYPES: Final[dict[str, SensorEntityDescription]] = {
         device_class=SensorDeviceClass.CURRENT,
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
-    "min_amps": SensorEntityDescription(
+    "min_amps": OpenEVSESensorEntityDescription(
         key="min_amps",
         name="Min Amps",
         icon="mdi:sine-wave",
@@ -211,7 +211,7 @@ SENSOR_TYPES: Final[dict[str, SensorEntityDescription]] = {
         device_class=SensorDeviceClass.CURRENT,
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
-    "current_capacity": SensorEntityDescription(
+    "current_capacity": OpenEVSESensorEntityDescription(
         key="current_capacity",
         name="Current Capacity",
         icon="mdi:sine-wave",
@@ -219,13 +219,13 @@ SENSOR_TYPES: Final[dict[str, SensorEntityDescription]] = {
         device_class=SensorDeviceClass.CURRENT,
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
-    "wifi_firmware": SensorEntityDescription(
+    "wifi_firmware": OpenEVSESensorEntityDescription(
         key="wifi_firmware",
         name="WiFi Firmware Version",
         icon="mdi:package-up",
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
-    "charging_power": SensorEntityDescription(
+    "charging_power": OpenEVSESensorEntityDescription(
         key="charging_power",
         name="Current Power Usage",
         icon="mdi:flash",
@@ -234,27 +234,27 @@ SENSOR_TYPES: Final[dict[str, SensorEntityDescription]] = {
         state_class=SensorStateClass.MEASUREMENT,
         suggested_display_precision=1,
     ),
-    "wifi_signal": SensorEntityDescription(
+    "wifi_signal": OpenEVSESensorEntityDescription(
         key="wifi_signal",
         name="WiFi Signal Strength",
         icon="mdi:wifi",
         native_unit_of_measurement=SIGNAL_STRENGTH_DECIBELS,
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
-    "ammeter_scale_factor": SensorEntityDescription(
+    "ammeter_scale_factor": OpenEVSESensorEntityDescription(
         key="ammeter_scale_factor",
         name="Sensor Scale",
         icon="mdi:scale",
         entity_category=EntityCategory.DIAGNOSTIC,
         entity_registry_enabled_default=False,
     ),
-    "charge_mode": SensorEntityDescription(
+    "charge_mode": OpenEVSESensorEntityDescription(
         name="Divert Mode",
         key="charge_mode",
         icon="mdi:solar-power",
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
-    "available_current": SensorEntityDescription(
+    "available_current": OpenEVSESensorEntityDescription(
         name="PV Available Current",
         key="available_current",
         icon="mdi:sine-wave",
@@ -263,7 +263,7 @@ SENSOR_TYPES: Final[dict[str, SensorEntityDescription]] = {
         device_class=SensorDeviceClass.CURRENT,
         suggested_display_precision=1,
     ),
-    "smoothed_available_current": SensorEntityDescription(
+    "smoothed_available_current": OpenEVSESensorEntityDescription(
         name="PV Smoothed Available Current",
         key="smoothed_available_current",
         icon="mdi:sine-wave",
@@ -272,7 +272,7 @@ SENSOR_TYPES: Final[dict[str, SensorEntityDescription]] = {
         device_class=SensorDeviceClass.CURRENT,
         suggested_display_precision=1,
     ),
-    "charge_rate": SensorEntityDescription(
+    "charge_rate": OpenEVSESensorEntityDescription(
         name="PV Charge Rate",
         key="charge_rate",
         icon="mdi:sine-wave",
@@ -280,7 +280,7 @@ SENSOR_TYPES: Final[dict[str, SensorEntityDescription]] = {
         state_class=SensorStateClass.MEASUREMENT,
         device_class=SensorDeviceClass.CURRENT,
     ),
-    "shaper_live_power": SensorEntityDescription(
+    "shaper_live_power": OpenEVSESensorEntityDescription(
         name="Shaper Power",
         key="shaper_live_power",
         icon="mdi:flash",
@@ -289,7 +289,7 @@ SENSOR_TYPES: Final[dict[str, SensorEntityDescription]] = {
         device_class=SensorDeviceClass.POWER,
         entity_registry_enabled_default=False,
     ),
-    "shaper_current": SensorEntityDescription(
+    "shaper_current": OpenEVSESensorEntityDescription(
         name="Shaper Current",
         key="shaper_current_power",
         icon="mdi:flash",
@@ -298,7 +298,7 @@ SENSOR_TYPES: Final[dict[str, SensorEntityDescription]] = {
         state_class=SensorStateClass.MEASUREMENT,
         entity_registry_enabled_default=False,
     ),
-    "shaper_max_power": SensorEntityDescription(
+    "shaper_max_power": OpenEVSESensorEntityDescription(
         name="Shaper Max Power",
         key="shaper_max_power",
         icon="mdi:flash",
@@ -306,7 +306,7 @@ SENSOR_TYPES: Final[dict[str, SensorEntityDescription]] = {
         device_class=SensorDeviceClass.POWER,
         entity_registry_enabled_default=False,
     ),
-    "vehicle_soc": SensorEntityDescription(
+    "vehicle_soc": OpenEVSESensorEntityDescription(
         name="Vehicle Battery Level",
         key="vehicle_soc",
         icon="mdi:battery",
@@ -315,7 +315,7 @@ SENSOR_TYPES: Final[dict[str, SensorEntityDescription]] = {
         state_class=SensorStateClass.MEASUREMENT,
         entity_registry_enabled_default=False,
     ),
-    "vehicle_range": SensorEntityDescription(
+    "vehicle_range": OpenEVSESensorEntityDescription(
         name="Vehicle Range",
         key="vehicle_range",
         icon="mdi:ev-station",
@@ -323,7 +323,7 @@ SENSOR_TYPES: Final[dict[str, SensorEntityDescription]] = {
         device_class=SensorDeviceClass.DISTANCE,
         entity_registry_enabled_default=False,
     ),
-    "vehicle_eta": SensorEntityDescription(
+    "vehicle_eta": OpenEVSESensorEntityDescription(
         name="Vehicle Charge Completion",
         key="vehicle_eta",
         icon="mdi:car-electric",
@@ -331,14 +331,14 @@ SENSOR_TYPES: Final[dict[str, SensorEntityDescription]] = {
         state_class=SensorStateClass.MEASUREMENT,
         entity_registry_enabled_default=False,
     ),
-    "vehicle_eta_timestamp": SensorEntityDescription(
+    "vehicle_eta_timestamp": OpenEVSESensorEntityDescription(
         name="Vehicle Charge Completion Time",
         key="vehicle_eta",
         icon="mdi:car-electric",
         device_class=SensorDeviceClass.TIMESTAMP,
         entity_registry_enabled_default=False,
     ),
-    "total_day": SensorEntityDescription(
+    "total_day": OpenEVSESensorEntityDescription(
         key="total_day",
         name="Usage (Today)",
         native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
@@ -346,7 +346,7 @@ SENSOR_TYPES: Final[dict[str, SensorEntityDescription]] = {
         device_class=SensorDeviceClass.ENERGY,
         entity_registry_enabled_default=False,
     ),
-    "total_week": SensorEntityDescription(
+    "total_week": OpenEVSESensorEntityDescription(
         key="total_week",
         name="Usage (Week)",
         native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
@@ -354,7 +354,7 @@ SENSOR_TYPES: Final[dict[str, SensorEntityDescription]] = {
         device_class=SensorDeviceClass.ENERGY,
         entity_registry_enabled_default=False,
     ),
-    "total_month": SensorEntityDescription(
+    "total_month": OpenEVSESensorEntityDescription(
         key="total_month",
         name="Usage (Month)",
         native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
@@ -362,7 +362,7 @@ SENSOR_TYPES: Final[dict[str, SensorEntityDescription]] = {
         device_class=SensorDeviceClass.ENERGY,
         entity_registry_enabled_default=False,
     ),
-    "total_year": SensorEntityDescription(
+    "total_year": OpenEVSESensorEntityDescription(
         key="total_year",
         name="Usage (Year)",
         native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
@@ -370,13 +370,20 @@ SENSOR_TYPES: Final[dict[str, SensorEntityDescription]] = {
         device_class=SensorDeviceClass.ENERGY,
         entity_registry_enabled_default=False,
     ),
-    "max_current": SensorEntityDescription(
+    "max_current": OpenEVSESensorEntityDescription(
         key="max_current",
         name="Max Current",
         native_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
         device_class=SensorDeviceClass.CURRENT,
         state_class=SensorStateClass.MEASUREMENT,
         entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+    "override_state": OpenEVSESensorEntityDescription(
+        key="override_state",
+        name="Override State",
+        entity_category=EntityCategory.DIAGNOSTIC,
+        is_async_value=True,
+        value="async_override_state",
     ),
 }
 

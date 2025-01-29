@@ -1,5 +1,6 @@
 """Test openevse sensors."""
 
+import json
 from datetime import timedelta
 from unittest.mock import patch
 
@@ -20,10 +21,15 @@ from .const import CONFIG_DATA
 pytestmark = pytest.mark.asyncio
 
 CHARGER_NAME = "openevse"
+TEST_URL_OVERRIDE = "http://openevse.test.tld/override"
 
 
 async def test_sensors(
-    hass, test_charger, mock_ws_start, entity_registry: er.EntityRegistry
+    hass,
+    test_charger,
+    mock_ws_start,
+    mock_aioclient,
+    entity_registry: er.EntityRegistry,
 ):
     """Test setup_entry."""
     entry = MockConfigEntry(
@@ -37,7 +43,7 @@ async def test_sensors(
     await hass.async_block_till_done()
 
     assert len(hass.states.async_entity_ids(BINARY_SENSOR_DOMAIN)) == 4
-    assert len(hass.states.async_entity_ids(SENSOR_DOMAIN)) == 21
+    assert len(hass.states.async_entity_ids(SENSOR_DOMAIN)) == 22
     assert len(hass.states.async_entity_ids(SWITCH_DOMAIN)) == 4
     assert len(hass.states.async_entity_ids(SELECT_DOMAIN)) == 2
     assert len(hass.states.async_entity_ids(NUMBER_DOMAIN)) == 1
@@ -58,6 +64,10 @@ async def test_sensors(
     state = hass.states.get("sensor.openevse_max_current")
     assert state
     assert state.state == "48"
+
+    state = hass.states.get("sensor.openevse_override_state")
+    assert state
+    assert state.state == "auto"
 
     # enable disabled sensor
     entity_id = "sensor.openevse_vehicle_charge_completion_time"

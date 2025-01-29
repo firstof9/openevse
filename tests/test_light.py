@@ -42,7 +42,7 @@ async def test_light(
     await hass.async_block_till_done()
 
     assert len(hass.states.async_entity_ids(BINARY_SENSOR_DOMAIN)) == 4
-    assert len(hass.states.async_entity_ids(SENSOR_DOMAIN)) == 21
+    assert len(hass.states.async_entity_ids(SENSOR_DOMAIN)) == 22
     assert len(hass.states.async_entity_ids(SWITCH_DOMAIN)) == 4
     assert len(hass.states.async_entity_ids(SELECT_DOMAIN)) == 2
     assert len(hass.states.async_entity_ids(NUMBER_DOMAIN)) == 1

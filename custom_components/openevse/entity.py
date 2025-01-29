@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from homeassistant.components.light import LightEntityDescription
 from homeassistant.components.number import NumberEntityDescription
 from homeassistant.components.select import SelectEntityDescription
+from homeassistant.components.sensor import SensorEntityDescription
 from homeassistant.components.switch import SwitchEntityDescription
 
 
@@ -44,3 +45,11 @@ class OpenEVSELightEntityDescription(LightEntityDescription):
     """Class describing OpenEVSE light entities."""
 
     command: str | None = None
+
+
+@dataclass
+class OpenEVSESensorEntityDescription(SensorEntityDescription):
+    """Class describing OpenEVSE sensor entities."""
+
+    is_async_value: bool | None = False
+    value: int | None = None

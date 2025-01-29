@@ -359,6 +359,8 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
         data = {}
         for sensor in SENSOR_TYPES:  # pylint: disable=consider-using-dict-items
             _sensor = {}
+            if SENSOR_TYPES[sensor].is_async_value:
+                continue
             try:
                 sensor_property = SENSOR_TYPES[sensor].key
                 _sensor[sensor] = getattr(self._manager, sensor_property)
@@ -496,6 +498,27 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
                 _LOGGER.info(
                     "Could not update status for %s",
                     number,
+                )
+            data.update(_sensor)
+        for sensor in SENSOR_TYPES:  # pylint: disable=consider-using-dict-items
+            _sensor = {}
+            if not SENSOR_TYPES[sensor].is_async_value:
+                continue
+            try:
+                sensor_property = SENSOR_TYPES[sensor].key
+                sensor_value = SENSOR_TYPES[sensor].value
+                # Data can be sent as boolean or as 1/0
+                _sensor[sensor] = await getattr(self._manager, sensor_value)
+                _LOGGER.debug(
+                    "number: %s sensor_property: %s value %s",
+                    sensor,
+                    sensor_property,
+                    _sensor[sensor],
+                )
+            except (ValueError, KeyError):
+                _LOGGER.info(
+                    "Could not update status for %s",
+                    sensor,
                 )
             data.update(_sensor)
         _LOGGER.debug("DEBUG: %s", data)
