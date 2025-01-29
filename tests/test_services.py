@@ -41,7 +41,7 @@ TEST_URL_OVERRIDE = "http://openevse.test.tld/override"
 
 async def test_list_claims(
     hass,
-    test_charger,
+    test_charger_services,
     mock_aioclient,
     mock_ws_start,
     entity_registry: er.EntityRegistry,
@@ -57,6 +57,12 @@ async def test_list_claims(
         TEST_URL_CLAIMS,
         status=200,
         body='[{"client": 4, "priority": 500, "state": "disabled", "auto_release": true}, {"client": 65538, "priority": 50, "state": "active", "charge_current": 7, "auto_release": false}]',
+        repeat=True,
+    )
+    mock_aioclient.get(
+        TEST_URL_OVERRIDE,
+        status=200,
+        body="{}",
         repeat=True,
     )
     entry.add_to_hass(hass)
@@ -95,7 +101,7 @@ async def test_list_claims(
 
 async def test_make_claim(
     hass,
-    test_charger,
+    test_charger_services,
     mock_aioclient,
     mock_ws_start,
     entity_registry: er.EntityRegistry,
@@ -111,6 +117,12 @@ async def test_make_claim(
         f"{TEST_URL_CLAIMS}/20",
         status=200,
         body='[{"msg":"done"}]',
+        repeat=True,
+    )
+    mock_aioclient.get(
+        TEST_URL_OVERRIDE,
+        status=200,
+        body="{}",
         repeat=True,
     )
     entry.add_to_hass(hass)
@@ -137,7 +149,7 @@ async def test_make_claim(
 
 async def test_release_claim(
     hass,
-    test_charger,
+    test_charger_services,
     mock_aioclient,
     mock_ws_start,
     entity_registry: er.EntityRegistry,
@@ -153,6 +165,12 @@ async def test_release_claim(
         f"{TEST_URL_CLAIMS}/20",
         status=200,
         body='[{"msg":"done"}]',
+        repeat=True,
+    )
+    mock_aioclient.get(
+        TEST_URL_OVERRIDE,
+        status=200,
+        body="{}",
         repeat=True,
     )
     entry.add_to_hass(hass)
@@ -176,7 +194,7 @@ async def test_release_claim(
 
 async def test_get_limit(
     hass,
-    test_charger,
+    test_charger_services,
     mock_aioclient,
     mock_ws_start,
     entity_registry: er.EntityRegistry,
@@ -192,6 +210,12 @@ async def test_get_limit(
         TEST_URL_LIMIT,
         status=200,
         body='{"type": "energy", "value": 10}',
+    )
+    mock_aioclient.get(
+        TEST_URL_OVERRIDE,
+        status=200,
+        body="{}",
+        repeat=True,
     )
     entry.add_to_hass(hass)
     assert await hass.config_entries.async_setup(entry.entry_id)
@@ -215,7 +239,7 @@ async def test_get_limit(
 
 async def test_clear_limit(
     hass,
-    test_charger,
+    test_charger_services,
     mock_aioclient,
     mock_ws_start,
     entity_registry: er.EntityRegistry,
@@ -231,6 +255,12 @@ async def test_clear_limit(
         TEST_URL_LIMIT,
         status=200,
         body='{"msg": "Deleted"}',
+    )
+    mock_aioclient.get(
+        TEST_URL_OVERRIDE,
+        status=200,
+        body="{}",
+        repeat=True,
     )
     entry.add_to_hass(hass)
     assert await hass.config_entries.async_setup(entry.entry_id)
@@ -253,7 +283,7 @@ async def test_clear_limit(
 
 async def test_set_limit(
     hass,
-    test_charger,
+    test_charger_services,
     mock_aioclient,
     mock_ws_start,
     entity_registry: er.EntityRegistry,
@@ -269,6 +299,12 @@ async def test_set_limit(
         TEST_URL_LIMIT,
         status=200,
         body='{"msg": "OK"}',
+        repeat=True,
+    )
+    mock_aioclient.get(
+        TEST_URL_OVERRIDE,
+        status=200,
+        body="{}",
         repeat=True,
     )
     entry.add_to_hass(hass)
@@ -296,7 +332,7 @@ async def test_set_limit(
 
 async def test_clear_override(
     hass,
-    test_charger,
+    test_charger_services,
     mock_aioclient,
     mock_ws_start,
     entity_registry: er.EntityRegistry,
@@ -312,6 +348,12 @@ async def test_clear_override(
         TEST_URL_OVERRIDE,
         status=200,
         body='{"msg": "OK"}',
+    )
+    mock_aioclient.get(
+        TEST_URL_OVERRIDE,
+        status=200,
+        body="{}",
+        repeat=True,
     )
     entry.add_to_hass(hass)
     assert await hass.config_entries.async_setup(entry.entry_id)
@@ -334,7 +376,7 @@ async def test_clear_override(
 
 async def test_list_overrides(
     hass,
-    test_charger,
+    test_charger_services,
     mock_aioclient,
     mock_ws_start,
     entity_registry: er.EntityRegistry,
@@ -382,7 +424,7 @@ async def test_list_overrides(
 
 async def test_set_override(
     hass,
-    test_charger,
+    test_charger_services,
     mock_aioclient,
     mock_ws_start,
     entity_registry: er.EntityRegistry,
@@ -398,6 +440,12 @@ async def test_set_override(
         TEST_URL_OVERRIDE,
         status=200,
         body='{"msg": "OK"}',
+    )
+    mock_aioclient.get(
+        TEST_URL_OVERRIDE,
+        status=200,
+        body="{}",
+        repeat=True,
     )
     entry.add_to_hass(hass)
     assert await hass.config_entries.async_setup(entry.entry_id)
