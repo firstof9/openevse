@@ -12,7 +12,6 @@ from homeassistant.components.button import ButtonDeviceClass, ButtonEntityDescr
 from homeassistant.components.number import NumberDeviceClass, NumberMode
 from homeassistant.components.sensor import (
     SensorDeviceClass,
-    SensorEntityDescription,
     SensorStateClass,
 )
 from homeassistant.components.switch import SwitchDeviceClass
