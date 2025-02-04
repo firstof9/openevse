@@ -199,7 +199,10 @@ class OpenEVSEServices:
 
             config_id = list(device_entry.connections)[0][1]
             _LOGGER.debug("Config ID: %s", config_id)
-            manager = self.hass.data[DOMAIN][config_id][MANAGER]
+            try:
+                manager = self.hass.data[DOMAIN][config_id][MANAGER]
+            except KeyError as err:
+                _LOGGER.error("Error locating configuration: %s", err)
 
             if ATTR_STATE in data:
                 state = data[ATTR_STATE]
@@ -253,7 +256,10 @@ class OpenEVSEServices:
 
             config_id = list(device_entry.connections)[0][1]
             _LOGGER.debug("Config ID: %s Type: %s", config_id, type(config_id))
-            manager = self.hass.data[DOMAIN][config_id][MANAGER]
+            try:
+                manager = self.hass.data[DOMAIN][config_id][MANAGER]
+            except KeyError as err:
+                _LOGGER.error("Error locating configuration: %s", err)
 
             await manager.clear_override()
             _LOGGER.debug("Override clear command sent.")
@@ -274,7 +280,10 @@ class OpenEVSEServices:
 
             config_id = list(device_entry.connections)[0][1]
             _LOGGER.debug("Config ID: %s", config_id)
-            manager = self.hass.data[DOMAIN][config_id][MANAGER]
+            try:
+                manager = self.hass.data[DOMAIN][config_id][MANAGER]
+            except KeyError as err:
+                _LOGGER.error("Error locating configuration: %s", err)
 
             limit_type = data[ATTR_TYPE]
             value = data[ATTR_VALUE]
@@ -308,7 +317,10 @@ class OpenEVSEServices:
 
             config_id = list(device_entry.connections)[0][1]
             _LOGGER.debug("Config ID: %s Type: %s", config_id, type(config_id))
-            manager = self.hass.data[DOMAIN][config_id][MANAGER]
+            try:
+                manager = self.hass.data[DOMAIN][config_id][MANAGER]
+            except KeyError as err:
+                _LOGGER.error("Error locating configuration: %s", err)
 
             await manager.clear_limit()
             _LOGGER.debug("Limit clear command sent.")
@@ -330,7 +342,10 @@ class OpenEVSEServices:
 
             config_id = list(device_entry.connections)[0][1]
             _LOGGER.debug("Config ID: %s Type: %s", config_id, type(config_id))
-            manager = self.hass.data[DOMAIN][config_id][MANAGER]
+            try:
+                manager = self.hass.data[DOMAIN][config_id][MANAGER]
+            except KeyError as err:
+                _LOGGER.error("Error locating configuration: %s", err)
 
             response = await manager.get_limit()
             _LOGGER.debug("Get limit response %s.", response)
@@ -352,7 +367,10 @@ class OpenEVSEServices:
 
             config_id = list(device_entry.connections)[0][1]
             _LOGGER.debug("Config ID: %s", config_id)
-            manager = self.hass.data[DOMAIN][config_id][MANAGER]
+            try:
+                manager = self.hass.data[DOMAIN][config_id][MANAGER]
+            except KeyError as err:
+                _LOGGER.error("Error locating configuration: %s", err)
 
             if ATTR_STATE in data:
                 state = data[ATTR_STATE]
@@ -396,7 +414,10 @@ class OpenEVSEServices:
 
             config_id = list(device_entry.connections)[0][1]
             _LOGGER.debug("Config ID: %s Type: %s", config_id, type(config_id))
-            manager = self.hass.data[DOMAIN][config_id][MANAGER]
+            try:
+                manager = self.hass.data[DOMAIN][config_id][MANAGER]
+            except KeyError as err:
+                _LOGGER.error("Error locating configuration: %s", err)
 
             await manager.release_claim()
             _LOGGER.debug("Release claim command sent.")
@@ -418,7 +439,10 @@ class OpenEVSEServices:
 
             config_id = list(device_entry.connections)[0][1]
             _LOGGER.debug("Config ID: %s Type: %s", config_id, type(config_id))
-            manager = self.hass.data[DOMAIN][config_id][MANAGER]
+            try:
+                manager = self.hass.data[DOMAIN][config_id][MANAGER]
+            except KeyError as err:
+                _LOGGER.error("Error locating configuration: %s", err)
 
             response = await manager.list_claims()
             _LOGGER.debug("List claims response %s.", response)
@@ -447,7 +471,10 @@ class OpenEVSEServices:
 
             config_id = list(device_entry.connections)[0][1]
             _LOGGER.debug("Config ID: %s Type: %s", config_id, type(config_id))
-            manager = self.hass.data[DOMAIN][config_id][MANAGER]
+            try:
+                manager = self.hass.data[DOMAIN][config_id][MANAGER]
+            except KeyError as err:
+                _LOGGER.error("Error locating configuration: %s", err)
 
             response = await manager.get_override()
             _LOGGER.debug("List overrides response %s.", response)
