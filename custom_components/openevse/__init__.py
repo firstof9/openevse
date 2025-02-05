@@ -351,7 +351,11 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
         _LOGGER.debug("Websocket update!")
         self.parse_sensors()
         await self.async_parse_sensors()
-        coordinator = self.hass.data[DOMAIN][self.config.entry_id][COORDINATOR]
+        try:
+            coordinator = self.hass.data[DOMAIN][self.config.entry_id][COORDINATOR]
+        except KeyError as err:
+            _LOGGER.error("Error locating configuration: %s", err)
+
         coordinator.async_set_updated_data(self._data)
 
     def parse_sensors(self) -> None:
