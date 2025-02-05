@@ -493,6 +493,12 @@ BINARY_SENSORS: Final[dict[str, BinarySensorEntityDescription]] = {
         entity_category=EntityCategory.DIAGNOSTIC,
         entity_registry_enabled_default=False,
     ),
+    "shaper_updated": BinarySensorEntityDescription(
+        name="Shaper Updated",
+        key="shaper_updated",
+        entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=False,
+    ),
 }
 
 BUTTON_TYPES: Final[dict[str, ButtonEntityDescription]] = {

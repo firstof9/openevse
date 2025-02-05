@@ -357,7 +357,6 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
         except KeyError as err:
             _LOGGER.error("Error locating configuration: %s", err)
 
-
     def parse_sensors(self) -> None:
         """Parse updated sensor data."""
         data = {}
