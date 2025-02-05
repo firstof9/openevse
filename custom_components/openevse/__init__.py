@@ -146,19 +146,19 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
     coordinator = OpenEVSEUpdateCoordinator(hass, interval, config_entry, manager)
     fw_coordinator = OpenEVSEFirmwareCheck(hass, 86400, config_entry, manager)
 
-    # Fetch initial data so we have data when entities subscribe
-    await coordinator.async_refresh()
-    await fw_coordinator.async_refresh()
-
-    if not coordinator.last_update_success:
-        raise ConfigEntryNotReady
-
     hass.data[DOMAIN][config_entry.entry_id] = {
         COORDINATOR: coordinator,
         MANAGER: manager,
         FW_COORDINATOR: fw_coordinator,
         UNSUB_LISTENERS: [],
     }
+
+    # Fetch initial data so we have data when entities subscribe
+    await coordinator.async_refresh()
+    await fw_coordinator.async_refresh()
+
+    if not coordinator.last_update_success:
+        raise ConfigEntryNotReady
 
     model_info, sw_version = await get_firmware(manager)
 
@@ -353,10 +353,10 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
         await self.async_parse_sensors()
         try:
             coordinator = self.hass.data[DOMAIN][self.config.entry_id][COORDINATOR]
+            coordinator.async_set_updated_data(self._data)
         except KeyError as err:
             _LOGGER.error("Error locating configuration: %s", err)
 
-        coordinator.async_set_updated_data(self._data)
 
     def parse_sensors(self) -> None:
         """Parse updated sensor data."""
