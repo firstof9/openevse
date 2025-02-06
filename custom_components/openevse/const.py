@@ -289,9 +289,9 @@ SENSOR_TYPES: Final[dict[str, OpenEVSESensorEntityDescription]] = {
         device_class=SensorDeviceClass.POWER,
         entity_registry_enabled_default=False,
     ),
-    "shaper_current": OpenEVSESensorEntityDescription(
-        name="Shaper Current",
-        key="shaper_current_power",
+    "shaper_available_current": OpenEVSESensorEntityDescription(
+        name="Shaper Current Available",
+        key="shaper_available_current",
         icon="mdi:flash",
         native_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
         device_class=SensorDeviceClass.CURRENT,
