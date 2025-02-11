@@ -142,7 +142,7 @@ async def test_setup_entry_state_change_timeout(
     hass.states.async_set(grid_entity, "-200")
     await hass.async_block_till_done()
 
-    assert "Self-production response: {'msg': 'Timeout while updating'}" in caplog.text
+    assert "Timeout error connecting to device: , please check your network connection." in caplog.text
 
 
 async def test_setup_entry_state_change_2(hass, test_charger, mock_ws_start, caplog):
@@ -206,8 +206,8 @@ async def test_setup_entry_state_change_2_bad_post(
 
     hass.states.async_set(solar_entity, "2317")
     await hass.async_block_till_done()
-    assert "Self-production response: {'msg': 'Timeout while updating'}" in caplog.text
+    assert "Timeout error connecting to device: , please check your network connection." in caplog.text
 
     hass.states.async_set(voltage_entity, "113")
     await hass.async_block_till_done()
-    assert "Self-production response: {'msg': 'Timeout while updating'}" in caplog.text
+    assert "Timeout error connecting to device: , please check your network connection." in caplog.text
