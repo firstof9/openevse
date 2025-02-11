@@ -181,7 +181,6 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
         configuration_url=manager.url,
     )
 
-    await coordinator.async_refresh()
     await hass.config_entries.async_forward_entry_setups(config_entry, PLATFORMS)
 
     services = OpenEVSEServices(hass, config_entry)

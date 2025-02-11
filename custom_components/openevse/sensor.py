@@ -19,6 +19,15 @@ from .const import CONF_NAME, COORDINATOR, DOMAIN, SENSOR_TYPES
 
 _LOGGER = logging.getLogger(__name__)
 
+icon = {
+    "unknown": "mdi:help",
+    "not connected": "mdi:power-plug-off",
+    "connected": "mdi:power-plug",
+    "charging": "mdi:battery-charging",
+    "sleeping": "mdi:sleep",
+    "disabled": "mdi:car-off",
+}
+
 
 async def async_setup_entry(hass, entry, async_add_entities):
     """Set up the OpenEVSE sensors."""
@@ -122,18 +131,9 @@ class OpenEVSESensor(CoordinatorEntity, SensorEntity):
 
     def update_icon(self) -> None:
         """Update status icon based on state."""
+        data = self.coordinator.data
         if self._type == "state":
-            if self._state == "unknown":
-                self._icon = "mdi:help"
-            elif self._state == "not connected":
-                self._icon = "mdi:power-plug-off"
-            elif self._state == "connected":
-                self._icon = "mdi:power-plug"
-            elif self._state == "charging":
-                self._icon = "mdi:battery-charging"
-            elif self._state == "sleeping":
-                self._icon = "mdi:sleep"
-            elif self._state == "disabled":
-                self._icon = "mdi:car-off"
+            if data[self._type] in icon:
+                self._icon = icon[data[self._type]]
             else:
                 self._icon = "mdi:alert-octagon"
