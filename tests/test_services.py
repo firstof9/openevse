@@ -307,7 +307,7 @@ async def test_set_limit(
         status=200,
         body='{"type": "energy", "value": 10}',
         repeat=True,
-    )    
+    )
     mock_aioclient.get(
         TEST_URL_OVERRIDE,
         status=200,
