@@ -72,7 +72,7 @@ async def test_sensors(
         assert state.state == "auto"
 
         state = hass.states.get("sensor.openevse_charging_status")
-        assert state    
+        assert state
         assert state.attributes.get("icon") == "mdi:sleep"
 
         # enable disabled sensor
