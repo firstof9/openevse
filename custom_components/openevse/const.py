@@ -96,7 +96,7 @@ ATTR_VALUE = "value"
 
 SERVICE_LEVELS = ["1", "2", "A"]
 DIVERT_MODE = ["fast", "eco"]
-OVERRIDE_STATE = ["active", "auto", "disable"]
+OVERRIDE_STATE = ["active", "auto", "disabled"]
 
 # Name, unit of measure, property, icon, device class, state class
 SENSOR_TYPES: Final[dict[str, OpenEVSESensorEntityDescription]] = {

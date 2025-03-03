@@ -6,27 +6,15 @@ from unittest.mock import patch
 
 import pytest
 from homeassistant.components.binary_sensor import DOMAIN as BINARY_SENSOR_DOMAIN
-from homeassistant.components.select import DOMAIN as SELECT_DOMAIN
+from homeassistant.components.select import DOMAIN as SELECT_DOMAIN, SERVICE_SELECT_OPTION
 from homeassistant.components.sensor import DOMAIN as SENSOR_DOMAIN
 from homeassistant.components.switch import DOMAIN as SWITCH_DOMAIN
 from homeassistant.helpers import entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.openevse.const import (
-    ATTR_DEVICE_ID,
-    ATTR_STATE,
-    ATTR_TYPE,
-    ATTR_VALUE,
+    COORDINATOR,
     DOMAIN,
-    SERVICE_CLEAR_LIMIT,
-    SERVICE_CLEAR_OVERRIDE,
-    SERVICE_GET_LIMIT,
-    SERVICE_LIST_CLAIMS,
-    SERVICE_LIST_OVERRIDES,
-    SERVICE_MAKE_CLAIM,
-    SERVICE_RELEASE_CLAIM,
-    SERVICE_SET_LIMIT,
-    SERVICE_SET_OVERRIDE,
 )
 
 from .const import CONFIG_DATA
@@ -64,3 +52,23 @@ async def test_select(
     state = hass.states.get(entity_id)
     assert state
     assert state.state == "auto"
+
+    servicedata = {
+        "entity_id": entity_id,
+        "option": "disabled",
+    }
+
+    await hass.services.async_call(
+        SELECT_DOMAIN, SERVICE_SELECT_OPTION, servicedata, blocking=True
+    )
+    await hass.async_block_till_done()
+
+    coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
+    coordinator._data["override_state"] = "disabled"
+    updated_data = coordinator._data
+    coordinator.async_set_updated_data(updated_data)
+    await hass.async_block_till_done()    
+
+    state = hass.states.get(entity_id)
+    assert state
+    assert state.state == "disabled"
