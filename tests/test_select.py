@@ -75,3 +75,43 @@ async def test_select(
     state = hass.states.get(entity_id)
     assert state
     assert state.state == "disabled"
+
+    servicedata = {
+        "entity_id": entity_id,
+        "option": "auto",
+    }
+
+    await hass.services.async_call(
+        SELECT_DOMAIN, SERVICE_SELECT_OPTION, servicedata, blocking=True
+    )
+    await hass.async_block_till_done()
+
+    coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
+    coordinator._data["override_state"] = "auto"
+    updated_data = coordinator._data
+    coordinator.async_set_updated_data(updated_data)
+    await hass.async_block_till_done()
+
+    state = hass.states.get(entity_id)
+    assert state
+    assert state.state == "auto"
+
+    servicedata = {
+        "entity_id": entity_id,
+        "option": "active",
+    }
+
+    await hass.services.async_call(
+        SELECT_DOMAIN, SERVICE_SELECT_OPTION, servicedata, blocking=True
+    )
+    await hass.async_block_till_done()
+
+    coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
+    coordinator._data["override_state"] = "active"
+    updated_data = coordinator._data
+    coordinator.async_set_updated_data(updated_data)
+    await hass.async_block_till_done()
+
+    state = hass.states.get(entity_id)
+    assert state
+    assert state.state == "active"
