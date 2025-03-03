@@ -6,7 +6,10 @@ from unittest.mock import patch
 
 import pytest
 from homeassistant.components.binary_sensor import DOMAIN as BINARY_SENSOR_DOMAIN
-from homeassistant.components.select import DOMAIN as SELECT_DOMAIN, SERVICE_SELECT_OPTION
+from homeassistant.components.select import (
+    DOMAIN as SELECT_DOMAIN,
+    SERVICE_SELECT_OPTION,
+)
 from homeassistant.components.sensor import DOMAIN as SENSOR_DOMAIN
 from homeassistant.components.switch import DOMAIN as SWITCH_DOMAIN
 from homeassistant.helpers import entity_registry as er
@@ -67,7 +70,7 @@ async def test_select(
     coordinator._data["override_state"] = "disabled"
     updated_data = coordinator._data
     coordinator.async_set_updated_data(updated_data)
-    await hass.async_block_till_done()    
+    await hass.async_block_till_done()
 
     state = hass.states.get(entity_id)
     assert state
