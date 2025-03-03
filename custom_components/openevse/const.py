@@ -96,6 +96,7 @@ ATTR_VALUE = "value"
 
 SERVICE_LEVELS = ["1", "2", "A"]
 DIVERT_MODE = ["fast", "eco"]
+OVERRIDE_STATE = ["active", "auto", "disable"]
 
 # Name, unit of measure, property, icon, device class, state class
 SENSOR_TYPES: Final[dict[str, OpenEVSESensorEntityDescription]] = {
@@ -441,6 +442,14 @@ SELECT_TYPES: Final[dict[str, OpenEVSESelectEntityDescription]] = {
         default_options=DIVERT_MODE,
         command="set_charge_mode",
         entity_category=EntityCategory.CONFIG,
+    ),
+    "override_state": OpenEVSESelectEntityDescription(
+        key="override_state",
+        name="Override State",
+        entity_category=EntityCategory.CONFIG,
+        default_options=OVERRIDE_STATE,
+        is_async_value=True,
+        value="async_override_state",
     ),
 }
 
