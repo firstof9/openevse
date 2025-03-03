@@ -31,7 +31,12 @@ TEST_URL_OVERRIDE = "http://openevse.test.tld/override"
 
 
 async def test_select(
-    hass, test_charger, mock_ws_start, entity_registry: er.EntityRegistry, caplog
+    hass,
+    test_charger,
+    mock_ws_start,
+    mock_aioclient,
+    entity_registry: er.EntityRegistry,
+    caplog,
 ):
     """Test setup_entry."""
     entry = MockConfigEntry(
@@ -75,6 +80,12 @@ async def test_select(
     state = hass.states.get(entity_id)
     assert state
     assert state.state == "disabled"
+
+    mock_aioclient.delete(
+        TEST_URL_OVERRIDE,
+        status=200,
+        body='{"msg": "OK"}',
+    )
 
     servicedata = {
         "entity_id": entity_id,
