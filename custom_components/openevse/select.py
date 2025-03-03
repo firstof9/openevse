@@ -85,13 +85,13 @@ class OpenEVSESelect(CoordinatorEntity, SelectEntity):
         charger = self._manager
 
         if self._type == "override_state":
-            if option == "Active":
+            if option == "active":
                 response = await charger.set_override(state=option.lower())
                 _LOGGER.debug("Select Active response: %s", response)
-            elif option == "Auto":
+            elif option == "auto":
                 response = await charger.clear_override()
                 _LOGGER.debug("Select Auto response: %s", response)
-            elif option == "Disable":
+            elif option == "disabled":
                 response = await charger.set_override(state=option.lower())
                 _LOGGER.debug("Select Disable response: %s", response)
             return None
