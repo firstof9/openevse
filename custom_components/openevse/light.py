@@ -40,9 +40,10 @@ async def async_setup_entry(
     entities: list[LightEntity] = []
 
     for light in LIGHT_TYPES:  # pylint: disable=consider-using-dict-items
-        entities.append(
-            OpenEVSELight(config_entry, coordinator, LIGHT_TYPES[light], manager)
-        )
+        if LIGHT_TYPES[light].key in coordinator.data:
+            entities.append(
+                OpenEVSELight(config_entry, coordinator, LIGHT_TYPES[light], manager)
+            )
     async_add_entities(entities)
 
 
