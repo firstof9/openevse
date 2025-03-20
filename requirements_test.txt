@@ -5,7 +5,7 @@ flake8==7.1.2
 mypy==1.15.0
 pydocstyle==6.3.0
 isort
-pylint==3.3.4
+pylint==3.3.6
 tox==4.24.2
 aioresponses
 pytest
