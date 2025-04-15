@@ -28,6 +28,7 @@ CHARGER_NAME = "openevse"
 TEST_URL_CLAIMS = "http://openevse.test.tld/claims"
 TEST_URL_LIMIT = "http://openevse.test.tld/limit"
 TEST_URL_OVERRIDE = "http://openevse.test.tld/override"
+TEST_URL_DIVERT = "http://openevse.test.tld/divertmode"
 
 
 async def test_select(
@@ -49,7 +50,7 @@ async def test_select(
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
 
-    assert len(hass.states.async_entity_ids(SELECT_DOMAIN)) == 3
+    assert len(hass.states.async_entity_ids(SELECT_DOMAIN)) == 4
     entries = hass.config_entries.async_entries(DOMAIN)
     assert len(entries) == 1
 
@@ -126,3 +127,34 @@ async def test_select(
     state = hass.states.get(entity_id)
     assert state
     assert state.state == "active"
+
+    entity_id = "select.openevse_divert_mode"
+    state = hass.states.get(entity_id)
+    assert state
+    assert state.state == "eco"
+
+    value = "Divert Mode changed"
+    mock_aioclient.get(
+        TEST_URL_DIVERT,
+        status=200,
+        body=value,
+    )
+
+    servicedata = {
+        "entity_id": entity_id,
+        "option": "fast",
+    }
+    await hass.services.async_call(
+        SELECT_DOMAIN, SERVICE_SELECT_OPTION, servicedata, blocking=True
+    )
+    await hass.async_block_till_done()
+
+    coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
+    coordinator._data["divertmode"] = "fast"
+    updated_data = coordinator._data
+    coordinator.async_set_updated_data(updated_data)
+    await hass.async_block_till_done()
+
+    state = hass.states.get(entity_id)
+    assert state
+    assert state.state == "fast"
