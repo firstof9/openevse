@@ -134,7 +134,7 @@ async def test_select(
     assert state.state == "eco"
 
     value = "Divert Mode changed"
-    mock_aioclient.get(
+    mock_aioclient.post(
         TEST_URL_DIVERT,
         status=200,
         body=value,
