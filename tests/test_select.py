@@ -50,7 +50,7 @@ async def test_select(
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
 
-    assert len(hass.states.async_entity_ids(SELECT_DOMAIN)) == 4
+    assert len(hass.states.async_entity_ids(SELECT_DOMAIN)) == 3
     entries = hass.config_entries.async_entries(DOMAIN)
     assert len(entries) == 1
 

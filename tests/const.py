@@ -79,7 +79,6 @@ DIAG_CONFIG_DATA = {
 DIAG_DEVICE_RESULTS = {
     "ambient_temperature": 50.3,
     "ammeter_scale_factor": 220,
-    "charge_mode": "eco",
     "charge_rate": 0,
     "charge_time_elapsed": 246,
     "charging_current": 32.2,
