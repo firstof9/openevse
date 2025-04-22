@@ -249,9 +249,9 @@ SENSOR_TYPES: Final[dict[str, OpenEVSESensorEntityDescription]] = {
         entity_category=EntityCategory.DIAGNOSTIC,
         entity_registry_enabled_default=False,
     ),
-    "charge_mode": OpenEVSESensorEntityDescription(
+    "divertmode": OpenEVSESensorEntityDescription(
         name="Divert Mode",
-        key="charge_mode",
+        key="divertmode",
         icon="mdi:solar-power",
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
@@ -419,13 +419,6 @@ SWITCH_TYPES: Final[dict[str, OpenEVSESwitchEntityDescription]] = {
 
 # Name, options, command, entity category
 SELECT_TYPES: Final[dict[str, OpenEVSESelectEntityDescription]] = {
-    # "service_level": OpenEVSESelectEntityDescription(
-    #     name="Service Level",
-    #     key="service_level",
-    #     default_options=SERVICE_LEVELS,
-    #     command="$SL",
-    #     entity_category=EntityCategory.CONFIG,
-    # ),
     "max_current_soft": OpenEVSESelectEntityDescription(
         name="Charge Rate",
         key="max_current_soft",
@@ -436,13 +429,6 @@ SELECT_TYPES: Final[dict[str, OpenEVSESelectEntityDescription]] = {
         is_async_value=True,
         value="async_charge_current",
     ),
-    "charge_mode": OpenEVSESelectEntityDescription(
-        name="Divert Mode",
-        key="charge_mode",
-        default_options=DIVERT_MODE,
-        command="set_charge_mode",
-        entity_category=EntityCategory.CONFIG,
-    ),
     "override_state": OpenEVSESelectEntityDescription(
         key="override_state",
         name="Override State",
@@ -450,6 +436,12 @@ SELECT_TYPES: Final[dict[str, OpenEVSESelectEntityDescription]] = {
         default_options=OVERRIDE_STATE,
         is_async_value=True,
         value="async_override_state",
+    ),
+    "divertmode": OpenEVSESelectEntityDescription(
+        name="Divert Mode",
+        key="divertmode",
+        default_options=DIVERT_MODE,
+        command="set_divert_mode",
     ),
 }
 

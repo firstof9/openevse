@@ -53,6 +53,11 @@ from .services import OpenEVSEServices
 
 _LOGGER = logging.getLogger(__name__)
 
+divert_mode = {
+    0: "eco",
+    1: "fast",
+}
+
 
 @callback
 async def handle_state_change(

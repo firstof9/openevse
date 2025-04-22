@@ -114,9 +114,9 @@ class OpenEVSESelect(CoordinatorEntity, SelectEntity):
     def available(self) -> bool:
         """Return if entity is available."""
         data = self.coordinator.data
-        attributes = ("charge_mode", "divert_active")
+        attributes = ("divertmode", "divert_active")
         if set(attributes).issubset(data.keys()) and self._type == "max_current_soft":
-            if data["divert_active"] and data["charge_mode"] == "eco":
+            if data["divert_active"] and data["divertmode"] == "eco":
                 _LOGGER.debug(
                     "Disabling %s due to PV Divert being active.", self._attr_name
                 )
