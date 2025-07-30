@@ -281,7 +281,13 @@ class OpenEVSEFirmwareCheck(DataUpdateCoordinator):
 
         _LOGGER.debug("Firmware data will be update every %s", self.interval)
 
-        super().__init__(hass, _LOGGER, name=self.name, update_interval=self.interval)
+        super().__init__(
+            hass,
+            _LOGGER,
+            config_entry=config,
+            name=self.name,
+            update_interval=self.interval,
+        )
 
     async def _async_update_data(self):
         """Return data."""
@@ -305,7 +311,13 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
 
         _LOGGER.debug("Data will be update every %s", self.interval)
 
-        super().__init__(hass, _LOGGER, name=self.name, update_interval=self.interval)
+        super().__init__(
+            hass,
+            _LOGGER,
+            config_entry=config,
+            name=self.name,
+            update_interval=self.interval,
+        )
 
     async def _async_update_data(self):
         """Return data."""
