@@ -111,11 +111,3 @@ class OpenEVSELight(CoordinatorEntity, LightEntity):
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Instruct the light to turn off."""
         await self.manager.set_led_brightness(DEFAULT_OFF)
-
-    @property
-    def available(self) -> bool:
-        """Return if entity is available."""
-        manager = self.hass.data[DOMAIN][self._unique_id][MANAGER]
-        if self._min_version and not manager.version_check(self._min_version):
-            return False
-        return True
