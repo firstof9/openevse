@@ -44,7 +44,7 @@ async def test_sensors(
         assert await hass.config_entries.async_setup(entry.entry_id)
         await hass.async_block_till_done()
 
-        assert len(hass.states.async_entity_ids(SENSOR_DOMAIN)) == 20
+        assert len(hass.states.async_entity_ids(SENSOR_DOMAIN)) == 22
         entries = hass.config_entries.async_entries(DOMAIN)
         assert len(entries) == 1
 
@@ -116,7 +116,7 @@ async def test_sensors_v2(
         assert await hass.config_entries.async_setup(entry.entry_id)
         await hass.async_block_till_done()
 
-        assert len(hass.states.async_entity_ids(SENSOR_DOMAIN)) == 20
+        assert len(hass.states.async_entity_ids(SENSOR_DOMAIN)) == 22
         entries = hass.config_entries.async_entries(DOMAIN)
         assert len(entries) == 1
 
@@ -142,3 +142,7 @@ async def test_sensors_v2(
         state = hass.states.get("sensor.openevse_charging_status")
         assert state
         assert state.attributes.get("icon") == "mdi:power-plug-off"
+
+        state = hass.states.get("sensor.openevse_override_state")
+        assert state
+        assert state.state == "unavailable"
