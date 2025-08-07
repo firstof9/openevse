@@ -221,6 +221,7 @@ async def test_setup_entry_state_change_2_bad_post(
         in caplog.text
     )
 
+
 async def test_setup_entry_v2(hass, test_charger_v2, mock_ws_start):
     """Test setup_entry."""
     entry = MockConfigEntry(

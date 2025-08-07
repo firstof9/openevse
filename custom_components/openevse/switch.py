@@ -90,7 +90,7 @@ class OpenEVSESwitch(CoordinatorEntity, SwitchEntity):
         if self._type == ATTR_STATE:
             return data[self._type] == SLEEP_STATE
         return cast(bool, data[self._type] == 1)
-    
+
     @property
     def available(self) -> bool:
         """Return if entity is available."""

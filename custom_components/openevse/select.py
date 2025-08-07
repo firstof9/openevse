@@ -124,7 +124,7 @@ class OpenEVSESelect(CoordinatorEntity, SelectEntity):
                 )
                 return False
         if self._min_version and not manager._version_check(self._min_version):
-            return False            
+            return False
         return self.coordinator.last_update_success
 
     def get_options(self) -> list[str]:

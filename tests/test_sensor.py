@@ -96,6 +96,7 @@ async def test_sensors(
             timespec="seconds"
         )
 
+
 async def test_sensors_v2(
     hass,
     test_charger_v2,

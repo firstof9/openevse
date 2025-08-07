@@ -378,7 +378,7 @@ def test_charger_v2(mock_aioclient):
     mock_aioclient.post(
         TEST_URL_OVERRIDE,
         status=404,
-        body='{}',
+        body="{}",
         repeat=True,
     )
     mock_aioclient.get(
@@ -390,7 +390,7 @@ def test_charger_v2(mock_aioclient):
     mock_aioclient.get(
         TEST_URL_CLAIMS_TARGET,
         status=404,
-        body='{}',
+        body="{}",
         repeat=True,
     )
     return main.OpenEVSE(TEST_TLD)
