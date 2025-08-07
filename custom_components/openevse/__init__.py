@@ -188,8 +188,10 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
 
     await hass.config_entries.async_forward_entry_setups(config_entry, PLATFORMS)
 
-    services = OpenEVSEServices(hass, config_entry)
-    services.async_register()
+    # Only register services if supported by firmware
+    if manager._version_check("4.1.0"):
+        services = OpenEVSEServices(hass, config_entry)
+        services.async_register()
 
     sensors = []
     if config_entry.data.get(CONF_GRID):

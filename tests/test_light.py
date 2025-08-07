@@ -92,3 +92,27 @@ async def test_light(
     mock_aioclient.assert_any_call(
         TEST_URL_CONFIG, method="POST", data={ATTR_BRIGHTNESS: 26}
     )
+
+
+async def test_light_v2(
+    hass,
+    test_charger_v2,
+    mock_ws_start,
+    mock_aioclient,
+):
+    """Test setup_entry."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA,
+    )
+
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    assert len(hass.states.async_entity_ids(LIGHT_DOMAIN)) == 0
+    entries = hass.config_entries.async_entries(DOMAIN)
+    assert len(entries) == 1
+
+    assert DOMAIN in hass.config.components

@@ -220,3 +220,22 @@ async def test_setup_entry_state_change_2_bad_post(
         "Timeout error connecting to device: , please check your network connection."
         in caplog.text
     )
+
+async def test_setup_entry_v2(hass, test_charger_v2, mock_ws_start):
+    """Test setup_entry."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA,
+    )
+
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    assert len(hass.states.async_entity_ids(BINARY_SENSOR_DOMAIN)) == 4
+    assert len(hass.states.async_entity_ids(SENSOR_DOMAIN)) == 22
+    assert len(hass.states.async_entity_ids(SWITCH_DOMAIN)) == 4
+    assert len(hass.states.async_entity_ids(SELECT_DOMAIN)) == 3
+    entries = hass.config_entries.async_entries(DOMAIN)
+    assert len(entries) == 1

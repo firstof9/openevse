@@ -95,3 +95,49 @@ async def test_sensors(
         assert state.state == (dt_util.utcnow() + timedelta(seconds=18000)).isoformat(
             timespec="seconds"
         )
+
+async def test_sensors_v2(
+    hass,
+    test_charger_v2,
+    mock_ws_start,
+    mock_aioclient,
+    entity_registry: er.EntityRegistry,
+    caplog,
+):
+    """Test setup_entry."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA,
+    )
+    with caplog.at_level(logging.DEBUG):
+        entry.add_to_hass(hass)
+        assert await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+
+        assert len(hass.states.async_entity_ids(SENSOR_DOMAIN)) == 22
+        entries = hass.config_entries.async_entries(DOMAIN)
+        assert len(entries) == 1
+
+        assert DOMAIN in hass.config.components
+
+        state = hass.states.get("sensor.openevse_wifi_firmware_version")
+        assert state
+        assert state.state == "2.9.1"
+        state = hass.states.get("sensor.openevse_charge_time_elapsed")
+        assert state
+        assert state.state == "145.85"
+        state = hass.states.get("sensor.openevse_total_usage")
+        assert state
+        assert state.state == "1585.443"
+        state = hass.states.get("sensor.openevse_max_current")
+        assert state
+        assert state.state == "unavailable"
+
+        state = hass.states.get("sensor.openevse_override_state")
+        assert state
+        assert state.state == "unavailable"
+
+        state = hass.states.get("sensor.openevse_charging_status")
+        assert state
+        assert state.attributes.get("icon") == "mdi:power-plug-off"

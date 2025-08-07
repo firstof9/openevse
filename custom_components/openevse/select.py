@@ -59,6 +59,7 @@ class OpenEVSESelect(CoordinatorEntity, SelectEntity):
         self._manager = manager
         self._default_options = description.default_options
         self._attr_options = self.get_options()
+        self._min_version = description.min_version
 
     @property
     def device_info(self):
@@ -114,6 +115,7 @@ class OpenEVSESelect(CoordinatorEntity, SelectEntity):
     def available(self) -> bool:
         """Return if entity is available."""
         data = self.coordinator.data
+        manager = self.hass.data[DOMAIN][self._config.entry_id][MANAGER]
         attributes = ("divertmode", "divert_active")
         if set(attributes).issubset(data.keys()) and self._type == "max_current_soft":
             if data["divert_active"] and data["divertmode"] == "eco":
@@ -121,6 +123,8 @@ class OpenEVSESelect(CoordinatorEntity, SelectEntity):
                     "Disabling %s due to PV Divert being active.", self._attr_name
                 )
                 return False
+        if self._min_version and not manager._version_check(self._min_version):
+            return False            
         return self.coordinator.last_update_success
 
     def get_options(self) -> list[str]:

@@ -15,7 +15,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
 
-from .const import CONF_NAME, COORDINATOR, DOMAIN, SENSOR_TYPES
+from .const import CONF_NAME, COORDINATOR, DOMAIN, MANAGER, SENSOR_TYPES
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -64,6 +64,7 @@ class OpenEVSESensor(CoordinatorEntity, SensorEntity):
         self.coordinator = coordinator
         self._state = None
         self._icon = sensor_description.icon
+        self._min_version = sensor_description.min_version
 
         self._attr_name = f"{self._config.data[CONF_NAME]} {self._name}"
         self._attr_unique_id = f"{self._name}_{self._unique_id}"
@@ -120,7 +121,10 @@ class OpenEVSESensor(CoordinatorEntity, SensorEntity):
     def available(self) -> bool:
         """Return if entity is available."""
         data = self.coordinator.data
+        manager = self.hass.data[DOMAIN][self._unique_id][MANAGER]
         if self._type not in data or (self._type in data and data[self._type] is None):
+            return False
+        if self._min_version and not manager._version_check(self._min_version):
             return False
         return self.coordinator.last_update_success
 
