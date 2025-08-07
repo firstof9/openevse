@@ -95,7 +95,7 @@ class OpenEVSESwitch(CoordinatorEntity, SwitchEntity):
     def available(self) -> bool:
         """Return if entity is available."""
         manager = self.hass.data[DOMAIN][self._unique_id][MANAGER]
-        if self._min_version and not manager._version_check(self._min_version):
+        if self._min_version and not manager.version_check(self._min_version):
             return False
         return True
 

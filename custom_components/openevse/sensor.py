@@ -124,7 +124,7 @@ class OpenEVSESensor(CoordinatorEntity, SensorEntity):
         manager = self.hass.data[DOMAIN][self._unique_id][MANAGER]
         if self._type not in data or (self._type in data and data[self._type] is None):
             return False
-        if self._min_version and not manager._version_check(self._min_version):
+        if self._min_version and not manager.version_check(self._min_version):
             return False
         return self.coordinator.last_update_success
 
