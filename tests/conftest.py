@@ -340,3 +340,57 @@ def load_fixture(filename):
     path = os.path.join(os.path.dirname(__file__), "fixtures", filename)
     with open(path, encoding="utf-8") as fptr:
         return fptr.read()
+
+
+@pytest.fixture(name="test_charger_v2")
+def test_charger_v2(mock_aioclient):
+    """Load the charger data."""
+    mock_aioclient.get(
+        TEST_URL_STATUS,
+        status=200,
+        body=load_fixture("v2_status.json"),
+        repeat=True,
+    )
+    mock_aioclient.post(
+        TEST_URL_STATUS,
+        status=200,
+        body='{ "msg": "OK" }',
+        repeat=True,
+    )
+    mock_aioclient.get(
+        TEST_URL_CONFIG,
+        status=200,
+        body=load_fixture("v2_config.json"),
+        repeat=True,
+    )
+    mock_aioclient.get(
+        TEST_URL_WS,
+        status=101,
+        body=load_fixture("v2_status.json"),
+        repeat=True,
+    )
+    mock_aioclient.get(
+        TEST_URL_GITHUB,
+        status=200,
+        body=load_fixture("v2_github.json"),
+        repeat=True,
+    )
+    mock_aioclient.post(
+        TEST_URL_OVERRIDE,
+        status=404,
+        body="{}",
+        repeat=True,
+    )
+    mock_aioclient.get(
+        TEST_URL_OVERRIDE,
+        status=404,
+        body="{}",
+        repeat=True,
+    )
+    mock_aioclient.get(
+        TEST_URL_CLAIMS_TARGET,
+        status=404,
+        body="{}",
+        repeat=True,
+    )
+    return main.OpenEVSE(TEST_TLD)

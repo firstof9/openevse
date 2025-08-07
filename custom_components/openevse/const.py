@@ -289,6 +289,7 @@ SENSOR_TYPES: Final[dict[str, OpenEVSESensorEntityDescription]] = {
         state_class=SensorStateClass.MEASUREMENT,
         device_class=SensorDeviceClass.POWER,
         entity_registry_enabled_default=False,
+        min_version="4.1.0",
     ),
     "shaper_available_current": OpenEVSESensorEntityDescription(
         name="Shaper Current Available",
@@ -298,6 +299,7 @@ SENSOR_TYPES: Final[dict[str, OpenEVSESensorEntityDescription]] = {
         device_class=SensorDeviceClass.CURRENT,
         state_class=SensorStateClass.MEASUREMENT,
         entity_registry_enabled_default=False,
+        min_version="4.1.0",
     ),
     "shaper_max_power": OpenEVSESensorEntityDescription(
         name="Shaper Max Power",
@@ -306,6 +308,7 @@ SENSOR_TYPES: Final[dict[str, OpenEVSESensorEntityDescription]] = {
         native_unit_of_measurement=UnitOfPower.WATT,
         device_class=SensorDeviceClass.POWER,
         entity_registry_enabled_default=False,
+        min_version="4.1.0",
     ),
     "vehicle_soc": OpenEVSESensorEntityDescription(
         name="Vehicle Battery Level",
@@ -315,6 +318,7 @@ SENSOR_TYPES: Final[dict[str, OpenEVSESensorEntityDescription]] = {
         device_class=SensorDeviceClass.BATTERY,
         state_class=SensorStateClass.MEASUREMENT,
         entity_registry_enabled_default=False,
+        min_version="4.1.0",
     ),
     "vehicle_range": OpenEVSESensorEntityDescription(
         name="Vehicle Range",
@@ -323,6 +327,7 @@ SENSOR_TYPES: Final[dict[str, OpenEVSESensorEntityDescription]] = {
         native_unit_of_measurement=UnitOfLength.KILOMETERS,
         device_class=SensorDeviceClass.DISTANCE,
         entity_registry_enabled_default=False,
+        min_version="4.1.0",
     ),
     "vehicle_eta": OpenEVSESensorEntityDescription(
         name="Vehicle Charge Completion",
@@ -331,6 +336,7 @@ SENSOR_TYPES: Final[dict[str, OpenEVSESensorEntityDescription]] = {
         native_unit_of_measurement=UnitOfTime.SECONDS,
         state_class=SensorStateClass.MEASUREMENT,
         entity_registry_enabled_default=False,
+        min_version="4.1.0",
     ),
     "vehicle_eta_timestamp": OpenEVSESensorEntityDescription(
         name="Vehicle Charge Completion Time",
@@ -338,6 +344,7 @@ SENSOR_TYPES: Final[dict[str, OpenEVSESensorEntityDescription]] = {
         icon="mdi:car-electric",
         device_class=SensorDeviceClass.TIMESTAMP,
         entity_registry_enabled_default=False,
+        min_version="4.1.0",
     ),
     "total_day": OpenEVSESensorEntityDescription(
         key="total_day",
@@ -346,6 +353,7 @@ SENSOR_TYPES: Final[dict[str, OpenEVSESensorEntityDescription]] = {
         state_class=SensorStateClass.TOTAL_INCREASING,
         device_class=SensorDeviceClass.ENERGY,
         entity_registry_enabled_default=False,
+        min_version="3.0.0",
     ),
     "total_week": OpenEVSESensorEntityDescription(
         key="total_week",
@@ -354,6 +362,7 @@ SENSOR_TYPES: Final[dict[str, OpenEVSESensorEntityDescription]] = {
         state_class=SensorStateClass.TOTAL_INCREASING,
         device_class=SensorDeviceClass.ENERGY,
         entity_registry_enabled_default=False,
+        min_version="3.0.0",
     ),
     "total_month": OpenEVSESensorEntityDescription(
         key="total_month",
@@ -362,6 +371,7 @@ SENSOR_TYPES: Final[dict[str, OpenEVSESensorEntityDescription]] = {
         state_class=SensorStateClass.TOTAL_INCREASING,
         device_class=SensorDeviceClass.ENERGY,
         entity_registry_enabled_default=False,
+        min_version="3.0.0",
     ),
     "total_year": OpenEVSESensorEntityDescription(
         key="total_year",
@@ -370,6 +380,7 @@ SENSOR_TYPES: Final[dict[str, OpenEVSESensorEntityDescription]] = {
         state_class=SensorStateClass.TOTAL_INCREASING,
         device_class=SensorDeviceClass.ENERGY,
         entity_registry_enabled_default=False,
+        min_version="3.0.0",
     ),
     "max_current": OpenEVSESensorEntityDescription(
         key="max_current",
@@ -385,6 +396,7 @@ SENSOR_TYPES: Final[dict[str, OpenEVSESensorEntityDescription]] = {
         entity_category=EntityCategory.DIAGNOSTIC,
         is_async_value=True,
         value="async_override_state",
+        min_version="4.1.0",
     ),
 }
 
@@ -402,12 +414,14 @@ SWITCH_TYPES: Final[dict[str, OpenEVSESwitchEntityDescription]] = {
         toggle_command="claim",
         device_class=SwitchDeviceClass.SWITCH,
         entity_registry_enabled_default=False,
+        min_version="4.1.0",
     ),
     "manual_override": OpenEVSESwitchEntityDescription(
         name="Manual Override",
         key="manual_override",
         toggle_command="toggle_override",
         device_class=SwitchDeviceClass.SWITCH,
+        min_version="4.1.0",
     ),
     "divertmode": OpenEVSESwitchEntityDescription(
         name="Solar PV Divert",
@@ -436,6 +450,7 @@ SELECT_TYPES: Final[dict[str, OpenEVSESelectEntityDescription]] = {
         default_options=OVERRIDE_STATE,
         is_async_value=True,
         value="async_override_state",
+        min_version="4.1.0",
     ),
     "divertmode": OpenEVSESelectEntityDescription(
         name="Divert Mode",
@@ -538,5 +553,6 @@ LIGHT_TYPES: Final[dict[str, OpenEVSELightEntityDescription]] = {
         name="LED Brightness",
         entity_category=EntityCategory.CONFIG,
         command="set_led_brightness",
+        min_version="4.1.0",
     ),
 }

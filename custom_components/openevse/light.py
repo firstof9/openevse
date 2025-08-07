@@ -71,6 +71,7 @@ class OpenEVSELight(CoordinatorEntity, LightEntity):
         self._data = coordinator.data
         self.coordinator = coordinator
         self.manager = manager
+        self._min_version = light_description.min_version
 
         self._attr_name = f"{self._config.data[CONF_NAME]} {self._name}"
         self._attr_unique_id = f"{self._name}_{self._unique_id}"
