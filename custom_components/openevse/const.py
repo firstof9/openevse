@@ -428,6 +428,7 @@ SWITCH_TYPES: Final[dict[str, OpenEVSESwitchEntityDescription]] = {
         key="divert_active",
         toggle_command="divert_mode",
         device_class=SwitchDeviceClass.SWITCH,
+        min_version="4.1.0",
     ),
 }
 

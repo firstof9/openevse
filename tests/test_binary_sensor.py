@@ -1,5 +1,6 @@
-"""Test openevse sensors."""
+"""Test openevse binary sensors."""
 
+import logging
 import json
 from datetime import timedelta
 from unittest.mock import patch
@@ -70,3 +71,34 @@ async def test_binary_sensors(
     state = hass.states.get(entity_id)
     assert state
     assert state.state == "on"
+
+
+async def test_binary_sensors_v2(
+    hass,
+    test_charger_v2,
+    mock_ws_start,
+    mock_aioclient,
+    entity_registry: er.EntityRegistry,
+    caplog,
+):
+    """Test binary_sensors on v2 firmware."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA,
+    )
+    with caplog.at_level(logging.DEBUG):
+        entry.add_to_hass(hass)
+        assert await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+
+        assert len(hass.states.async_entity_ids(BINARY_SENSOR_DOMAIN)) == 4
+        entries = hass.config_entries.async_entries(DOMAIN)
+        assert len(entries) == 1
+
+        assert DOMAIN in hass.config.components
+
+        entity_id = "binary_sensor.openevse_divert_active"
+        state = hass.states.get(entity_id)
+        assert state
+        assert state.state == "off"
