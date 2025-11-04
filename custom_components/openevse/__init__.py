@@ -345,7 +345,7 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
             raise UpdateFailed(error) from error
 
         if self._manager.websocket.state != "connected":
-            _LOGGER.info("Connecting to websocket...")
+            _LOGGER.debug("Connecting to websocket...")
             try:
                 self._manager.ws_start()
             except RuntimeError:
@@ -392,7 +392,7 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
                     _sensor[sensor],
                 )
             except (ValueError, KeyError):
-                _LOGGER.info("Could not update status for %s", sensor)
+                _LOGGER.debug("Could not update status for %s", sensor)
             data.update(_sensor)
 
         for (
@@ -410,7 +410,7 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
                     _sensor[binary_sensor],
                 )
             except (ValueError, KeyError, UnsupportedFeature):
-                _LOGGER.info(
+                _LOGGER.debug(
                     "Could not update status for %s",
                     binary_sensor,
                 )
@@ -468,7 +468,7 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
                     _sensor[light],
                 )
             except (ValueError, KeyError, UnsupportedFeature):
-                _LOGGER.info(
+                _LOGGER.debug(
                     "Could not update status for %s",
                     light,
                 )
@@ -516,7 +516,7 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
                     _sensor[number],
                 )
             except (ValueError, KeyError):
-                _LOGGER.info(
+                _LOGGER.debug(
                     "Could not update status for %s",
                     number,
                 )
@@ -537,7 +537,7 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
                     _sensor[sensor],
                 )
             except (ValueError, KeyError):
-                _LOGGER.info(
+                _LOGGER.debug(
                     "Could not update status for %s",
                     sensor,
                 )
