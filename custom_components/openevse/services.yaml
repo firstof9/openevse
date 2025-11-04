@@ -2,9 +2,8 @@ set_override:
   name: Set override
   description: Sets override settings on a charger.
   target:
-    device:
-      filter:
-        - integration: openevse
+    entity:
+      integration: openevse
   fields:
     state:
       name: State
@@ -72,18 +71,16 @@ clear_override:
   name: Clear override
   description: Clears an override on a charger.
   target:
-    device:
-      filter:
-        - integration: openevse
+    entity:
+      integration: openevse
 
 
 set_limit:
   name: Set charge limit
   description: This will set the limit type, value and auto release.
   target:
-    device:
-      filter:
-        - integration: openevse
+    entity:
+      integration: openevse
   fields:
     type:
       name: Limit type
@@ -120,25 +117,22 @@ clear_limit:
   name: Clear limit
   description: Clears a limit on a charger.
   target:
-    device:
-      filter:
-        - integration: openevse     
+    entity:
+      integration: openevse   
 
 get_limit:
   name: Get limit
   description: Gets a limit on a charger.
   target:
-    device:
-      filter:
-        - integration: openevse       
+    entity:
+      integration: openevse     
 
 make_claim:
   name: Make Claim
   description: Make/Update a claim.
   target:
-    device:
-      filter:
-        - integration: openevse
+    entity:
+      integration: openevse
   fields:
     state:
       name: State
@@ -185,20 +179,17 @@ release_claim:
   name: Release claim
   description: Releases a claim on a charger.
   target:
-    device:
-      filter:
-        - integration: openevse           
+    entity:
+      integration: openevse         
 list_claims:
   name: List claims
   description: Lists claims on an EVSE.
   target:
-    device:
-      filter:
-        - integration: openevse      
+    entity:
+      integration: openevse     
 list_overrides:
   name: List overrides
   description: Lists overrides on an EVSE.
   target:
-    device:
-      filter:
-        - integration: openevse   
+    entity:
+      integration: openevse
