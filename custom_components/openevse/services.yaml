@@ -3,7 +3,8 @@ set_override:
   description: Sets override settings on a charger.
   target:
     device:
-      integration: openevse
+      filter:
+        - integration: openevse
   fields:
     state:
       name: State
@@ -72,7 +73,8 @@ clear_override:
   description: Clears an override on a charger.
   target:
     device:
-      integration: openevse  
+      filter:
+        - integration: openevse
 
 
 set_limit:
@@ -80,7 +82,8 @@ set_limit:
   description: This will set the limit type, value and auto release.
   target:
     device:
-      integration: openevse
+      filter:
+        - integration: openevse
   fields:
     type:
       name: Limit type
@@ -118,21 +121,24 @@ clear_limit:
   description: Clears a limit on a charger.
   target:
     device:
-      integration: openevse          
+      filter:
+        - integration: openevse     
 
 get_limit:
   name: Get limit
   description: Gets a limit on a charger.
   target:
     device:
-      integration: openevse        
+      filter:
+        - integration: openevse       
 
 make_claim:
   name: Make Claim
   description: Make/Update a claim.
   target:
     device:
-      integration: openevse
+      filter:
+        - integration: openevse
   fields:
     state:
       name: State
@@ -180,16 +186,19 @@ release_claim:
   description: Releases a claim on a charger.
   target:
     device:
-      integration: openevse               
+      filter:
+        - integration: openevse           
 list_claims:
   name: List claims
   description: Lists claims on an EVSE.
   target:
     device:
-      integration: openevse        
+      filter:
+        - integration: openevse      
 list_overrides:
   name: List overrides
   description: Lists overrides on an EVSE.
   target:
     device:
-      integration: openevse    
+      filter:
+        - integration: openevse   
