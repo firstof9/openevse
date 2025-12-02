@@ -158,3 +158,72 @@ async def test_select(
     state = hass.states.get(entity_id)
     assert state
     assert state.state == "fast"
+
+
+async def test_select_max_current(
+    hass,
+    test_charger,
+    mock_ws_start,
+    mock_aioclient,
+    entity_registry: er.EntityRegistry,
+):
+    """Test the Charge Rate (Max Current) select entity."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA,
+    )
+
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    entity_id = "select.openevse_charge_rate"
+    state = hass.states.get(entity_id)
+
+    assert state
+
+    options = state.attributes.get("options")
+    assert options is not None
+    assert "6" in options
+    assert "48" in options
+    assert "49" not in options
+
+    # Test selecting an option
+    await hass.services.async_call(
+        SELECT_DOMAIN,
+        SERVICE_SELECT_OPTION,
+        {"entity_id": entity_id, "option": "24"},
+        blocking=True,
+    )
+
+
+async def test_select_availability_divert(
+    hass, test_charger, mock_ws_start, mock_aioclient, caplog
+):
+    """Test that charge rate select becomes unavailable when divert is active."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA,
+    )
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    entity_id = "select.openevse_charge_rate"
+
+    # Initial state should be available
+    state = hass.states.get(entity_id)
+    assert state.state != "unavailable"
+
+    # Simulate PV Divert Active
+    coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
+    with caplog.at_level(logging.DEBUG):
+        coordinator._data["divert_active"] = True
+        coordinator._data["divertmode"] = "eco"  # Ensure mode is eco
+        coordinator.async_set_updated_data(coordinator._data)
+        await hass.async_block_till_done()
+
+    # State should now be unavailable
+    state = hass.states.get(entity_id)
+    assert state.state == "unavailable"
