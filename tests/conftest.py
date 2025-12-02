@@ -114,6 +114,12 @@ def test_charger(mock_aioclient):
         body='{ "msg": "OK" }',
         repeat=True,
     )
+    mock_aioclient.patch(
+        TEST_URL_OVERRIDE,
+        status=200,
+        body='{ "msg": "OK" }',
+        repeat=True,
+    )
     mock_aioclient.get(
         TEST_URL_OVERRIDE,
         status=200,
