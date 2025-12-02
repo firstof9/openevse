@@ -640,27 +640,49 @@ async def test_service_invalid_device_id(
     mock_aioclient,
     mock_ws_start,
 ):
-    """Test service call with invalid device ID."""
+    """Test all services with an invalid device ID."""
     entry = MockConfigEntry(
         domain=DOMAIN,
         title=CHARGER_NAME,
         data=CONFIG_DATA,
     )
-    # Basic mocks to allow setup
     mock_aioclient.get(TEST_URL_OVERRIDE, status=200, body="{}", repeat=True)
 
     entry.add_to_hass(hass)
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
 
-    # Call service with a fake device ID
-    with pytest.raises(ValueError, match="Device ID fake_device_id is not valid"):
-        await hass.services.async_call(
-            DOMAIN,
-            SERVICE_CLEAR_OVERRIDE,
-            {ATTR_DEVICE_ID: "fake_device_id"},
-            blocking=True,
-        )
+    services_to_test = [
+        (SERVICE_SET_OVERRIDE, {}),
+        (SERVICE_CLEAR_OVERRIDE, {}),
+        (SERVICE_SET_LIMIT, {ATTR_TYPE: "time", ATTR_VALUE: 60}),
+        (SERVICE_CLEAR_LIMIT, {}),
+        (SERVICE_GET_LIMIT, {}),
+        (SERVICE_MAKE_CLAIM, {}),
+        (SERVICE_RELEASE_CLAIM, {}),
+        (SERVICE_LIST_CLAIMS, {}),
+        (SERVICE_LIST_OVERRIDES, {}),
+    ]
+
+    for service_name, data in services_to_test:
+        payload = {ATTR_DEVICE_ID: "fake_device_id"}
+        payload.update(data)
+
+        # Determine if return_response is needed
+        return_response = service_name in [
+            SERVICE_GET_LIMIT,
+            SERVICE_LIST_CLAIMS,
+            SERVICE_LIST_OVERRIDES,
+        ]
+
+        with pytest.raises(ValueError, match="Device ID fake_device_id is not valid"):
+            await hass.services.async_call(
+                DOMAIN,
+                service_name,
+                payload,
+                blocking=True,
+                return_response=return_response,
+            )
 
 
 async def test_service_missing_config(
@@ -671,7 +693,7 @@ async def test_service_missing_config(
     entity_registry: er.EntityRegistry,
     caplog,
 ):
-    """Test service call where config/manager is missing."""
+    """Test all services where config/manager is missing."""
     entry = MockConfigEntry(
         domain=DOMAIN,
         title=CHARGER_NAME,
@@ -685,15 +707,39 @@ async def test_service_missing_config(
 
     entry_entity = entity_registry.async_get("sensor.openevse_station_status")
 
-    # Manually remove the manager from hass.data to simulate the error condition
-    # The service looks up config_id from the device registry, then looks in hass.data
     hass.data[DOMAIN] = {}
 
-    with caplog.at_level(logging.ERROR):
-        await hass.services.async_call(
-            DOMAIN,
-            SERVICE_CLEAR_OVERRIDE,
-            {ATTR_DEVICE_ID: entry_entity.device_id},
-            blocking=True,
-        )
-        assert "Error locating configuration" in caplog.text
+    services_to_test = [
+        (SERVICE_SET_OVERRIDE, {}),
+        (SERVICE_CLEAR_OVERRIDE, {}),
+        (SERVICE_SET_LIMIT, {ATTR_TYPE: "time", ATTR_VALUE: 60}),
+        (SERVICE_CLEAR_LIMIT, {}),
+        (SERVICE_GET_LIMIT, {}),
+        (SERVICE_MAKE_CLAIM, {}),
+        (SERVICE_RELEASE_CLAIM, {}),
+        (SERVICE_LIST_CLAIMS, {}),
+        (SERVICE_LIST_OVERRIDES, {}),
+    ]
+
+    for service_name, data in services_to_test:
+        payload = {ATTR_DEVICE_ID: entry_entity.device_id}
+        payload.update(data)
+
+        # Determine if return_response is needed
+        return_response = service_name in [
+            SERVICE_GET_LIMIT,
+            SERVICE_LIST_CLAIMS,
+            SERVICE_LIST_OVERRIDES,
+        ]
+
+        caplog.clear()
+
+        with caplog.at_level(logging.ERROR):
+            await hass.services.async_call(
+                DOMAIN,
+                service_name,
+                payload,
+                blocking=True,
+                return_response=return_response,
+            )
+            assert "Error locating configuration" in caplog.text
