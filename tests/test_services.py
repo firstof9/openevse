@@ -743,3 +743,66 @@ async def test_service_missing_config(
                 return_response=return_response,
             )
             assert "Error locating configuration" in caplog.text
+
+
+async def test_services_with_none_values(
+    hass,
+    test_charger_services,
+    mock_aioclient,
+    mock_ws_start,
+    entity_registry: er.EntityRegistry,
+    caplog,
+):
+    """Test services with missing (None) arguments."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA,
+    )
+
+    mock_aioclient.post(
+        f"{TEST_URL_CLAIMS}/20",
+        status=200,
+        body='[{"msg":"done"}]',
+        repeat=True,
+    )
+    
+    # Mock set_override endpoint
+    mock_aioclient.post(
+        TEST_URL_OVERRIDE,
+        status=200,
+        body='{"msg": "OK"}',
+        repeat=True,
+    )
+    mock_aioclient.get(
+        TEST_URL_OVERRIDE,
+        status=200,
+        body="{}",
+        repeat=True,
+    )
+
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    entry_entity = entity_registry.async_get("sensor.openevse_station_status")
+
+    # 1. Test make_claim with only device_id (other args become None)
+    with caplog.at_level(logging.DEBUG):
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_MAKE_CLAIM,
+            {ATTR_DEVICE_ID: entry_entity.device_id},
+            blocking=True,
+        )
+        assert "Make claim response:" in caplog.text
+
+    # 2. Test set_override with only device_id (other args become None)
+    with caplog.at_level(logging.DEBUG):
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_SET_OVERRIDE,
+            {ATTR_DEVICE_ID: entry_entity.device_id},
+            blocking=True,
+        )
+        assert "Set Override response:" in caplog.text
