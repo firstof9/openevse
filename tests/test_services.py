@@ -13,7 +13,10 @@ from homeassistant.helpers import entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.openevse.const import (
+    ATTR_AUTO_RELEASE,
+    ATTR_CHARGE_CURRENT,
     ATTR_DEVICE_ID,
+    ATTR_MAX_CURRENT,
     ATTR_STATE,
     ATTR_TYPE,
     ATTR_VALUE,
@@ -474,3 +477,53 @@ async def test_set_override(
             blocking=True,
         )
         assert "Set Override response:" in caplog.text
+
+async def test_make_claim_with_arguments(
+    hass,
+    test_charger_services,
+    mock_aioclient,
+    mock_ws_start,
+    entity_registry: er.EntityRegistry,
+    caplog,
+):
+    """Test make_claim service with all optional arguments."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA,
+    )
+    # Mock the specific claim endpoint with arguments
+    mock_aioclient.post(
+        f"{TEST_URL_CLAIMS}/20",
+        status=200,
+        body='[{"msg":"done"}]',
+        repeat=True,
+    )
+    mock_aioclient.get(
+        TEST_URL_OVERRIDE,
+        status=200,
+        body="{}",
+        repeat=True,
+    )
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    entry = entity_registry.async_get("sensor.openevse_station_status")
+    
+    # Call service with all arguments
+    with caplog.at_level(logging.DEBUG):
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_MAKE_CLAIM,
+            {
+                ATTR_DEVICE_ID: entry.device_id,
+                ATTR_STATE: "active",
+                ATTR_CHARGE_CURRENT: 16,
+                ATTR_MAX_CURRENT: 32,
+                ATTR_AUTO_RELEASE: True
+            },
+            blocking=True,
+        )
+
+        assert "Make claim response:" in caplog.text
