@@ -44,7 +44,7 @@ async def test_binary_sensors(
     await hass.async_block_till_done()
 
     assert len(hass.states.async_entity_ids(BINARY_SENSOR_DOMAIN)) == 4
-    
+
     # 1. Test Shaper Updated
     # Enable disabled sensor
     entity_id = "binary_sensor.openevse_shaper_updated"
@@ -53,7 +53,7 @@ async def test_binary_sensors(
         entity_entry.entity_id, disabled_by=None
     )
     assert updated_entry.disabled is False
-    
+
     # Reload to apply enabled state
     await hass.config_entries.async_forward_entry_unload(entry, "binary_sensor")
     await hass.config_entries.async_forward_entry_setups(entry, ["binary_sensor"])
@@ -77,7 +77,7 @@ async def test_binary_sensors(
     entity_id = "binary_sensor.openevse_mqtt_connected"
     entity_entry = entity_registry.async_get(entity_id)
     entity_registry.async_update_entity(entity_entry.entity_id, disabled_by=None)
-    
+
     # Reload again for the second enabled sensor
     await hass.config_entries.async_forward_entry_unload(entry, "binary_sensor")
     await hass.config_entries.async_forward_entry_setups(entry, ["binary_sensor"])

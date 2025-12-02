@@ -264,7 +264,7 @@ async def test_form_reconfigure_connect_error(
 async def test_zeroconf_discovery(hass, mock_ws_start, mock_aioclient):
     """Test zeroconf discovery."""
     await setup.async_setup_component(hass, "persistent_notification", {})
-    
+
     # Simulate a Zeroconf discovery packet
     discovery_info = ZeroconfServiceInfo(
         ip_address=ip_address("192.168.1.123"),

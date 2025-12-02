@@ -478,6 +478,7 @@ async def test_set_override(
         )
         assert "Set Override response:" in caplog.text
 
+
 async def test_make_claim_with_arguments(
     hass,
     test_charger_services,
@@ -510,7 +511,7 @@ async def test_make_claim_with_arguments(
     await hass.async_block_till_done()
 
     entry = entity_registry.async_get("sensor.openevse_station_status")
-    
+
     # Call service with all arguments
     with caplog.at_level(logging.DEBUG):
         await hass.services.async_call(
@@ -521,7 +522,7 @@ async def test_make_claim_with_arguments(
                 ATTR_STATE: "active",
                 ATTR_CHARGE_CURRENT: 16,
                 ATTR_MAX_CURRENT: 32,
-                ATTR_AUTO_RELEASE: True
+                ATTR_AUTO_RELEASE: True,
             },
             blocking=True,
         )

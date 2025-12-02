@@ -32,27 +32,28 @@ async def test_buttons(
     await hass.async_block_till_done()
 
     assert len(hass.states.async_entity_ids(BUTTON_DOMAIN)) == 2
-    
+
     # 1. Test Restart WiFi Button
     entity_id = "button.openevse_restart_wifi"
     state = hass.states.get(entity_id)
     assert state
     assert state.state == "unknown"  # Buttons are usually 'unknown' state
 
-    # We need to mock the manager method to verify it's called. 
-    # Since test_charger is a real object (OpenEVSE), we can mock the method on the instance 
+    # We need to mock the manager method to verify it's called.
+    # Since test_charger is a real object (OpenEVSE), we can mock the method on the instance
     # stored in hass.data.
     manager = hass.data[DOMAIN][entry.entry_id]["manager"]
-    
+
     # Using the standard mock approach for the method on the live object
     from unittest.mock import AsyncMock
+
     manager.restart_wifi = AsyncMock()
     manager.restart_evse = AsyncMock()
 
     await hass.services.async_call(
         BUTTON_DOMAIN, SERVICE_PRESS, {"entity_id": entity_id}, blocking=True
     )
-    
+
     assert manager.restart_wifi.called
     assert manager.restart_wifi.call_count == 1
 
@@ -64,6 +65,6 @@ async def test_buttons(
     await hass.services.async_call(
         BUTTON_DOMAIN, SERVICE_PRESS, {"entity_id": entity_id}, blocking=True
     )
-    
+
     assert manager.restart_evse.called
     assert manager.restart_evse.call_count == 1
