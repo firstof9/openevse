@@ -258,11 +258,10 @@ class OpenEVSEServices:
             _LOGGER.debug("Config ID: %s Type: %s", config_id, type(config_id))
             try:
                 manager = self.hass.data[DOMAIN][config_id][MANAGER]
+                await manager.clear_override()
+                _LOGGER.debug("Override clear command sent.")
             except KeyError as err:
                 _LOGGER.error("Error locating configuration: %s", err)
-
-            await manager.clear_override()
-            _LOGGER.debug("Override clear command sent.")
 
     async def _set_limit(self, service: ServiceCall) -> None:
         """Set the limit."""

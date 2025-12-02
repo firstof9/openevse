@@ -16,6 +16,8 @@ from custom_components.openevse.const import (
     ATTR_AUTO_RELEASE,
     ATTR_CHARGE_CURRENT,
     ATTR_DEVICE_ID,
+    ATTR_ENERGY_LIMIT,
+    ATTR_TIME_LIMIT,
     ATTR_MAX_CURRENT,
     ATTR_STATE,
     ATTR_TYPE,
@@ -528,3 +530,170 @@ async def test_make_claim_with_arguments(
         )
 
         assert "Make claim response:" in caplog.text
+
+
+async def test_set_override_all_args(
+    hass,
+    test_charger_services,
+    mock_aioclient,
+    mock_ws_start,
+    entity_registry: er.EntityRegistry,
+    caplog,
+):
+    """Test set_override service with all arguments."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA,
+    )
+    mock_aioclient.post(
+        TEST_URL_OVERRIDE,
+        status=200,
+        body='{"msg": "OK"}',
+    )
+    # Ensure get override is mocked to avoid errors during setup/teardown updates
+    mock_aioclient.get(
+        TEST_URL_OVERRIDE,
+        status=200,
+        body="{}",
+        repeat=True,
+    )
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    entry = entity_registry.async_get("sensor.openevse_station_status")
+
+    with caplog.at_level(logging.DEBUG):
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_SET_OVERRIDE,
+            {
+                ATTR_DEVICE_ID: entry.device_id,
+                ATTR_STATE: "active",
+                ATTR_CHARGE_CURRENT: 16,
+                ATTR_MAX_CURRENT: 32,
+                ATTR_ENERGY_LIMIT: 1000,
+                ATTR_TIME_LIMIT: 3600,
+                ATTR_AUTO_RELEASE: False,
+            },
+            blocking=True,
+        )
+        assert "Set Override response:" in caplog.text
+
+
+async def test_set_limit_auto_release(
+    hass,
+    test_charger_services,
+    mock_aioclient,
+    mock_ws_start,
+    entity_registry: er.EntityRegistry,
+    caplog,
+):
+    """Test set_limit service with auto_release argument."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA,
+    )
+    mock_aioclient.post(
+        TEST_URL_LIMIT,
+        status=200,
+        body='{"msg": "OK"}',
+    )
+    mock_aioclient.get(
+        TEST_URL_LIMIT,
+        status=200,
+        body='{"type": "time", "value": 60, "auto_release": false}',
+        repeat=True,
+    )
+    mock_aioclient.get(
+        TEST_URL_OVERRIDE,
+        status=200,
+        body="{}",
+        repeat=True,
+    )
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    entry = entity_registry.async_get("sensor.openevse_station_status")
+
+    with caplog.at_level(logging.DEBUG):
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_SET_LIMIT,
+            {
+                ATTR_DEVICE_ID: entry.device_id,
+                ATTR_TYPE: "time",
+                ATTR_VALUE: 60,
+                ATTR_AUTO_RELEASE: False,
+            },
+            blocking=True,
+        )
+        assert "Set Limit response:" in caplog.text
+
+
+async def test_service_invalid_device_id(
+    hass,
+    test_charger_services,
+    mock_aioclient,
+    mock_ws_start,
+):
+    """Test service call with invalid device ID."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA,
+    )
+    # Basic mocks to allow setup
+    mock_aioclient.get(TEST_URL_OVERRIDE, status=200, body="{}", repeat=True)
+
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    # Call service with a fake device ID
+    with pytest.raises(ValueError, match="Device ID fake_device_id is not valid"):
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_CLEAR_OVERRIDE,
+            {ATTR_DEVICE_ID: "fake_device_id"},
+            blocking=True,
+        )
+
+
+async def test_service_missing_config(
+    hass,
+    test_charger_services,
+    mock_aioclient,
+    mock_ws_start,
+    entity_registry: er.EntityRegistry,
+    caplog,
+):
+    """Test service call where config/manager is missing."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA,
+    )
+    mock_aioclient.get(TEST_URL_OVERRIDE, status=200, body="{}", repeat=True)
+
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    entry_entity = entity_registry.async_get("sensor.openevse_station_status")
+
+    # Manually remove the manager from hass.data to simulate the error condition
+    # The service looks up config_id from the device registry, then looks in hass.data
+    hass.data[DOMAIN] = {}
+
+    with caplog.at_level(logging.ERROR):
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_CLEAR_OVERRIDE,
+            {ATTR_DEVICE_ID: entry_entity.device_id},
+            blocking=True,
+        )
+        assert "Error locating configuration" in caplog.text
