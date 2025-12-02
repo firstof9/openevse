@@ -32,10 +32,10 @@ async def test_update_entity(hass, test_charger, mock_ws_start):
     await hass.async_block_till_done()
 
     assert len(hass.states.async_entity_ids(UPDATE_DOMAIN)) == 1
-    
+
     entity_id = "update.openevse_update"
     state = hass.states.get(entity_id)
-    
+
     assert state
     assert state.attributes[ATTR_INSTALLED_VERSION] == "v5.1.2"
     assert state.attributes[ATTR_LATEST_VERSION] == FW_DATA["latest_version"]

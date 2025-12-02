@@ -37,7 +37,7 @@ async def test_switches(
 
     # Ensure all switches are created
     assert len(hass.states.async_entity_ids(SWITCH_DOMAIN)) == 4
-    
+
     # Get the coordinator to simulate data updates
     coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
 
@@ -56,11 +56,11 @@ async def test_switches(
         status=200,
         body='{"msg": "OK"}',
     )
-    
+
     await hass.services.async_call(
         SWITCH_DOMAIN, "turn_off", {"entity_id": entity_id}, blocking=True
     )
-    
+
     # Simulate the update that occurs after the command
     coordinator._data["state"] = "active"
     coordinator.async_set_updated_data(coordinator._data)
@@ -84,13 +84,13 @@ async def test_switches(
         TEST_URL_CONFIG,
         status=200,
         body='{"msg": "OK"}',
-    )    
+    )
 
     # Action: Turn On
     await hass.services.async_call(
         SWITCH_DOMAIN, "turn_on", {"entity_id": entity_id}, blocking=True
     )
-    
+
     # Simulate update
     coordinator._data["manual_override"] = True
     coordinator.async_set_updated_data(coordinator._data)
@@ -107,7 +107,7 @@ async def test_switches(
     entity_id = "switch.openevse_solar_pv_divert"
     state = hass.states.get(entity_id)
     assert state.state == "off"
-    
+
     mock_aioclient.post(
         TEST_URL_DIVERT,
         status=200,
@@ -118,7 +118,7 @@ async def test_switches(
     await hass.services.async_call(
         SWITCH_DOMAIN, "turn_on", {"entity_id": entity_id}, blocking=True
     )
-    
+
     # Simulate update
     coordinator._data["divert_active"] = True
     coordinator.async_set_updated_data(coordinator._data)
