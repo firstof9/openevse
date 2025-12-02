@@ -6,8 +6,8 @@ from homeassistant.components.update import (
     ATTR_LATEST_VERSION,
     ATTR_RELEASE_SUMMARY,
     ATTR_RELEASE_URL,
-    DOMAIN as UPDATE_DOMAIN,
 )
+from homeassistant.components.update import DOMAIN as UPDATE_DOMAIN
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.openevse.const import DOMAIN

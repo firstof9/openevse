@@ -1,5 +1,6 @@
 """Test openevse setup process."""
 
+from unittest import mock
 from unittest.mock import patch
 
 import pytest
@@ -7,8 +8,17 @@ from homeassistant.components.binary_sensor import DOMAIN as BINARY_SENSOR_DOMAI
 from homeassistant.components.select import DOMAIN as SELECT_DOMAIN
 from homeassistant.components.sensor import DOMAIN as SENSOR_DOMAIN
 from homeassistant.components.switch import DOMAIN as SWITCH_DOMAIN
+from homeassistant.helpers.update_coordinator import UpdateFailed
+from openevsehttp.exceptions import MissingSerial
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
+from custom_components.openevse import (
+    CommandFailed,
+    InvalidValue,
+    OpenEVSEFirmwareCheck,
+    get_firmware,
+    send_command,
+)
 from custom_components.openevse.const import COORDINATOR, DOMAIN
 
 from .const import CONFIG_DATA, CONFIG_DATA_GRID, CONFIG_DATA_SOLAR
@@ -315,3 +325,109 @@ async def test_coordinator_websocket_reconnect(hass, test_charger, mock_ws_start
 
         # Verify ws_start was called to reconnect
         assert mock_ws_connect.called
+
+
+async def test_send_command_utility(hass):
+    """Test the send_command utility function directly."""
+    mock_handler = mock.AsyncMock()
+    
+    # 1. Success case
+    # Returns (command_sent, response)
+    mock_handler.send_command.return_value = ("$CMD", "$OK")
+    await send_command(mock_handler, "$CMD")
+    
+    # 2. Invalid Value case ($NK^21 response)
+    mock_handler.send_command.return_value = ("$CMD", "$NK^21")
+    with pytest.raises(InvalidValue):
+        await send_command(mock_handler, "$CMD")
+
+    # 3. Command Failed case (Response command mismatch)
+    mock_handler.send_command.return_value = ("$OTHER", "$OK")
+    with pytest.raises(CommandFailed):
+        await send_command(mock_handler, "$CMD")
+
+
+async def test_coordinator_update_errors(hass, test_charger, mock_ws_start):
+    """Test error handling during coordinator updates."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA,
+    )
+    entry.add_to_hass(hass)
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    
+    coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
+    
+    # 1. RuntimeError during manager.update() should be swallowed (logged)
+    with patch.object(coordinator._manager, "update", side_effect=RuntimeError("Ignored")):
+        await coordinator._async_update_data()
+        
+    # 2. Generic Exception during manager.update() should raise UpdateFailed
+    with patch.object(coordinator._manager, "update", side_effect=Exception("Critical")):
+        with pytest.raises(UpdateFailed):
+            await coordinator._async_update_data()
+
+
+async def test_coordinator_websocket_connect_errors(hass, test_charger, mock_ws_start):
+    """Test error handling during websocket connection in coordinator."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA,
+    )
+    entry.add_to_hass(hass)
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    
+    coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
+    
+    # Force websocket state to disconnected to trigger connection logic
+    with patch.object(coordinator._manager, "websocket") as mock_ws:
+        mock_ws.state = "disconnected"
+        
+        # 1. RuntimeError during ws_start() should be swallowed
+        with patch.object(coordinator._manager, "ws_start", side_effect=RuntimeError("Ignored")):
+            await coordinator._async_update_data()
+
+        # 2. Generic Exception during ws_start() should raise UpdateFailed
+        with patch.object(coordinator._manager, "ws_start", side_effect=Exception("Critical")):
+            with pytest.raises(UpdateFailed):
+                await coordinator._async_update_data()
+
+
+async def test_get_firmware_logic(hass):
+    """Test get_firmware edge cases."""
+    mock_manager = mock.AsyncMock()
+    
+    # 1. Update failed
+    mock_manager.update.side_effect = Exception("Connection Error")
+    res = await get_firmware(mock_manager)
+    assert res == ("", "")
+    
+    # 2. Missing Serial (should return fallback versions)
+    mock_manager.update.side_effect = None # Reset
+    mock_manager.test_and_get.side_effect = MissingSerial
+    mock_manager.wifi_firmware = "1.2.3"
+    mock_manager.openevse_firmware = "4.5.6"
+    
+    res = await get_firmware(mock_manager)
+    assert res == ("Wifi version 1.2.3", "4.5.6")
+
+
+async def test_firmware_check_coordinator(hass):
+    """Test the firmware check coordinator."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA,
+    )
+    mock_manager = mock.AsyncMock()
+    mock_manager.firmware_check.return_value = {"latest": "1.0.0"}
+    
+    coordinator = OpenEVSEFirmwareCheck(hass, 3600, entry, mock_manager)
+    
+    data = await coordinator._async_update_data()
+    assert data == {"latest": "1.0.0"}
+    assert mock_manager.firmware_check.called

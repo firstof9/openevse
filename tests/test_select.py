@@ -6,20 +6,15 @@ from unittest.mock import patch
 
 import pytest
 from homeassistant.components.binary_sensor import DOMAIN as BINARY_SENSOR_DOMAIN
-from homeassistant.components.select import (
-    DOMAIN as SELECT_DOMAIN,
-    SERVICE_SELECT_OPTION,
-)
+from homeassistant.components.select import DOMAIN as SELECT_DOMAIN
+from homeassistant.components.select import SERVICE_SELECT_OPTION
 from homeassistant.components.sensor import DOMAIN as SENSOR_DOMAIN
 from homeassistant.components.switch import DOMAIN as SWITCH_DOMAIN
 from homeassistant.helpers import entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.openevse.const import (
-    COORDINATOR,
-    DOMAIN,
-)
-from custom_components.openevse import InvalidValue, CommandFailed
+from custom_components.openevse import CommandFailed, InvalidValue
+from custom_components.openevse.const import COORDINATOR, DOMAIN
 
 from .const import CONFIG_DATA
 
