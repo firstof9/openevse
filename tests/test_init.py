@@ -330,12 +330,12 @@ async def test_coordinator_websocket_reconnect(hass, test_charger, mock_ws_start
 async def test_send_command_utility(hass):
     """Test the send_command utility function directly."""
     mock_handler = mock.AsyncMock()
-    
+
     # 1. Success case
     # Returns (command_sent, response)
     mock_handler.send_command.return_value = ("$CMD", "$OK")
     await send_command(mock_handler, "$CMD")
-    
+
     # 2. Invalid Value case ($NK^21 response)
     mock_handler.send_command.return_value = ("$CMD", "$NK^21")
     with pytest.raises(InvalidValue):
@@ -357,15 +357,19 @@ async def test_coordinator_update_errors(hass, test_charger, mock_ws_start):
     entry.add_to_hass(hass)
     await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
-    
+
     coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
-    
+
     # 1. RuntimeError during manager.update() should be swallowed (logged)
-    with patch.object(coordinator._manager, "update", side_effect=RuntimeError("Ignored")):
+    with patch.object(
+        coordinator._manager, "update", side_effect=RuntimeError("Ignored")
+    ):
         await coordinator._async_update_data()
-        
+
     # 2. Generic Exception during manager.update() should raise UpdateFailed
-    with patch.object(coordinator._manager, "update", side_effect=Exception("Critical")):
+    with patch.object(
+        coordinator._manager, "update", side_effect=Exception("Critical")
+    ):
         with pytest.raises(UpdateFailed):
             await coordinator._async_update_data()
 
@@ -380,19 +384,23 @@ async def test_coordinator_websocket_connect_errors(hass, test_charger, mock_ws_
     entry.add_to_hass(hass)
     await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
-    
+
     coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
-    
+
     # Force websocket state to disconnected to trigger connection logic
     with patch.object(coordinator._manager, "websocket") as mock_ws:
         mock_ws.state = "disconnected"
-        
+
         # 1. RuntimeError during ws_start() should be swallowed
-        with patch.object(coordinator._manager, "ws_start", side_effect=RuntimeError("Ignored")):
+        with patch.object(
+            coordinator._manager, "ws_start", side_effect=RuntimeError("Ignored")
+        ):
             await coordinator._async_update_data()
 
         # 2. Generic Exception during ws_start() should raise UpdateFailed
-        with patch.object(coordinator._manager, "ws_start", side_effect=Exception("Critical")):
+        with patch.object(
+            coordinator._manager, "ws_start", side_effect=Exception("Critical")
+        ):
             with pytest.raises(UpdateFailed):
                 await coordinator._async_update_data()
 
@@ -400,18 +408,18 @@ async def test_coordinator_websocket_connect_errors(hass, test_charger, mock_ws_
 async def test_get_firmware_logic(hass):
     """Test get_firmware edge cases."""
     mock_manager = mock.AsyncMock()
-    
+
     # 1. Update failed
     mock_manager.update.side_effect = Exception("Connection Error")
     res = await get_firmware(mock_manager)
     assert res == ("", "")
-    
+
     # 2. Missing Serial (should return fallback versions)
-    mock_manager.update.side_effect = None # Reset
+    mock_manager.update.side_effect = None  # Reset
     mock_manager.test_and_get.side_effect = MissingSerial
     mock_manager.wifi_firmware = "1.2.3"
     mock_manager.openevse_firmware = "4.5.6"
-    
+
     res = await get_firmware(mock_manager)
     assert res == ("Wifi version 1.2.3", "4.5.6")
 
@@ -425,9 +433,9 @@ async def test_firmware_check_coordinator(hass):
     )
     mock_manager = mock.AsyncMock()
     mock_manager.firmware_check.return_value = {"latest": "1.0.0"}
-    
+
     coordinator = OpenEVSEFirmwareCheck(hass, 3600, entry, mock_manager)
-    
+
     data = await coordinator._async_update_data()
     assert data == {"latest": "1.0.0"}
     assert mock_manager.firmware_check.called
