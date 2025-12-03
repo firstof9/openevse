@@ -1,7 +1,7 @@
 """Test openevse sensors."""
 
-import logging
 import json
+import logging
 from datetime import timedelta
 from unittest.mock import patch
 

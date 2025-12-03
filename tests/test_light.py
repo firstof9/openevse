@@ -5,7 +5,8 @@ from unittest.mock import patch
 
 import pytest
 from homeassistant.components.binary_sensor import DOMAIN as BINARY_SENSOR_DOMAIN
-from homeassistant.components.light import DOMAIN as LIGHT_DOMAIN, ATTR_BRIGHTNESS
+from homeassistant.components.light import ATTR_BRIGHTNESS
+from homeassistant.components.light import DOMAIN as LIGHT_DOMAIN
 from homeassistant.components.number import DOMAIN as NUMBER_DOMAIN
 from homeassistant.components.select import DOMAIN as SELECT_DOMAIN
 from homeassistant.components.sensor import DOMAIN as SENSOR_DOMAIN
@@ -16,8 +17,8 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.openevse.const import DOMAIN
 
-from .const import CONFIG_DATA
 from .conftest import TEST_URL_CONFIG
+from .const import CONFIG_DATA
 
 pytestmark = pytest.mark.asyncio
 

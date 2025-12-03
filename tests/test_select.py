@@ -6,19 +6,15 @@ from unittest.mock import patch
 
 import pytest
 from homeassistant.components.binary_sensor import DOMAIN as BINARY_SENSOR_DOMAIN
-from homeassistant.components.select import (
-    DOMAIN as SELECT_DOMAIN,
-    SERVICE_SELECT_OPTION,
-)
+from homeassistant.components.select import DOMAIN as SELECT_DOMAIN
+from homeassistant.components.select import SERVICE_SELECT_OPTION
 from homeassistant.components.sensor import DOMAIN as SENSOR_DOMAIN
 from homeassistant.components.switch import DOMAIN as SWITCH_DOMAIN
 from homeassistant.helpers import entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.openevse.const import (
-    COORDINATOR,
-    DOMAIN,
-)
+from custom_components.openevse import CommandFailed, InvalidValue
+from custom_components.openevse.const import COORDINATOR, DOMAIN
 
 from .const import CONFIG_DATA
 
@@ -227,3 +223,80 @@ async def test_select_availability_divert(
     # State should now be unavailable
     state = hass.states.get(entity_id)
     assert state.state == "unavailable"
+
+
+async def test_select_exceptions(
+    hass,
+    test_charger,
+    mock_ws_start,
+    mock_aioclient,
+    caplog,
+):
+    """Test select exception handling."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA,
+    )
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    entity_id = "select.openevse_divert_mode"
+
+    # Access manager to mock method
+    manager = hass.data[DOMAIN][entry.entry_id]["manager"]
+
+    # 1. Test ValueError/KeyError
+    with patch.object(manager, "set_divert_mode", side_effect=ValueError("Test Error")):
+        await hass.services.async_call(
+            SELECT_DOMAIN,
+            SERVICE_SELECT_OPTION,
+            {"entity_id": entity_id, "option": "fast"},
+            blocking=True,
+        )
+        assert "Could not set status for" in caplog.text
+
+    # 2. Test InvalidValue
+    with patch.object(manager, "set_divert_mode", side_effect=InvalidValue):
+        await hass.services.async_call(
+            SELECT_DOMAIN,
+            SERVICE_SELECT_OPTION,
+            {"entity_id": entity_id, "option": "fast"},
+            blocking=True,
+        )
+        assert "invalid for command" in caplog.text
+
+    # 3. Test CommandFailed
+    with patch.object(manager, "set_divert_mode", side_effect=CommandFailed):
+        await hass.services.async_call(
+            SELECT_DOMAIN,
+            SERVICE_SELECT_OPTION,
+            {"entity_id": entity_id, "option": "fast"},
+            blocking=True,
+        )
+        assert "failed" in caplog.text
+
+
+async def test_select_min_version(
+    hass,
+    test_charger,
+    mock_ws_start,
+):
+    """Test select availability with old firmware."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA,
+    )
+
+    # Mock version check to return False (simulating old firmware)
+    with patch("custom_components.openevse.OpenEVSE.version_check", return_value=False):
+        entry.add_to_hass(hass)
+        assert await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+
+        # 'override_state' requires min_version 4.1.0, so it should be unavailable
+        entity_id = "select.openevse_override_state"
+        state = hass.states.get(entity_id)
+        assert state.state == "unavailable"

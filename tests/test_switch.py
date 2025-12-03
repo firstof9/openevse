@@ -7,10 +7,10 @@ from homeassistant.components.switch import DOMAIN as SWITCH_DOMAIN
 from homeassistant.helpers import entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.openevse.const import DOMAIN, COORDINATOR
+from custom_components.openevse.const import COORDINATOR, DOMAIN
 
-from .const import CONFIG_DATA
 from .conftest import TEST_URL_CONFIG
+from .const import CONFIG_DATA
 
 pytestmark = pytest.mark.asyncio
 
