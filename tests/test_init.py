@@ -8,6 +8,9 @@ from homeassistant.components.binary_sensor import DOMAIN as BINARY_SENSOR_DOMAI
 from homeassistant.components.select import DOMAIN as SELECT_DOMAIN
 from homeassistant.components.sensor import DOMAIN as SENSOR_DOMAIN
 from homeassistant.components.switch import DOMAIN as SWITCH_DOMAIN
+from homeassistant.config_entries import ConfigEntryState
+from homeassistant.core import CoreState
+from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers.update_coordinator import UpdateFailed
 from openevsehttp.exceptions import MissingSerial
 from pytest_homeassistant_custom_component.common import MockConfigEntry
@@ -439,3 +442,85 @@ async def test_firmware_check_coordinator(hass):
     data = await coordinator._async_update_data()
     assert data == {"latest": "1.0.0"}
     assert mock_manager.firmware_check.called
+
+
+async def test_setup_entry_not_ready(hass, test_charger, mock_ws_start):
+    """Test setup entry sets state to SETUP_RETRY on update failure."""
+    entry = MockConfigEntry(domain=DOMAIN, data=CONFIG_DATA)
+
+    # Mock OpenEVSE.update to raise exception (simulating connection failure)
+    with patch(
+        "custom_components.openevse.OpenEVSE.update",
+        side_effect=Exception("Connection Error"),
+    ):
+        entry.add_to_hass(hass)
+        await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+
+        # The exception is caught by HA, so we check the entry state instead of asserting raises
+        assert entry.state == ConfigEntryState.SETUP_RETRY
+
+
+async def test_coordinator_parse_errors(hass, test_charger, mock_ws_start, caplog):
+    """Test parsing sensors handles missing attributes/errors without crashing."""
+    entry = MockConfigEntry(domain=DOMAIN, data=CONFIG_DATA)
+    entry.add_to_hass(hass)
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
+
+    # 1. Test Sync Parse Error
+    # Patch the property on the CLASS, not the instance, to avoid 'no setter' errors
+    with patch(
+        "custom_components.openevse.OpenEVSE.status", new_callable=mock.PropertyMock
+    ) as mock_status:
+        mock_status.side_effect = ValueError("Sync Parse Error")
+
+        coordinator.parse_sensors()
+        assert "Could not update status for status" in caplog.text
+
+    # 2. Test Async Parse Error
+    # Patch the property on the CLASS
+    with patch(
+        "custom_components.openevse.OpenEVSE.async_override_state",
+        new_callable=mock.PropertyMock,
+    ) as mock_async_prop:
+        mock_async_prop.side_effect = ValueError("Async Parse Error")
+
+        await coordinator.async_parse_sensors()
+        assert "Could not update status for override_state" in caplog.text
+
+
+async def test_websocket_update_callback(hass, test_charger, mock_ws_start):
+    """Test websocket callback triggers data update on coordinator."""
+    entry = MockConfigEntry(domain=DOMAIN, data=CONFIG_DATA)
+    entry.add_to_hass(hass)
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
+
+    # Mock async_set_updated_data to verify it is called
+    with patch.object(coordinator, "async_set_updated_data") as mock_update:
+        await coordinator.websocket_update()
+        assert mock_update.called
+
+
+async def test_setup_entry_when_ha_running(hass, test_charger, mock_ws_start):
+    """Test setup when HA is already running registers listeners immediately."""
+    # Simulate HA being fully started
+    hass.state = CoreState.running
+
+    # Use config with grid/solar sensors to ensure listeners are registered
+    entry = MockConfigEntry(domain=DOMAIN, data=CONFIG_DATA_GRID)
+
+    with patch(
+        "custom_components.openevse.async_track_state_change_event"
+    ) as mock_track:
+        entry.add_to_hass(hass)
+        await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+
+        # Verify listeners were tracked immediately
+        assert mock_track.called
