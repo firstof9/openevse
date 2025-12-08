@@ -73,7 +73,7 @@ async def test_sensors(
 
         state = hass.states.get("sensor.openevse_current_power_usage_actual")
         assert state
-        assert state.state == "0"        
+        assert state.state == "0"
 
         # enable disabled sensor
         entity_id = "sensor.openevse_vehicle_charge_completion_time"
@@ -200,7 +200,7 @@ async def test_sensors_new(
 
         state = hass.states.get("sensor.openevse_current_power_usage_actual")
         assert state
-        assert state.state == "4500"        
+        assert state.state == "4500"
 
         # enable disabled sensor
         entity_id = "sensor.openevse_vehicle_charge_completion_time"

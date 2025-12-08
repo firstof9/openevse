@@ -406,7 +406,8 @@ SENSOR_TYPES: Final[dict[str, OpenEVSESensorEntityDescription]] = {
         device_class=SensorDeviceClass.POWER,
         state_class=SensorStateClass.MEASUREMENT,
         suggested_display_precision=1,
-    ),    
+        min_version="4.2.2",
+    ),
 }
 
 SWITCH_TYPES: Final[dict[str, OpenEVSESwitchEntityDescription]] = {
