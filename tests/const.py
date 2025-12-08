@@ -85,6 +85,7 @@ DIAG_DEVICE_RESULTS = {
     "charging_power": 7728.0,
     "charging_voltage": 240,
     "current_capacity": 40,
+    "current_power": 0,
     "divert_active": False,
     "divertmode": "eco",
     "esp_temperature": 56.0,

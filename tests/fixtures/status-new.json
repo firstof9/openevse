@@ -19,7 +19,7 @@
     "evse_connected": 1,
     "amp": 0,
     "voltage": 220,
-    "power": 0,
+    "power": 4500,
     "pilot": 48,
     "max_current": 48,
     "temp": 440,

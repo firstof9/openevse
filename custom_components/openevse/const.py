@@ -228,7 +228,7 @@ SENSOR_TYPES: Final[dict[str, OpenEVSESensorEntityDescription]] = {
     ),
     "charging_power": OpenEVSESensorEntityDescription(
         key="charging_power",
-        name="Current Power Usage",
+        name="Current Power Usage (Calculated)",
         icon="mdi:flash",
         native_unit_of_measurement=UnitOfPower.WATT,
         device_class=SensorDeviceClass.POWER,
@@ -398,6 +398,15 @@ SENSOR_TYPES: Final[dict[str, OpenEVSESensorEntityDescription]] = {
         value="async_override_state",
         min_version="4.1.0",
     ),
+    "current_power": OpenEVSESensorEntityDescription(
+        key="current_power",
+        name="Current Power Usage (Actual)",
+        icon="mdi:flash",
+        native_unit_of_measurement=UnitOfPower.WATT,
+        device_class=SensorDeviceClass.POWER,
+        state_class=SensorStateClass.MEASUREMENT,
+        suggested_display_precision=1,
+    ),    
 }
 
 SWITCH_TYPES: Final[dict[str, OpenEVSESwitchEntityDescription]] = {
