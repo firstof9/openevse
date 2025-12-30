@@ -355,7 +355,7 @@ def mock_manager():
 @pytest.fixture
 def mock_aioclient():
     """Fixture to mock aioclient calls."""
-    with aioresponses() as m:
+    with aioresponses(passthrough=["http://127.0.0.1"]) as m:
         yield m
 
 

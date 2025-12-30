@@ -19,7 +19,9 @@ pytestmark = pytest.mark.asyncio
 CHARGER_NAME = "openevse"
 
 
-async def test_update_entity(hass, test_charger, mock_ws_start, hass_ws_client: WebSocketGenerator):
+async def test_update_entity(
+    hass, test_charger, mock_ws_start, hass_ws_client: WebSocketGenerator
+):
     """Test update entity setup and attributes."""
     entry = MockConfigEntry(
         domain=DOMAIN,
@@ -40,7 +42,6 @@ async def test_update_entity(hass, test_charger, mock_ws_start, hass_ws_client: 
     assert state
     assert state.attributes[ATTR_INSTALLED_VERSION] == "v5.1.2"
     assert state.attributes[ATTR_LATEST_VERSION] == FW_DATA["latest_version"]
-    assert state.attributes["release_notes"] == FW_DATA["release_notes"]
     assert state.attributes[ATTR_RELEASE_URL] == FW_DATA["release_url"]
 
     await ws_client.send_json(
@@ -51,4 +52,4 @@ async def test_update_entity(hass, test_charger, mock_ws_start, hass_ws_client: 
         }
     )
     result = await ws_client.receive_json()
-    assert result["result"] is FW_DATA["release_notes"]
+    assert result["result"] == FW_DATA["release_notes"]

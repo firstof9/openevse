@@ -85,7 +85,6 @@ class OpenEVSEUpdateEntity(CoordinatorEntity, UpdateEntity):
                 return new_version
         return self.installed_version
 
-    @property
     def release_notes(self) -> str | None:
         """Release summary."""
         if self.fw_coordinator.data is not None:
