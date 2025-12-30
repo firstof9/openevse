@@ -1,13 +1,31 @@
 """Global fixtures for openevse integration."""
 
+from collections.abc import Coroutine, Generator
 import json
 import os
 from unittest import mock
 from unittest.mock import patch
+from typing import Any, cast
 
 import openevsehttp.__main__ as main
 import pytest
 from aioresponses import aioresponses
+
+from homeassistant.core import (
+    HomeAssistant,
+)
+from homeassistant.setup import async_setup_component
+from homeassistant.components.websocket_api.http import URL
+from homeassistant.components.websocket_api.auth import (
+    TYPE_AUTH,
+    TYPE_AUTH_OK,
+    TYPE_AUTH_REQUIRED,
+)
+from .typing import (
+    ClientSessionGenerator,
+    MockHAClientWebSocket,
+    WebSocketGenerator,
+)
 
 from tests.const import CHARGER_DATA, FW_DATA, GETFW_DATA
 
@@ -337,7 +355,7 @@ def mock_manager():
 @pytest.fixture
 def mock_aioclient():
     """Fixture to mock aioclient calls."""
-    with aioresponses() as m:
+    with aioresponses(passthrough=["http://127.0.0.1"]) as m:
         yield m
 
 
@@ -400,3 +418,61 @@ def test_charger_v2(mock_aioclient):
         repeat=True,
     )
     return main.OpenEVSE(TEST_TLD)
+
+
+@pytest.fixture
+def hass_ws_client(
+    aiohttp_client: ClientSessionGenerator,
+    hass_access_token: str,
+    hass: HomeAssistant,
+    socket_enabled: None,
+) -> WebSocketGenerator:
+    """Websocket client fixture connected to websocket server."""
+
+    async def create_client(
+        hass: HomeAssistant = hass, access_token: str | None = hass_access_token
+    ) -> MockHAClientWebSocket:
+        """Create a websocket client."""
+        assert await async_setup_component(hass, "websocket_api", {})
+        client = await aiohttp_client(hass.http.app)
+        websocket = await client.ws_connect(URL)
+        auth_resp = await websocket.receive_json()
+        assert auth_resp["type"] == TYPE_AUTH_REQUIRED
+
+        if access_token is None:
+            await websocket.send_json({"type": TYPE_AUTH, "access_token": "incorrect"})
+        else:
+            await websocket.send_json({"type": TYPE_AUTH, "access_token": access_token})
+
+        auth_ok = await websocket.receive_json()
+        assert auth_ok["type"] == TYPE_AUTH_OK
+
+        def _get_next_id() -> Generator[int]:
+            i = 0
+            while True:
+                yield (i := i + 1)
+
+        id_generator = _get_next_id()
+
+        def _send_json_auto_id(data: dict[str, Any]) -> Coroutine[Any, Any, None]:
+            data["id"] = next(id_generator)
+            return websocket.send_json(data)
+
+        async def _remove_device(device_id: str, config_entry_id: str) -> Any:
+            await _send_json_auto_id(
+                {
+                    "type": "config/device_registry/remove_config_entry",
+                    "config_entry_id": config_entry_id,
+                    "device_id": device_id,
+                }
+            )
+            return await websocket.receive_json()
+
+        # wrap in client
+        wrapped_websocket = cast(MockHAClientWebSocket, websocket)
+        wrapped_websocket.client = client
+        wrapped_websocket.send_json_auto_id = _send_json_auto_id
+        wrapped_websocket.remove_device = _remove_device
+        return wrapped_websocket
+
+    return create_client

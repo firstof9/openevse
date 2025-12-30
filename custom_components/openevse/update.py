@@ -4,7 +4,11 @@ from __future__ import annotations
 
 import logging
 
-from homeassistant.components.update import UpdateDeviceClass, UpdateEntity
+from homeassistant.components.update import (
+    UpdateDeviceClass,
+    UpdateEntity,
+    UpdateEntityFeature,
+)
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -33,6 +37,7 @@ class OpenEVSEUpdateEntity(CoordinatorEntity, UpdateEntity):
     """Update entity for a OpenEVSE device."""
 
     _attr_device_class = UpdateDeviceClass.FIRMWARE
+    _attr_supported_features = UpdateEntityFeature.RELEASE_NOTES
 
     def __init__(
         self,
@@ -80,12 +85,9 @@ class OpenEVSEUpdateEntity(CoordinatorEntity, UpdateEntity):
                 return new_version
         return self.installed_version
 
-    @property
-    def release_summary(self) -> str | None:
-        """Release summary."""
-        if self.fw_coordinator.data is not None:
-            return self.fw_coordinator.data.get("release_summary")
-        return None
+    def release_notes(self) -> str | None:
+        """Release notes."""
+        return self.fw_coordinator.data.get("release_notes", None)
 
     @property
     def release_url(self) -> str | None:
