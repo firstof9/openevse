@@ -45,7 +45,14 @@ class OpenEVSEUpdateEntity(CoordinatorEntity, UpdateEntity):
         fw_coordinator: DataUpdateCoordinator,
         config: ConfigEntry,
     ) -> None:
-        """Initialize a OpenEVSE device."""
+        """
+        Initialize the OpenEVSE update entity and attach the main and firmware coordinators along with the device config.
+        
+        Parameters:
+            coordinator (DataUpdateCoordinator): Main coordinator providing device state data.
+            fw_coordinator (DataUpdateCoordinator): Firmware coordinator providing firmware metadata and driving entity updates.
+            config (ConfigEntry): Config entry for the device; used to derive the entity name and unique identifier.
+        """
         super().__init__(fw_coordinator)
         self.fw_coordinator = fw_coordinator
         self.coordinator = coordinator
@@ -74,7 +81,12 @@ class OpenEVSEUpdateEntity(CoordinatorEntity, UpdateEntity):
 
     @property
     def latest_version(self) -> str | None:
-        """Latest version available for install."""
+        """
+        Determine the latest firmware version available for this device.
+        
+        Returns:
+            The latest available firmware version string if a newer version is known, otherwise the installed firmware version string. `None` if no version information is available.
+        """
         if self.fw_coordinator.data is not None:
             new_version = self.fw_coordinator.data.get("latest_version")
             if (
@@ -86,12 +98,22 @@ class OpenEVSEUpdateEntity(CoordinatorEntity, UpdateEntity):
         return self.installed_version
 
     def release_notes(self) -> str | None:
-        """Release notes."""
+        """
+        Return the release notes for the latest firmware from the firmware coordinator.
+        
+        Returns:
+            The release notes text if available, `None` otherwise.
+        """
         return self.fw_coordinator.data.get("release_notes", None)
 
     @property
     def release_url(self) -> str | None:
-        """Release URL."""
+        """
+        Provide the release URL for the available firmware.
+        
+        Returns:
+            str: The release URL, or `None` if no release URL is available.
+        """
         if self.fw_coordinator.data is not None:
             return self.fw_coordinator.data.get("release_url")
         return None

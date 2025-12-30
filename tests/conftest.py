@@ -354,7 +354,14 @@ def mock_manager():
 
 @pytest.fixture
 def mock_aioclient():
-    """Fixture to mock aioclient calls."""
+    """
+    Provide a configured aioresponses mock that allows localhost passthrough.
+    
+    Yields an aioresponses instance configured to intercept HTTP requests in tests while allowing requests to http://127.0.0.1 to pass through unmocked.
+    
+    Returns:
+        aioresponses: The configured aioresponses mock context manager instance.
+    """
     with aioresponses(passthrough=["http://127.0.0.1"]) as m:
         yield m
 
@@ -368,7 +375,12 @@ def load_fixture(filename):
 
 @pytest.fixture(name="test_charger_v2")
 def test_charger_v2(mock_aioclient):
-    """Load the charger data."""
+    """
+    Set up mocked v2 API responses for an OpenEVSE charger and return an initialized OpenEVSE instance.
+    
+    Returns:
+        An OpenEVSE instance initialized with TEST_TLD that will use the registered v2 mock responses.
+    """
     mock_aioclient.get(
         TEST_URL_STATUS,
         status=200,
@@ -427,12 +439,34 @@ def hass_ws_client(
     hass: HomeAssistant,
     socket_enabled: None,
 ) -> WebSocketGenerator:
-    """Websocket client fixture connected to websocket server."""
+    """
+    Provide a factory that creates an authenticated Home Assistant websocket client for tests.
+    
+    The returned factory connects to the Home Assistant websocket API, completes the authentication handshake using an access token, and returns a MockHAClientWebSocket augmented with:
+    - `client`: the underlying aiohttp test client
+    - `send_json_auto_id(data)`: helper that sends `data` with an auto-incremented `id`
+    - `remove_device(device_id, config_entry_id)`: helper that requests device removal and returns the server response
+    
+    Returns:
+        create_client (Callable[[HomeAssistant, str | None], MockHAClientWebSocket]): A callable that accepts an optional access token (when `None` an invalid token is used) and returns a connected, authenticated websocket client with the helpers described above.
+    """
 
     async def create_client(
         hass: HomeAssistant = hass, access_token: str | None = hass_access_token
     ) -> MockHAClientWebSocket:
-        """Create a websocket client."""
+        """
+        Create and return an authenticated Home Assistant websocket client wrapped with test helper methods.
+        
+        Parameters:
+            hass (HomeAssistant): Home Assistant instance to connect the websocket to.
+            access_token (str | None): Access token to authenticate the websocket. If `None`, an invalid token is sent to simulate an unauthenticated client.
+        
+        Returns:
+            MockHAClientWebSocket: A connected and authenticated websocket client with additional attributes:
+                - client: the underlying aiohttp test client.
+                - send_json_auto_id(data): helper that sends `data` with an auto-incrementing `id`.
+                - remove_device(device_id, config_entry_id): helper that requests removal of a device and returns the websocket response.
+        """
         assert await async_setup_component(hass, "websocket_api", {})
         client = await aiohttp_client(hass.http.app)
         websocket = await client.ws_connect(URL)
@@ -448,6 +482,12 @@ def hass_ws_client(
         assert auth_ok["type"] == TYPE_AUTH_OK
 
         def _get_next_id() -> Generator[int]:
+            """
+            Generate an infinite sequence of consecutive positive integers starting at 1.
+            
+            Returns:
+                generator (Generator[int]): Yields consecutive integers 1, 2, 3, ... on each iteration.
+            """
             i = 0
             while True:
                 yield (i := i + 1)
@@ -455,10 +495,32 @@ def hass_ws_client(
         id_generator = _get_next_id()
 
         def _send_json_auto_id(data: dict[str, Any]) -> Coroutine[Any, Any, None]:
+            """
+            Assigns an auto-incrementing JSON-RPC `id` to the given message and sends it over the websocket.
+            
+            Parameters:
+                data (dict[str, Any]): JSON-serializable message payload; this dict is modified in-place to include the `id` field.
+            
+            Returns:
+                None: A coroutine that resolves when the message has been sent.
+            """
             data["id"] = next(id_generator)
             return websocket.send_json(data)
 
         async def _remove_device(device_id: str, config_entry_id: str) -> Any:
+            """
+            Remove a device from the Home Assistant device registry for the given config entry.
+            
+            Sends a websocket command to remove the device identified by `device_id` from the registry entry
+            identified by `config_entry_id`, then waits for and returns the websocket response.
+            
+            Parameters:
+                device_id (str): The ID of the device to remove.
+                config_entry_id (str): The config entry ID that owns the device.
+            
+            Returns:
+                dict: The JSON response received from the websocket after the removal request.
+            """
             await _send_json_auto_id(
                 {
                     "type": "config/device_registry/remove_config_entry",

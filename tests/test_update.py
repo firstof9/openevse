@@ -22,7 +22,11 @@ CHARGER_NAME = "openevse"
 async def test_update_entity(
     hass, test_charger, mock_ws_start, hass_ws_client: WebSocketGenerator
 ):
-    """Test update entity setup and attributes."""
+    """
+    Verify the OpenEVSE update entity is created with correct attributes and that release notes can be retrieved via WebSocket.
+    
+    Asserts the entity exists in the update domain, its installed version, latest version, and release URL match the test fixtures, and a WebSocket request for the entity's release notes returns the expected notes.
+    """
     entry = MockConfigEntry(
         domain=DOMAIN,
         title=CHARGER_NAME,
