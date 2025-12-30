@@ -87,9 +87,7 @@ class OpenEVSEUpdateEntity(CoordinatorEntity, UpdateEntity):
 
     def release_notes(self) -> str | None:
         """Release summary."""
-        if self.fw_coordinator.data is not None:
-            return self.fw_coordinator.data.get("release_notes")
-        return None
+        return self.fw_coordinator.data.get("release_notes")
 
     @property
     def release_url(self) -> str | None:
