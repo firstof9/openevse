@@ -1,6 +1,7 @@
 """Test the OpenEVSE diagnostics."""
 
 from unittest.mock import patch
+from freezegun import freeze_time
 
 import pytest
 from homeassistant.const import CONF_HOST, CONF_PASSWORD, CONF_USERNAME
@@ -12,7 +13,6 @@ from custom_components.openevse.diagnostics import (
     async_get_device_diagnostics,
 )
 from tests.const import DIAG_CONFIG_DATA, DIAG_DEVICE_RESULTS
-
 
 @pytest.mark.asyncio
 async def test_config_entry_diagnostics(hass, test_charger, mock_ws_start):
@@ -31,8 +31,8 @@ async def test_config_entry_diagnostics(hass, test_charger, mock_ws_start):
     assert result["config"]["data"][CONF_PASSWORD] == "**REDACTED**"
     assert result["config"]["data"][CONF_USERNAME] == "testuser"
 
-
 @pytest.mark.asyncio
+@freeze_time("2026-01-09 12:00:00+00:00")
 async def test_device_diagnostics(hass, test_charger, mock_ws_start):
     """Test the device level diagnostics data dump."""
     entry = MockConfigEntry(

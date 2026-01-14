@@ -85,32 +85,12 @@ class OpenEVSESensor(CoordinatorEntity, SensorEntity):
         """Return the state of the sensor."""
         data = self.coordinator.data
         if data is None:
-            self._state = None
-        if self._type in data.keys():
-            value = data[self._type]
-            if self._type == "charge_time_elapsed":
-                self._state = value / 60
-            elif self._type == "usage_total" and isinstance(value, int):
-                self._state = value / 1000
-            elif self._type in [
-                "usage_session",
-                "charging_current",
-                "charging_power",
-            ]:
-                self._state = value / 1000
-            elif self._type == "charging_voltage":
-                self._state = value
-            elif self.device_class == SensorDeviceClass.TIMESTAMP:
-                if self._type == "vehicle_eta":
-                    # Timestamp in the future
-                    value = dt_util.utcnow() + timedelta(seconds=value)
-                self._state = value
-            else:
-                self._state = value
+            _LOGGER.debug("No sensor data found.")
+            return None
 
         _LOGGER.debug("Sensor [%s] updated value: %s", self._type, self._state)
         self.update_icon()
-        return self._state
+        return data[self._type]
 
     @property
     def icon(self) -> str:

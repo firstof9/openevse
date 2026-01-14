@@ -1,4 +1,5 @@
 """Openevse tests consts."""
+import datetime
 
 FW_DATA = {
     "latest_version": "4.1.7",
@@ -119,8 +120,7 @@ DIAG_DEVICE_RESULTS = {
     "usage_total": 64582,
     "using_ethernet": False,
     "vehicle": True,
-    "vehicle_eta": 18000,
-    "vehicle_eta_timestamp": 18000,
+    "vehicle_eta": datetime.datetime(2026, 1, 9, 17, 0, tzinfo=datetime.timezone.utc),
     "vehicle_range": 468,
     "vehicle_soc": 75,
     "wifi_firmware": "v5.1.2",
