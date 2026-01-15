@@ -1,5 +1,6 @@
 """Test openevse sensors."""
 
+import contextlib
 import json
 import logging
 from datetime import datetime
@@ -335,10 +336,8 @@ async def test_sensor_availability_aioclient(
         mock_aioclient.get(url, exception=ClientError("Network Down"), repeat=True)
         mock_aioclient.post(url, exception=ClientError("Network Down"), repeat=True)
 
-    try:
+    with contextlib.suppress(ClientError):
         await coordinator.async_refresh()
-    except Exception:
-        pass
 
     await hass.async_block_till_done()
 
