@@ -64,13 +64,13 @@ async def test_form_user(
     assert result["type"] == FlowResultType.FORM
     assert result["step_id"] == step_id
 
-    with patch(
-        "custom_components.openevse.async_setup_entry",
-        return_value=True,
-    ) as mock_setup_entry, patch(
-        "custom_components.openevse.OpenEVSE.update", return_value=True
-    ), patch(
-        "custom_components.openevse.OpenEVSE.ws_disconnect", return_value=True
+    with (
+        patch(
+            "custom_components.openevse.async_setup_entry",
+            return_value=True,
+        ) as mock_setup_entry,
+        patch("custom_components.openevse.OpenEVSE.update", return_value=True),
+        patch("custom_components.openevse.OpenEVSE.ws_disconnect", return_value=True),
     ):
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"], input
@@ -277,13 +277,13 @@ async def test_zeroconf_discovery(hass, mock_ws_start, mock_aioclient):
     )
 
     # Mock setup and connection methods
-    with patch(
-        "custom_components.openevse.async_setup_entry",
-        return_value=True,
-    ) as mock_setup_entry, patch(
-        "custom_components.openevse.OpenEVSE.update", return_value=True
-    ), patch(
-        "custom_components.openevse.OpenEVSE.ws_disconnect", return_value=True
+    with (
+        patch(
+            "custom_components.openevse.async_setup_entry",
+            return_value=True,
+        ),
+        patch("custom_components.openevse.OpenEVSE.update", return_value=True),
+        patch("custom_components.openevse.OpenEVSE.ws_disconnect", return_value=True),
     ):
         # Trigger the zeroconf step
         result = await hass.config_entries.flow.async_init(
@@ -343,10 +343,13 @@ async def test_zeroconf_connection_error(hass):
     )
 
     # Mock update to raise an exception (simulating connection failure)
-    with patch(
-        "custom_components.openevse.OpenEVSE.update",
-        side_effect=Exception("Connection failed"),
-    ), patch("custom_components.openevse.OpenEVSE.ws_disconnect", return_value=True):
+    with (
+        patch(
+            "custom_components.openevse.OpenEVSE.update",
+            side_effect=Exception("Connection failed"),
+        ),
+        patch("custom_components.openevse.OpenEVSE.ws_disconnect", return_value=True),
+    ):
         result = await hass.config_entries.flow.async_init(
             DOMAIN,
             context={"source": config_entries.SOURCE_ZEROCONF},
@@ -407,8 +410,9 @@ async def test_zeroconf_already_configured_unique_id(hass):
         type="_openevse._tcp.local.",
     )
 
-    with patch("custom_components.openevse.OpenEVSE.update", return_value=True), patch(
-        "custom_components.openevse.OpenEVSE.ws_disconnect", return_value=True
+    with (
+        patch("custom_components.openevse.OpenEVSE.update", return_value=True),
+        patch("custom_components.openevse.OpenEVSE.ws_disconnect", return_value=True),
     ):
         result = await hass.config_entries.flow.async_init(
             DOMAIN,

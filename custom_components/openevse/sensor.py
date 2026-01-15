@@ -4,22 +4,19 @@ from __future__ import annotations
 
 import logging
 from typing import Any
-from datetime import timedelta
 
 from homeassistant.components.sensor import (
-    SensorDeviceClass,
     SensorEntity,
     SensorEntityDescription,
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
-from homeassistant.util import dt as dt_util
 
 from .const import CONF_NAME, COORDINATOR, DOMAIN, MANAGER, SENSOR_TYPES
 
 _LOGGER = logging.getLogger(__name__)
 
-icon = {
+STATUS_ICONS = {
     "unknown": "mdi:help",
     "not connected": "mdi:power-plug-off",
     "connected": "mdi:power-plug",
@@ -83,61 +80,31 @@ class OpenEVSESensor(CoordinatorEntity, SensorEntity):
     @property
     def native_value(self) -> Any:
         """Return the state of the sensor."""
-        data = self.coordinator.data
-        if data is None:
-            self._state = None
-        if self._type in data.keys():
-            value = data[self._type]
-            if self._type == "charge_time_elapsed":
-                self._state = value / 60
-            elif self._type == "usage_total" and isinstance(value, int):
-                self._state = value / 1000
-            elif self._type in [
-                "usage_session",
-                "charging_current",
-                "charging_power",
-            ]:
-                self._state = value / 1000
-            elif self._type == "charging_voltage":
-                self._state = value
-            elif self.device_class == SensorDeviceClass.TIMESTAMP:
-                if self._type == "vehicle_eta":
-                    # Timestamp in the future
-                    value = dt_util.utcnow() + timedelta(seconds=value)
-                self._state = value
-            else:
-                self._state = value
-
-        _LOGGER.debug("Sensor [%s] updated value: %s", self._type, self._state)
-        self.update_icon()
-        return self._state
+        return self.coordinator.data.get(self._type)
 
     @property
-    def icon(self) -> str:
+    def icon(self) -> str | None:
         """Return the icon."""
-        return self._icon
+        # Dynamic icon for the 'state' sensor
+        if self._type == "state":
+            state_val = self.native_value
+            return STATUS_ICONS.get(state_val, "mdi:alert-octagon")
+
+        return self.entity_description.icon
 
     @property
     def available(self) -> bool:
         """Return if entity is available."""
-        data = self.coordinator.data
-        manager = self.hass.data[DOMAIN][self._unique_id][MANAGER]
-        if self._type not in data or (self._type in data and data[self._type] is None):
+        if not self.coordinator.last_update_success:
             return False
+
+        data = self.coordinator.data
+        if data is None or self._type not in data:
+            return False
+
+        # Check firmware version requirement
+        manager = self.hass.data[DOMAIN][self._unique_id][MANAGER]
         if self._min_version and not manager.version_check(self._min_version):
             return False
-        return self.coordinator.last_update_success
 
-    @property
-    def should_poll(self) -> bool:
-        """No need to poll. Coordinator notifies entity of updates."""
-        return False
-
-    def update_icon(self) -> None:
-        """Update status icon based on state."""
-        data = self.coordinator.data
-        if self._type == "state":
-            if data[self._type] in icon:
-                self._icon = icon[data[self._type]]
-            else:
-                self._icon = "mdi:alert-octagon"
+        return True

@@ -1,5 +1,7 @@
 """Openevse tests consts."""
 
+import datetime
+
 FW_DATA = {
     "latest_version": "4.1.7",
     "release_notes": '## What\'s Changed\r\n* add upload_progress event to websocket by @KipK in https://github.com/OpenEVSE/ESP32_WiFi_V4.x/pull/471\r\n* improvment & fixes of MQTT /override topic by @KipK in https://github.com/OpenEVSE/ESP32_WiFi_V4.x/pull/485\r\n* add "claims_version" event sent at each claims change. by @KipK in https://github.com/OpenEVSE/ESP32_WiFi_V4.x/pull/474\r\n* override version +  fixes by @KipK in https://github.com/OpenEVSE/ESP32_WiFi_V4.x/pull/486\r\n* publish override_version after claim engine has treated it. by @KipK in https://github.com/OpenEVSE/ESP32_WiFi_V4.x/pull/489\r\n* fix  #496 #492 increased json object size by @KipK in https://github.com/OpenEVSE/ESP32_WiFi_V4.x/pull/497\r\n* Current Shaper now use "max_current" instead of "charge_current". by @KipK in https://github.com/OpenEVSE/ESP32_WiFi_V4.x/pull/495\r\n* Bump express from 4.17.1 to 4.17.3 in /tesla_login by @dependabot in https://github.com/OpenEVSE/ESP32_WiFi_V4.x/pull/499\r\n* fix missing shaper_updated in /status by @KipK in https://github.com/OpenEVSE/ESP32_WiFi_V4.x/pull/501\r\n\r\n\r\n**Full Changelog**: https://github.com/OpenEVSE/ESP32_WiFi_V4.x/compare/4.1.6...4.1.7\r\n\r\n## Updating Firmware\r\n\r\nFirmware can be updated via the web interface. **Be sure to select the correct firmware for your hardware and unzip before uploading .bin**\r\n\r\nToggle \'advanced\' display tab to view the hardware info on the main OpenEVSE tab:\r\n\r\n![screenshot from 2022-11-16 15-46-41](https://user-images.githubusercontent.com/758844/202227648-0fc2a97e-1a71-4315-ba2f-69b09cfc0b0e.png)\r\n\r\n\r\n***\r\n\r\n| Firmware  | MD5 |\r\n| ------------- | ------------- |\r\n| bootloader.bin | 633fdf6c2eaa137d81eb1e037c82c1a5mc |\r\n| openevse_esp32-gateway-e.bin | 824918fab878077b318e828657dd33a6 |\r\n| openevse_esp32-gateway-e.bin | 720b7580d94d5df514dfd4b48132904d |\r\n| openevse_huzzah32.bin | 2890dd53a100d9df29d105d9719c04b8 |\r\n| openevse_wifi_v1.bin | 506aa7c43ebf2c9a1115fbee8112686 |\r\n| partitions.bin | 95ff55176b05845b099191ebc17e3b46 |\r\n\r\n',
@@ -119,8 +121,7 @@ DIAG_DEVICE_RESULTS = {
     "usage_total": 64582,
     "using_ethernet": False,
     "vehicle": True,
-    "vehicle_eta": 18000,
-    "vehicle_eta_timestamp": 18000,
+    "vehicle_eta": datetime.datetime(2026, 1, 9, 17, 0, tzinfo=datetime.timezone.utc),
     "vehicle_range": 468,
     "vehicle_soc": 75,
     "wifi_firmware": "v5.1.2",

@@ -315,10 +315,10 @@ async def test_coordinator_websocket_reconnect(hass, test_charger, mock_ws_start
 
     # Replace the manager's websocket object with a Mock.
     # This allows us to set the 'state' attribute freely without AttributeError.
-    with patch.object(coordinator._manager, "websocket") as mock_ws, patch.object(
-        coordinator._manager, "ws_start"
-    ) as mock_ws_connect:
-
+    with (
+        patch.object(coordinator._manager, "websocket") as mock_ws,
+        patch.object(coordinator._manager, "ws_start") as mock_ws_connect,
+    ):
         # Set the state on the mock websocket to 'disconnected'
         mock_ws.state = "disconnected"
 

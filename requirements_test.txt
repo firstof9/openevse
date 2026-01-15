@@ -11,3 +11,4 @@ aioresponses
 pytest
 aiohttp_cors
 zeroconf
+freezegun
