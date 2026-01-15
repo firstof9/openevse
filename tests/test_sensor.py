@@ -3,7 +3,6 @@
 import json
 import logging
 from datetime import timedelta
-from freezegun import freeze_time
 from unittest.mock import patch
 
 import pytest
