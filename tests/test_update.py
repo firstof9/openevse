@@ -8,9 +8,9 @@ from homeassistant.components.update import (
 )
 from homeassistant.components.update import DOMAIN as UPDATE_DOMAIN
 from pytest_homeassistant_custom_component.common import MockConfigEntry
-from tests.typing import WebSocketGenerator
 
 from custom_components.openevse.const import DOMAIN
+from tests.typing import WebSocketGenerator
 
 from .const import CONFIG_DATA, FW_DATA
 

@@ -80,8 +80,6 @@ class OpenEVSESensor(CoordinatorEntity, SensorEntity):
     @property
     def native_value(self) -> Any:
         """Return the state of the sensor."""
-        if self.coordinator.data is None:
-            return None
         return self.coordinator.data.get(self._type)
 
     @property

@@ -2,11 +2,12 @@
 
 import json
 import logging
-from datetime import datetime
-from datetime import timedelta
+import re
+from datetime import datetime, timedelta
 from unittest.mock import patch
 
 import pytest
+from aiohttp import ClientError
 from homeassistant.components.binary_sensor import DOMAIN as BINARY_SENSOR_DOMAIN
 from homeassistant.components.number import DOMAIN as NUMBER_DOMAIN
 from homeassistant.components.select import DOMAIN as SELECT_DOMAIN
@@ -224,3 +225,134 @@ async def test_sensors_new(
         state = hass.states.get("sensor.openevse_vehicle_charge_completion")
         assert state
         assert state.state == "unknown"
+
+
+async def test_sensor_coverage_icon_and_version(
+    hass,
+    test_charger,
+    mock_ws_start,
+    mock_aioclient,
+):
+    """Test coverage for sensor icon fallbacks and firmware version checks."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA,
+    )
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    data_entry = hass.data[DOMAIN][entry.entry_id]
+    coordinator = data_entry["coordinator"]
+    manager = data_entry["manager"]
+
+    coordinator.data["state"] = "unknown_state_value"
+    coordinator.async_update_listeners()
+    await hass.async_block_till_done()
+
+    state = hass.states.get("sensor.openevse_charging_status")
+    assert state.attributes["icon"] == "mdi:alert-octagon"
+
+    target_sensor = "sensor.openevse_override_state"
+
+    with patch.object(manager, "version_check", return_value=False):
+        coordinator.async_update_listeners()
+        await hass.async_block_till_done()
+
+        state = hass.states.get(target_sensor)
+        assert state.state == "unavailable"
+
+    with patch.object(manager, "version_check", return_value=True):
+        coordinator.async_update_listeners()
+        await hass.async_block_till_done()
+
+        state = hass.states.get(target_sensor)
+        assert state.state != "unavailable"
+
+
+async def test_sensor_availability_aioclient(
+    hass,
+    mock_aioclient,
+    mock_ws_start,
+    caplog,
+):
+    """Test sensor availability using mock_aioclient to simulate network failure."""
+    host = "openevse.test.tld"
+    urls = [
+        f"http://{host}/config",
+        f"http://{host}/status",
+        f"http://{host}/claims/target",
+        f"http://{host}/override",
+        f"http://{host}/",
+    ]
+
+    valid_response = {
+        "mode": 1,
+        "state": 2,
+        "connected": 1,
+        "comm_success": 1,
+        "amp": 48000,
+        "volts": 240000,
+        "pilot": 48,
+        "temp1": 250,
+        "temp2": 260,
+        "temp3": 270,
+        "wattsec": 123456,
+        "watthour": 123456,
+        "ota_update": 0,
+        "vehicle": 1,
+        "manual_override": 0,
+        "divert_active": 0,
+        "using_ethernet": 0,
+        "shaper_active": 0,
+        "mqtt_connected": 0,
+        "firmware": "7.1.3",
+        "protocol": "1.0.0",
+        "wifi_firmware": "4.1.2",
+        "version": "4.1.2",
+        "claims": [],
+        "overrides": [],
+    }
+
+    for url in urls:
+        mock_aioclient.get(url, status=200, payload=valid_response, repeat=True)
+        mock_aioclient.post(url, status=200, payload=valid_response, repeat=True)
+
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA,
+    )
+    entry.add_to_hass(hass)
+
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
+    mock_aioclient.clear()
+
+    for url in urls:
+        mock_aioclient.get(url, exception=ClientError("Network Down"), repeat=True)
+        mock_aioclient.post(url, exception=ClientError("Network Down"), repeat=True)
+
+    try:
+        await coordinator.async_refresh()
+    except Exception:
+        pass
+
+    await hass.async_block_till_done()
+
+    state = hass.states.get("sensor.openevse_charging_status")
+    assert state.state == "unavailable"
+
+    mock_aioclient.clear()
+    for url in urls:
+        mock_aioclient.get(url, status=200, payload=valid_response, repeat=True)
+        mock_aioclient.post(url, status=200, payload=valid_response, repeat=True)
+
+    await coordinator.async_refresh()
+    await hass.async_block_till_done()
+
+    state = hass.states.get("sensor.openevse_charging_status")
+    assert state.state != "unavailable"

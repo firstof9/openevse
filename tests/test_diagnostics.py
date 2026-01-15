@@ -1,9 +1,9 @@
 """Test the OpenEVSE diagnostics."""
 
 from unittest.mock import patch
-from freezegun import freeze_time
 
 import pytest
+from freezegun import freeze_time
 from homeassistant.const import CONF_HOST, CONF_PASSWORD, CONF_USERNAME
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
