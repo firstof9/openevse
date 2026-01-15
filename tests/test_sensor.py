@@ -45,7 +45,7 @@ async def test_sensors(
         assert await hass.config_entries.async_setup(entry.entry_id)
         await hass.async_block_till_done()
 
-        assert len(hass.states.async_entity_ids(SENSOR_DOMAIN)) == 22
+        assert len(hass.states.async_entity_ids(SENSOR_DOMAIN)) == 23
         entries = hass.config_entries.async_entries(DOMAIN)
         assert len(entries) == 1
 
@@ -77,7 +77,7 @@ async def test_sensors(
         assert state.state == "0"
 
         # enable disabled sensor
-        entity_id = "sensor.openevse_vehicle_charge_completion_time"
+        entity_id = "sensor.openevse_vehicle_charge_completion"
         entity_entry = entity_registry.async_get(entity_id)
 
         assert entity_entry
@@ -95,7 +95,7 @@ async def test_sensors(
         await hass.config_entries.async_forward_entry_setups(entry, ["sensor"])
         await hass.async_block_till_done()
 
-        state = hass.states.get("sensor.openevse_vehicle_charge_completion_time")
+        state = hass.states.get("sensor.openevse_vehicle_charge_completion")
         assert state
         assert state.state == (dt_util.utcnow() + timedelta(seconds=18000)).isoformat(
             timespec="seconds"
@@ -121,7 +121,7 @@ async def test_sensors_v2(
         assert await hass.config_entries.async_setup(entry.entry_id)
         await hass.async_block_till_done()
 
-        assert len(hass.states.async_entity_ids(SENSOR_DOMAIN)) == 22
+        assert len(hass.states.async_entity_ids(SENSOR_DOMAIN)) == 23
         entries = hass.config_entries.async_entries(DOMAIN)
         assert len(entries) == 1
 
@@ -138,7 +138,7 @@ async def test_sensors_v2(
         assert state.state == "1585.443"
         state = hass.states.get("sensor.openevse_max_current")
         assert state
-        assert state.state == "unavailable"
+        assert state.state == "unknown"
 
         state = hass.states.get("sensor.openevse_override_state")
         assert state
@@ -172,7 +172,7 @@ async def test_sensors_new(
         assert await hass.config_entries.async_setup(entry.entry_id)
         await hass.async_block_till_done()
 
-        assert len(hass.states.async_entity_ids(SENSOR_DOMAIN)) == 22
+        assert len(hass.states.async_entity_ids(SENSOR_DOMAIN)) == 23
         entries = hass.config_entries.async_entries(DOMAIN)
         assert len(entries) == 1
 
@@ -186,7 +186,7 @@ async def test_sensors_new(
         assert state.state == "0.0"
         state = hass.states.get("sensor.openevse_total_usage")
         assert state
-        assert state.state == "20127.22817"
+        assert state.state == "20.12722817"
         state = hass.states.get("sensor.openevse_max_current")
         assert state
         assert state.state == "48"
@@ -204,7 +204,7 @@ async def test_sensors_new(
         assert state.state == "4500"
 
         # enable disabled sensor
-        entity_id = "sensor.openevse_vehicle_charge_completion_time"
+        entity_id = "sensor.openevse_vehicle_charge_completion"
         entity_entry = entity_registry.async_get(entity_id)
 
         assert entity_entry
@@ -222,6 +222,6 @@ async def test_sensors_new(
         await hass.config_entries.async_forward_entry_setups(entry, ["sensor"])
         await hass.async_block_till_done()
 
-        state = hass.states.get("sensor.openevse_vehicle_charge_completion_time")
+        state = hass.states.get("sensor.openevse_vehicle_charge_completion")
         assert state
-        assert state.state == "unavailable"
+        assert state.state == "unknown"

@@ -19,7 +19,7 @@ from .const import CONF_NAME, COORDINATOR, DOMAIN, MANAGER, SENSOR_TYPES
 
 _LOGGER = logging.getLogger(__name__)
 
-icon = {
+STATUS_ICONS = {
     "unknown": "mdi:help",
     "not connected": "mdi:power-plug-off",
     "connected": "mdi:power-plug",
@@ -83,41 +83,34 @@ class OpenEVSESensor(CoordinatorEntity, SensorEntity):
     @property
     def native_value(self) -> Any:
         """Return the state of the sensor."""
-        data = self.coordinator.data
-        if data is None:
-            _LOGGER.debug("No sensor data found.")
+        if self.coordinator.data is None:
             return None
-
-        _LOGGER.debug("Sensor [%s] updated value: %s", self._type, self._state)
-        self.update_icon()
-        return data[self._type]
+        return self.coordinator.data.get(self._type)
 
     @property
-    def icon(self) -> str:
+    def icon(self) -> str | None:
         """Return the icon."""
-        return self._icon
+        # Dynamic icon for the 'state' sensor
+        if self._type == "state":
+            state_val = self.native_value
+            return STATUS_ICONS.get(state_val, "mdi:alert-octagon")
+        
+        return self.entity_description.icon
 
     @property
     def available(self) -> bool:
         """Return if entity is available."""
+        if not self.coordinator.last_update_success:
+            return False
+            
         data = self.coordinator.data
+        if data is None or self._type not in data:
+            return False
+            
+        # Check firmware version requirement
         manager = self.hass.data[DOMAIN][self._unique_id][MANAGER]
-        if self._type not in data or (self._type in data and data[self._type] is None):
+        min_version = getattr(self.entity_description, "min_version", None)
+        if min_version and not manager.version_check(min_version):
             return False
-        if self._min_version and not manager.version_check(self._min_version):
-            return False
-        return self.coordinator.last_update_success
-
-    @property
-    def should_poll(self) -> bool:
-        """No need to poll. Coordinator notifies entity of updates."""
-        return False
-
-    def update_icon(self) -> None:
-        """Update status icon based on state."""
-        data = self.coordinator.data
-        if self._type == "state":
-            if data[self._type] in icon:
-                self._icon = icon[data[self._type]]
-            else:
-                self._icon = "mdi:alert-octagon"
+            
+        return True
