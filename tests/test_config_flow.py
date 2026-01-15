@@ -281,7 +281,7 @@ async def test_zeroconf_discovery(hass, mock_ws_start, mock_aioclient):
         patch(
             "custom_components.openevse.async_setup_entry",
             return_value=True,
-        ) as mock_setup_entry,
+        ),
         patch("custom_components.openevse.OpenEVSE.update", return_value=True),
         patch("custom_components.openevse.OpenEVSE.ws_disconnect", return_value=True),
     ):
