@@ -1,4 +1,5 @@
 """Openevse tests consts."""
+
 import datetime
 
 FW_DATA = {

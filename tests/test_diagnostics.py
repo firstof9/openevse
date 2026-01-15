@@ -14,6 +14,7 @@ from custom_components.openevse.diagnostics import (
 )
 from tests.const import DIAG_CONFIG_DATA, DIAG_DEVICE_RESULTS
 
+
 @pytest.mark.asyncio
 async def test_config_entry_diagnostics(hass, test_charger, mock_ws_start):
     """Test the config entry level diagnostics data dump."""
@@ -30,6 +31,7 @@ async def test_config_entry_diagnostics(hass, test_charger, mock_ws_start):
     assert result["config"]["data"][CONF_HOST] == "openevse.test.tld"
     assert result["config"]["data"][CONF_PASSWORD] == "**REDACTED**"
     assert result["config"]["data"][CONF_USERNAME] == "testuser"
+
 
 @pytest.mark.asyncio
 @freeze_time("2026-01-09 12:00:00+00:00")

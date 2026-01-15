@@ -4,16 +4,13 @@ from __future__ import annotations
 
 import logging
 from typing import Any
-from datetime import timedelta
 
 from homeassistant.components.sensor import (
-    SensorDeviceClass,
     SensorEntity,
     SensorEntityDescription,
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
-from homeassistant.util import dt as dt_util
 
 from .const import CONF_NAME, COORDINATOR, DOMAIN, MANAGER, SENSOR_TYPES
 
@@ -94,7 +91,7 @@ class OpenEVSESensor(CoordinatorEntity, SensorEntity):
         if self._type == "state":
             state_val = self.native_value
             return STATUS_ICONS.get(state_val, "mdi:alert-octagon")
-        
+
         return self.entity_description.icon
 
     @property
@@ -102,15 +99,15 @@ class OpenEVSESensor(CoordinatorEntity, SensorEntity):
         """Return if entity is available."""
         if not self.coordinator.last_update_success:
             return False
-            
+
         data = self.coordinator.data
         if data is None or self._type not in data:
             return False
-            
+
         # Check firmware version requirement
         manager = self.hass.data[DOMAIN][self._unique_id][MANAGER]
         min_version = getattr(self.entity_description, "min_version", None)
         if min_version and not manager.version_check(min_version):
             return False
-            
+
         return True

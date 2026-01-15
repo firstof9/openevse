@@ -58,8 +58,9 @@ def auto_enable_custom_integrations(enable_custom_integrations):
 @pytest.fixture(name="skip_notifications", autouse=True)
 def skip_notifications_fixture():
     """Skip notification calls."""
-    with patch("homeassistant.components.persistent_notification.async_create"), patch(
-        "homeassistant.components.persistent_notification.async_dismiss"
+    with (
+        patch("homeassistant.components.persistent_notification.async_create"),
+        patch("homeassistant.components.persistent_notification.async_dismiss"),
     ):
         yield
 
@@ -67,11 +68,14 @@ def skip_notifications_fixture():
 @pytest.fixture()
 def mock_charger():
     """Mock charger data."""
-    with patch(
-        "custom_components.openevse.OpenEVSEUpdateCoordinator._async_update_data"
-    ) as mock_value, patch(
-        "custom_components.openevse.OpenEVSEFirmwareCheck._async_update_data"
-    ) as mock_fw_value:
+    with (
+        patch(
+            "custom_components.openevse.OpenEVSEUpdateCoordinator._async_update_data"
+        ) as mock_value,
+        patch(
+            "custom_components.openevse.OpenEVSEFirmwareCheck._async_update_data"
+        ) as mock_fw_value,
+    ):
         mock_value.return_value = CHARGER_DATA
         mock_fw_value.return_value = FW_DATA
         yield
