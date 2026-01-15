@@ -2,8 +2,7 @@
 
 import json
 import logging
-import re
-from datetime import datetime, timedelta
+from datetime import datetime
 from unittest.mock import patch
 
 import pytest
