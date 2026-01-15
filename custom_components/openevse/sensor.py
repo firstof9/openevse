@@ -106,8 +106,7 @@ class OpenEVSESensor(CoordinatorEntity, SensorEntity):
 
         # Check firmware version requirement
         manager = self.hass.data[DOMAIN][self._unique_id][MANAGER]
-        min_version = getattr(self.entity_description, "min_version", None)
-        if min_version and not manager.version_check(min_version):
+        if self._min_version and not manager.version_check(self._min_version):
             return False
 
         return True
