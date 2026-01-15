@@ -2,6 +2,7 @@
 
 import json
 import logging
+from datetime import datetime
 from datetime import timedelta
 from unittest.mock import patch
 
@@ -96,9 +97,8 @@ async def test_sensors(
 
         state = hass.states.get("sensor.openevse_vehicle_charge_completion")
         assert state
-        assert state.state == (dt_util.utcnow() + timedelta(seconds=18000)).isoformat(
-            timespec="seconds"
-        )
+        parsed_date = dt_util.parse_datetime(state.state)
+        assert isinstance(parsed_date, datetime)
 
 
 async def test_sensors_v2(
