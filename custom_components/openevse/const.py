@@ -157,7 +157,7 @@ SENSOR_TYPES: Final[dict[str, OpenEVSESensorEntityDescription]] = {
     "usage_total": OpenEVSESensorEntityDescription(
         key="usage_total",
         name="Total Usage",
-        native_unit_of_measurement=UnitOfEnergy.WATT_HOUR,
+        native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
         suggested_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
         state_class=SensorStateClass.TOTAL_INCREASING,
         device_class=SensorDeviceClass.ENERGY,
