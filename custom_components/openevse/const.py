@@ -345,7 +345,7 @@ SENSOR_TYPES: Final[dict[str, OpenEVSESensorEntityDescription]] = {
     "total_day": OpenEVSESensorEntityDescription(
         key="total_day",
         name="Usage (Today)",
-        native_unit_of_measurement=UnitOfEnergy.WATT_HOUR,
+        native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
         suggested_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
         state_class=SensorStateClass.TOTAL_INCREASING,
         device_class=SensorDeviceClass.ENERGY,
@@ -355,7 +355,7 @@ SENSOR_TYPES: Final[dict[str, OpenEVSESensorEntityDescription]] = {
     "total_week": OpenEVSESensorEntityDescription(
         key="total_week",
         name="Usage (Week)",
-        native_unit_of_measurement=UnitOfEnergy.WATT_HOUR,
+        native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
         suggested_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
         state_class=SensorStateClass.TOTAL_INCREASING,
         device_class=SensorDeviceClass.ENERGY,
@@ -365,7 +365,7 @@ SENSOR_TYPES: Final[dict[str, OpenEVSESensorEntityDescription]] = {
     "total_month": OpenEVSESensorEntityDescription(
         key="total_month",
         name="Usage (Month)",
-        native_unit_of_measurement=UnitOfEnergy.WATT_HOUR,
+        native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
         suggested_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
         state_class=SensorStateClass.TOTAL_INCREASING,
         device_class=SensorDeviceClass.ENERGY,
@@ -375,7 +375,7 @@ SENSOR_TYPES: Final[dict[str, OpenEVSESensorEntityDescription]] = {
     "total_year": OpenEVSESensorEntityDescription(
         key="total_year",
         name="Usage (Year)",
-        native_unit_of_measurement=UnitOfEnergy.WATT_HOUR,
+        native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
         suggested_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
         state_class=SensorStateClass.TOTAL_INCREASING,
         device_class=SensorDeviceClass.ENERGY,
