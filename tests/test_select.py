@@ -1,15 +1,11 @@
 """Test openevse select entities."""
 
-import json
 import logging
 from unittest.mock import patch
 
 import pytest
-from homeassistant.components.binary_sensor import DOMAIN as BINARY_SENSOR_DOMAIN
 from homeassistant.components.select import DOMAIN as SELECT_DOMAIN
 from homeassistant.components.select import SERVICE_SELECT_OPTION
-from homeassistant.components.sensor import DOMAIN as SENSOR_DOMAIN
-from homeassistant.components.switch import DOMAIN as SWITCH_DOMAIN
 from homeassistant.helpers import entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 

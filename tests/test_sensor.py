@@ -1,18 +1,13 @@
 """Test openevse sensors."""
 
 import contextlib
-import json
 import logging
 from datetime import datetime
 from unittest.mock import patch
 
 import pytest
 from aiohttp import ClientError
-from homeassistant.components.binary_sensor import DOMAIN as BINARY_SENSOR_DOMAIN
-from homeassistant.components.number import DOMAIN as NUMBER_DOMAIN
-from homeassistant.components.select import DOMAIN as SELECT_DOMAIN
 from homeassistant.components.sensor import DOMAIN as SENSOR_DOMAIN
-from homeassistant.components.switch import DOMAIN as SWITCH_DOMAIN
 from homeassistant.helpers import entity_registry as er
 from homeassistant.util import dt as dt_util
 from pytest_homeassistant_custom_component.common import MockConfigEntry
@@ -76,6 +71,10 @@ async def test_sensors(
         state = hass.states.get("sensor.openevse_current_power_usage_actual")
         assert state
         assert state.state == "0"
+
+        state = hass.states.get("sensor.openevse_charging_current")
+        assert state
+        assert state.state == "32.2"
 
         # enable disabled sensor
         entity_id = "sensor.openevse_vehicle_charge_completion"
@@ -202,6 +201,10 @@ async def test_sensors_new(
         state = hass.states.get("sensor.openevse_current_power_usage_actual")
         assert state
         assert state.state == "4500"
+
+        state = hass.states.get("sensor.openevse_charging_current")
+        assert state
+        assert state.state == "28.2"
 
         # enable disabled sensor
         entity_id = "sensor.openevse_vehicle_charge_completion"

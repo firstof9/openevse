@@ -10,7 +10,6 @@ from homeassistant.components.sensor import DOMAIN as SENSOR_DOMAIN
 from homeassistant.components.switch import DOMAIN as SWITCH_DOMAIN
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.core import CoreState
-from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers.update_coordinator import UpdateFailed
 from openevsehttp.exceptions import MissingSerial
 from pytest_homeassistant_custom_component.common import MockConfigEntry
