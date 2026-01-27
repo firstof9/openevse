@@ -395,7 +395,9 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
                 _LOGGER.debug("Could not update status for %s", sensor)
             data.update(_sensor)
 
-        for binary_sensor in BINARY_SENSORS:  # pylint: disable=consider-using-dict-items
+        for (
+            binary_sensor
+        ) in BINARY_SENSORS:  # pylint: disable=consider-using-dict-items
             _sensor = {}
             try:
                 sensor_property = BINARY_SENSORS[binary_sensor].key
