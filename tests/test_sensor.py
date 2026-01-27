@@ -55,7 +55,7 @@ async def test_sensors(
         assert state.state == "4.1"
         state = hass.states.get("sensor.openevse_total_usage")
         assert state
-        assert state.state == "64.582"
+        assert state.state == "64582"
         state = hass.states.get("sensor.openevse_max_current")
         assert state
         assert state.state == "48"
@@ -134,7 +134,7 @@ async def test_sensors_v2(
         assert state.state == "145.85"
         state = hass.states.get("sensor.openevse_total_usage")
         assert state
-        assert state.state == "1585.443"
+        assert state.state == "1585443"
         state = hass.states.get("sensor.openevse_max_current")
         assert state
         assert state.state == "unknown"
@@ -185,7 +185,7 @@ async def test_sensors_new(
         assert state.state == "0.0"
         state = hass.states.get("sensor.openevse_total_usage")
         assert state
-        assert state.state == "20.12722817"
+        assert state.state == "20127.22817"
         state = hass.states.get("sensor.openevse_max_current")
         assert state
         assert state.state == "48"
