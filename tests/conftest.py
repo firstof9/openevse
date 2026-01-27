@@ -1,9 +1,7 @@
 """Global fixtures for openevse integration."""
 
 from collections.abc import Coroutine, Generator
-import json
 import os
-from unittest import mock
 from unittest.mock import patch
 from typing import Any, cast
 

@@ -17,7 +17,7 @@
     "comm_success": 677214,
     "rapi_connected": 1,
     "evse_connected": 1,
-    "amp": 0,
+    "amp": 28.2,
     "voltage": 220,
     "power": 4500,
     "pilot": 48,

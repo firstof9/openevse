@@ -81,6 +81,7 @@ DIAG_CONFIG_DATA = {
 DIAG_DEVICE_RESULTS = {
     "ambient_temperature": 50.3,
     "ammeter_scale_factor": 220,
+    "available_current": None,
     "charge_rate": 0,
     "charge_time_elapsed": 246,
     "charging_current": 32.2,
@@ -111,6 +112,7 @@ DIAG_DEVICE_RESULTS = {
     "shaper_live_power": 2299,
     "shaper_max_power": 4000,
     "shaper_updated": False,
+    "smoothed_available_current": None,
     "state": "sleeping",
     "status": "sleeping",
     "total_day": None,
