@@ -200,7 +200,11 @@ async def test_sensors_new(
 
         state = hass.states.get("sensor.openevse_current_power_usage_actual")
         assert state
-        assert state.state == "4500"
+        assert state.state == "6204"
+
+        state = hass.states.get("sensor.openevse_current_power_usage_calculated")
+        assert state
+        assert state.state == "6204.0"
 
         state = hass.states.get("sensor.openevse_charging_current")
         assert state
@@ -295,8 +299,8 @@ async def test_sensor_availability_aioclient(
         "state": 2,
         "connected": 1,
         "comm_success": 1,
-        "amp": 48000,
-        "volts": 240000,
+        "amp": 48,
+        "volts": 240,
         "pilot": 48,
         "temp1": 250,
         "temp2": 260,
