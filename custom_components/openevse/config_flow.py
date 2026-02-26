@@ -224,6 +224,16 @@ class OpenEVSEFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         return OpenEVSEOptionsFlowHandler()
 
 
+class OptionalEntitySelector(EntitySelector):
+    """Entity selector that allows empty string."""
+
+    def __call__(self, v: Any) -> Any:
+        """Validate input."""
+        if v == "":
+            return v
+        return super().__call__(v)
+
+
 class OpenEVSEOptionsFlowHandler(config_entries.OptionsFlow):
     """Handle OpenEVSE options."""
 
@@ -242,24 +252,16 @@ class OpenEVSEOptionsFlowHandler(config_entries.OptionsFlow):
                 {
                     vol.Optional(
                         CONF_GRID, default=options.get(CONF_GRID, "")
-                    ): vol.Any(
-                        EntitySelector(EntitySelectorConfig(domain="sensor")), ""
-                    ),
+                    ): OptionalEntitySelector(EntitySelectorConfig(domain="sensor")),
                     vol.Optional(
                         CONF_SOLAR, default=options.get(CONF_SOLAR, "")
-                    ): vol.Any(
-                        EntitySelector(EntitySelectorConfig(domain="sensor")), ""
-                    ),
+                    ): OptionalEntitySelector(EntitySelectorConfig(domain="sensor")),
                     vol.Optional(
                         CONF_VOLTAGE, default=options.get(CONF_VOLTAGE, "")
-                    ): vol.Any(
-                        EntitySelector(EntitySelectorConfig(domain="sensor")), ""
-                    ),
+                    ): OptionalEntitySelector(EntitySelectorConfig(domain="sensor")),
                     vol.Optional(
                         CONF_SHAPER, default=options.get(CONF_SHAPER, "")
-                    ): vol.Any(
-                        EntitySelector(EntitySelectorConfig(domain="sensor")), ""
-                    ),
+                    ): OptionalEntitySelector(EntitySelectorConfig(domain="sensor")),
                     vol.Optional(
                         CONF_INVERT, default=options.get(CONF_INVERT, False)
                     ): bool,
