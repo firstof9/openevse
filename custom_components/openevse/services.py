@@ -182,6 +182,21 @@ class OpenEVSEServices:
             supports_response=SupportsResponse.ONLY,
         )
 
+    def _resolve_device_config(self, device_id: str) -> str:
+        """Resolve a device ID to a configuration ID."""
+        dev_reg = dr.async_get(self.hass)
+        device_entry = dev_reg.async_get(device_id)
+        _LOGGER.debug("Device_entry: %s", device_entry)
+
+        if not device_entry:
+            raise ValueError(f"Device ID {device_id} is not valid")
+
+        if not device_entry.connections:
+            raise ValueError(f"Device ID {device_id} has no connections")
+
+        config_id = next(iter(device_entry.connections))[1]
+        return config_id
+
     # Setup services
     async def _set_override(self, service: ServiceCall) -> None:
         """Set the override."""
@@ -190,17 +205,7 @@ class OpenEVSEServices:
             device_id = device
             _LOGGER.debug("Device ID: %s", device_id)
 
-            dev_reg = dr.async_get(self.hass)
-            device_entry = dev_reg.async_get(device_id)
-            _LOGGER.debug("Device_entry: %s", device_entry)
-
-            if not device_entry:
-                raise ValueError(f"Device ID {device_id} is not valid")
-
-            if not device_entry.connections:
-                raise ValueError(f"Device ID {device_id} has no connections")
-
-            config_id = next(iter(device_entry.connections))[1]
+            config_id = self._resolve_device_config(device_id)
             _LOGGER.debug("Config ID: %s", config_id)
             try:
                 manager = self.hass.data[DOMAIN][config_id][MANAGER]
@@ -232,17 +237,7 @@ class OpenEVSEServices:
             device_id = device
             _LOGGER.debug("Device ID: %s", device_id)
 
-            dev_reg = dr.async_get(self.hass)
-            device_entry = dev_reg.async_get(device_id)
-            _LOGGER.debug("Device_entry: %s", device_entry)
-
-            if not device_entry:
-                raise ValueError(f"Device ID {device_id} is not valid")
-
-            if not device_entry.connections:
-                raise ValueError(f"Device ID {device_id} has no connections")
-
-            config_id = next(iter(device_entry.connections))[1]
+            config_id = self._resolve_device_config(device_id)
             _LOGGER.debug("Config ID: %s Type: %s", config_id, type(config_id))
             try:
                 manager = self.hass.data[DOMAIN][config_id][MANAGER]
@@ -258,17 +253,7 @@ class OpenEVSEServices:
             device_id = device
             _LOGGER.debug("Device ID: %s", device_id)
 
-            dev_reg = dr.async_get(self.hass)
-            device_entry = dev_reg.async_get(device_id)
-            _LOGGER.debug("Device_entry: %s", device_entry)
-
-            if not device_entry:
-                raise ValueError(f"Device ID {device_id} is not valid")
-
-            if not device_entry.connections:
-                raise ValueError(f"Device ID {device_id} has no connections")
-
-            config_id = next(iter(device_entry.connections))[1]
+            config_id = self._resolve_device_config(device_id)
             _LOGGER.debug("Config ID: %s", config_id)
             try:
                 manager = self.hass.data[DOMAIN][config_id][MANAGER]
@@ -298,17 +283,7 @@ class OpenEVSEServices:
             device_id = device
             _LOGGER.debug("Device ID: %s", device_id)
 
-            dev_reg = dr.async_get(self.hass)
-            device_entry = dev_reg.async_get(device_id)
-            _LOGGER.debug("Device_entry: %s", device_entry)
-
-            if not device_entry:
-                raise ValueError(f"Device ID {device_id} is not valid")
-
-            if not device_entry.connections:
-                raise ValueError(f"Device ID {device_id} has no connections")
-
-            config_id = next(iter(device_entry.connections))[1]
+            config_id = self._resolve_device_config(device_id)
             _LOGGER.debug("Config ID: %s Type: %s", config_id, type(config_id))
             try:
                 manager = self.hass.data[DOMAIN][config_id][MANAGER]
@@ -325,17 +300,7 @@ class OpenEVSEServices:
             device_id = device
             _LOGGER.debug("Device ID: %s", device_id)
 
-            dev_reg = dr.async_get(self.hass)
-            device_entry = dev_reg.async_get(device_id)
-            _LOGGER.debug("Device_entry: %s", device_entry)
-
-            if not device_entry:
-                raise ValueError(f"Device ID {device_id} is not valid")
-
-            if not device_entry.connections:
-                raise ValueError(f"Device ID {device_id} has no connections")
-
-            config_id = next(iter(device_entry.connections))[1]
+            config_id = self._resolve_device_config(device_id)
             _LOGGER.debug("Config ID: %s Type: %s", config_id, type(config_id))
             try:
                 manager = self.hass.data[DOMAIN][config_id][MANAGER]
@@ -353,17 +318,7 @@ class OpenEVSEServices:
             device_id = device
             _LOGGER.debug("Device ID: %s", device_id)
 
-            dev_reg = dr.async_get(self.hass)
-            device_entry = dev_reg.async_get(device_id)
-            _LOGGER.debug("Device_entry: %s", device_entry)
-
-            if not device_entry:
-                raise ValueError(f"Device ID {device_id} is not valid")
-
-            if not device_entry.connections:
-                raise ValueError(f"Device ID {device_id} has no connections")
-
-            config_id = next(iter(device_entry.connections))[1]
+            config_id = self._resolve_device_config(device_id)
             _LOGGER.debug("Config ID: %s", config_id)
             try:
                 manager = self.hass.data[DOMAIN][config_id][MANAGER]
@@ -390,17 +345,7 @@ class OpenEVSEServices:
             device_id = device
             _LOGGER.debug("Device ID: %s", device_id)
 
-            dev_reg = dr.async_get(self.hass)
-            device_entry = dev_reg.async_get(device_id)
-            _LOGGER.debug("Device_entry: %s", device_entry)
-
-            if not device_entry:
-                raise ValueError(f"Device ID {device_id} is not valid")
-
-            if not device_entry.connections:
-                raise ValueError(f"Device ID {device_id} has no connections")
-
-            config_id = next(iter(device_entry.connections))[1]
+            config_id = self._resolve_device_config(device_id)
             _LOGGER.debug("Config ID: %s Type: %s", config_id, type(config_id))
             try:
                 manager = self.hass.data[DOMAIN][config_id][MANAGER]
@@ -417,17 +362,7 @@ class OpenEVSEServices:
             device_id = device
             _LOGGER.debug("Device ID: %s", device_id)
 
-            dev_reg = dr.async_get(self.hass)
-            device_entry = dev_reg.async_get(device_id)
-            _LOGGER.debug("Device_entry: %s", device_entry)
-
-            if not device_entry:
-                raise ValueError(f"Device ID {device_id} is not valid")
-
-            if not device_entry.connections:
-                raise ValueError(f"Device ID {device_id} has no connections")
-
-            config_id = next(iter(device_entry.connections))[1]
+            config_id = self._resolve_device_config(device_id)
             _LOGGER.debug("Config ID: %s Type: %s", config_id, type(config_id))
             try:
                 manager = self.hass.data[DOMAIN][config_id][MANAGER]
@@ -450,17 +385,7 @@ class OpenEVSEServices:
             device_id = device
             _LOGGER.debug("Device ID: %s", device_id)
 
-            dev_reg = dr.async_get(self.hass)
-            device_entry = dev_reg.async_get(device_id)
-            _LOGGER.debug("Device_entry: %s", device_entry)
-
-            if not device_entry:
-                raise ValueError(f"Device ID {device_id} is not valid")
-
-            if not device_entry.connections:
-                raise ValueError(f"Device ID {device_id} has no connections")
-
-            config_id = next(iter(device_entry.connections))[1]
+            config_id = self._resolve_device_config(device_id)
             _LOGGER.debug("Config ID: %s Type: %s", config_id, type(config_id))
             try:
                 manager = self.hass.data[DOMAIN][config_id][MANAGER]
