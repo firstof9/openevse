@@ -49,6 +49,8 @@ CONF_SHAPER = "shaper"
 DEFAULT_HOST = "openevse.local"
 DEFAULT_NAME = "OpenEVSE"
 
+SENSOR_FIELDS = [CONF_GRID, CONF_SOLAR, CONF_VOLTAGE, CONF_SHAPER, CONF_INVERT]
+
 # hass.data attributes
 UNSUB_LISTENERS = "unsub_listeners"
 

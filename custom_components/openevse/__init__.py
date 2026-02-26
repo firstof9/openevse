@@ -45,14 +45,13 @@ from .const import (
     NUMBER_TYPES,
     PLATFORMS,
     SELECT_TYPES,
+    SENSOR_FIELDS,
     SENSOR_TYPES,
     TIMEOUT_ERROR,
     UNSUB_LISTENERS,
     VERSION,
 )
 from .services import OpenEVSEServices
-
-SENSOR_OPTION_FIELDS = [CONF_GRID, CONF_SOLAR, CONF_VOLTAGE, CONF_SHAPER, CONF_INVERT]
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -255,7 +254,7 @@ async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry) ->
         new_options = dict(config_entry.options)
 
         # Move sensor fields from data to options
-        for key in SENSOR_OPTION_FIELDS:
+        for key in SENSOR_FIELDS:
             if key in new_data:
                 new_options[key] = new_data.pop(key)
 

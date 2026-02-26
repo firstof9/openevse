@@ -11,6 +11,10 @@ from homeassistant.components import zeroconf
 from homeassistant.const import CONF_HOST, CONF_PASSWORD, CONF_USERNAME
 from homeassistant.data_entry_flow import AbortFlow, FlowResult
 from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers.selector import (
+    EntitySelector,
+    EntitySelectorConfig,
+)
 from homeassistant.util import slugify
 from openevsehttp.__main__ import OpenEVSE
 
@@ -28,8 +32,6 @@ from .const import (
 )
 
 _LOGGER = logging.getLogger(__name__)
-
-SENSOR_FIELDS = [CONF_GRID, CONF_SOLAR, CONF_VOLTAGE, CONF_SHAPER, CONF_INVERT]
 
 
 @config_entries.HANDLERS.register(DOMAIN)
@@ -240,16 +242,24 @@ class OpenEVSEOptionsFlowHandler(config_entries.OptionsFlow):
                 {
                     vol.Optional(
                         CONF_GRID, default=options.get(CONF_GRID, "")
-                    ): cv.string,
+                    ): vol.Any(
+                        EntitySelector(EntitySelectorConfig(domain="sensor")), ""
+                    ),
                     vol.Optional(
                         CONF_SOLAR, default=options.get(CONF_SOLAR, "")
-                    ): cv.string,
+                    ): vol.Any(
+                        EntitySelector(EntitySelectorConfig(domain="sensor")), ""
+                    ),
                     vol.Optional(
                         CONF_VOLTAGE, default=options.get(CONF_VOLTAGE, "")
-                    ): cv.string,
+                    ): vol.Any(
+                        EntitySelector(EntitySelectorConfig(domain="sensor")), ""
+                    ),
                     vol.Optional(
                         CONF_SHAPER, default=options.get(CONF_SHAPER, "")
-                    ): cv.string,
+                    ): vol.Any(
+                        EntitySelector(EntitySelectorConfig(domain="sensor")), ""
+                    ),
                     vol.Optional(
                         CONF_INVERT, default=options.get(CONF_INVERT, False)
                     ): bool,

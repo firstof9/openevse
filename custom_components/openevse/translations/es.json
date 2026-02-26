@@ -23,6 +23,10 @@
         },
         "description": "Por favor, introduce la información de conexión al cargador OpenEVSE.",
         "title": "Configuración OpenEVSE"
+      },
+      "discovery_confirm": {
+        "description": "¿Quieres configurar {name}?",
+        "title": "Cargador descubierto"
       }
     }
   },

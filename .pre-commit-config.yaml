@@ -1,4 +1,4 @@
-default_stages: [commit, push]
+default_stages: [pre-commit, pre-push]
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
@@ -21,10 +21,9 @@ repos:
     hooks:
       - id: codespell
         args:
-          - --skip="./.*,*.csv,*.json,*.ambr"
+          - --skip=./.*,*.csv,*.json,*.ambr
           - --quiet-level=2
           - -L hass
-        exclude_types: [csv, json]
 
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: v1.15.0

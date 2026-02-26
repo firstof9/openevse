@@ -115,6 +115,9 @@ class OpenEVSESelect(CoordinatorEntity, SelectEntity):
     def available(self) -> bool:
         """Return if entity is available."""
         data = self.coordinator.data
+        if not data or not isinstance(data, dict):
+            return False
+
         manager = self.hass.data[DOMAIN][self._config.entry_id][MANAGER]
         attributes = ("divertmode", "divert_active")
         if (

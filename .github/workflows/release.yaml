@@ -5,6 +5,7 @@ on:
     inputs:
       tags:
         description: 'Manually enter tag'
+        required: true
   release:
     types: [published]
 
@@ -22,16 +23,11 @@ jobs:
         run: echo "VERSION=${GITHUB_REF/refs\/tags\//}" >> "$GITHUB_ENV"
 
       - name: "Set version numbmer"
-        if: ${{ github.event_name == 'release' }}
+        if: ${{ github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && inputs.tags != '') }}
         run: |
-          sed -i '/VERSION = /c\VERSION = "${{ env.VERSION }}"' ${{ github.workspace }}/custom_components/openevse/const.py
-          sed -i '/version/c\  \"version\": \"${{ env.VERSION }}\",' ${{ github.workspace }}/custom_components/openevse/manifest.json
-
-      - name: "Set version numbmer"
-        if: ${{ github.event_name == 'workflow_dispatch' }}
-        run: |
-          sed -i '/VERSION = /c\VERSION = "${{inputs.tags}}"' ${{ github.workspace }}/custom_components/openevse/const.py
-          sed -i '/version/c\  \"version\": \"${{inputs.tags}}\",' ${{ github.workspace }}/custom_components/openevse/manifest.json
+          TAG_NAME=${{ github.event_name == 'workflow_dispatch' && inputs.tags || env.VERSION }}
+          sed -i "/VERSION = /c\VERSION = \"$TAG_NAME\"" ${{ github.workspace }}/custom_components/openevse/const.py
+          sed -i "/version/c\  \"version\": \"$TAG_NAME\"," ${{ github.workspace }}/custom_components/openevse/manifest.json
 
       # Pack the openevse dir as a zip and upload to the release
       - name: Create Zip File
@@ -40,14 +36,8 @@ jobs:
           zip openevse.zip -r ./
 
       - name: 📤 Upload zip to release
-        if: ${{ github.event_name == 'release' }}
+        if: ${{ github.event_name == 'release' || github.event_name == 'workflow_dispatch' }}
         uses: softprops/action-gh-release@v0.1.15
         with:
           files: ${{ github.workspace }}/custom_components/openevse/openevse.zip
-
-      - name: 📤 Upload zip to release
-        if: ${{ github.event_name == 'workflow_dispatch' }}
-        uses: softprops/action-gh-release@v0.1.15
-        with:
-          files: ${{ github.workspace }}/custom_components/openevse/openevse.zip
-          tag_name: ${{inputs.tags}}
+          tag_name: ${{ github.event_name == 'workflow_dispatch' && inputs.tags || github.event.release.tag_name }}
