@@ -294,8 +294,8 @@ async def get_firmware(manager: OpenEVSEManager) -> tuple:
     data = {}
     try:
         await manager.update()
-    except Exception as error:
-        _LOGGER.error("Problem retrieving firmware data: %s", error)
+    except Exception:
+        _LOGGER.exception("Problem retrieving firmware data")
         return "", ""
 
     try:
