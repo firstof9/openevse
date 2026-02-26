@@ -78,11 +78,16 @@ async def handle_state_change(
     changed_entity = event.data["entity_id"]
 
     if grid_sensor is not None and changed_entity == grid_sensor:
-        grid = hass.states.get(grid_sensor).state
-        if grid in [None, "unavailable"]:
+        state = hass.states.get(grid_sensor)
+        grid = state.state if state else None
+        if grid in [None, "unavailable", "unknown"]:
             grid = None
         else:
-            grid = round(float(hass.states.get(grid_sensor).state))
+            try:
+                grid = round(float(grid))
+            except (ValueError, TypeError):
+                _LOGGER.warning("Non-numeric state for grid sensor: %s", grid)
+                grid = None
 
         _LOGGER.debug("Sending sensor data to OpenEVSE: (grid: %s)", grid)
         try:
@@ -91,11 +96,16 @@ async def handle_state_change(
             _LOGGER.error(TIMEOUT_ERROR, err)
 
     elif solar_sensor is not None and changed_entity == solar_sensor:
-        solar = hass.states.get(solar_sensor).state
-        if solar in [None, "unavailable"]:
+        state = hass.states.get(solar_sensor)
+        solar = state.state if state else None
+        if solar in [None, "unavailable", "unknown"]:
             solar = None
         else:
-            solar = round(float(hass.states.get(solar_sensor).state))
+            try:
+                solar = round(float(solar))
+            except (ValueError, TypeError):
+                _LOGGER.warning("Non-numeric state for solar sensor: %s", solar)
+                solar = None
 
         _LOGGER.debug("Sending sensor data to OpenEVSE: (solar: %s)", solar)
         try:
@@ -104,11 +114,16 @@ async def handle_state_change(
             _LOGGER.error(TIMEOUT_ERROR, err)
 
     if voltage_sensor is not None and changed_entity == voltage_sensor:
-        voltage = hass.states.get(voltage_sensor).state
-        if voltage in [None, "unavailable"]:
+        state = hass.states.get(voltage_sensor)
+        voltage = state.state if state else None
+        if voltage in [None, "unavailable", "unknown"]:
             voltage = None
         else:
-            voltage = round(float(hass.states.get(voltage_sensor).state))
+            try:
+                voltage = round(float(voltage))
+            except (ValueError, TypeError):
+                _LOGGER.warning("Non-numeric state for voltage sensor: %s", voltage)
+                voltage = None
 
         _LOGGER.debug("Sending sensor data to OpenEVSE: (voltage: %s)", voltage)
         try:
@@ -117,11 +132,16 @@ async def handle_state_change(
             _LOGGER.error(TIMEOUT_ERROR, err)
 
     if shaper_sensor is not None and changed_entity == shaper_sensor:
-        power = hass.states.get(shaper_sensor).state
-        if power in [None, "unavailable"]:
+        state = hass.states.get(shaper_sensor)
+        power = state.state if state else None
+        if power in [None, "unavailable", "unknown", ""]:
             power = None
         else:
-            power = round(float(hass.states.get(shaper_sensor).state))
+            try:
+                power = round(float(power))
+            except (ValueError, TypeError):
+                _LOGGER.warning("Non-numeric state for shaper sensor: %s", power)
+                power = None
 
         _LOGGER.debug("Sending sensor data to OpenEVSE: (shaper: %s)", power)
         try:
@@ -214,7 +234,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
     options = config_entry.options
     if options.get(CONF_GRID):
         sensors.append(options.get(CONF_GRID))
-    elif options.get(CONF_SOLAR):
+    if options.get(CONF_SOLAR):
         sensors.append(options.get(CONF_SOLAR))
     if options.get(CONF_VOLTAGE):
         sensors.append(options.get(CONF_VOLTAGE))

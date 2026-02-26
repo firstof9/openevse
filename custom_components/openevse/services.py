@@ -457,6 +457,9 @@ class OpenEVSEServices:
             if not device_entry:
                 raise ValueError(f"Device ID {device_id} is not valid")
 
+            if not device_entry.connections:
+                raise ValueError(f"Device ID {device_id} has no connections")
+
             config_id = next(iter(device_entry.connections))[1]
             _LOGGER.debug("Config ID: %s Type: %s", config_id, type(config_id))
             try:
