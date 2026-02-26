@@ -478,7 +478,7 @@ async def test_options_flow_defaults(hass, test_charger, mock_ws_start):
     assert result["data"]["solar"] == "sensor.solar_production"
 
 
-async def test_options_flow_all_empty_entities(hass, _test_charger, _mock_ws_start):
+async def test_options_flow_all_empty_entities(hass, test_charger, mock_ws_start):
     """Test options flow allows empty strings for all sensor entities."""
     entry = MockConfigEntry(
         domain=DOMAIN,
