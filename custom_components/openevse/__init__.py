@@ -93,7 +93,7 @@ async def handle_state_change(
         try:
             await manager.self_production(grid=grid, solar=None, invert=invert)
         except TimeoutError as err:
-            _LOGGER.error(TIMEOUT_ERROR, err)
+            _LOGGER.exception(TIMEOUT_ERROR, err)
 
     elif solar_sensor is not None and changed_entity == solar_sensor:
         state = hass.states.get(solar_sensor)
@@ -111,7 +111,7 @@ async def handle_state_change(
         try:
             await manager.self_production(grid=None, solar=solar, invert=False)
         except TimeoutError as err:
-            _LOGGER.error(TIMEOUT_ERROR, err)
+            _LOGGER.exception(TIMEOUT_ERROR, err)
 
     if voltage_sensor is not None and changed_entity == voltage_sensor:
         state = hass.states.get(voltage_sensor)
@@ -129,7 +129,7 @@ async def handle_state_change(
         try:
             await manager.grid_voltage(voltage=voltage)
         except TimeoutError as err:
-            _LOGGER.error(TIMEOUT_ERROR, err)
+            _LOGGER.exception(TIMEOUT_ERROR, err)
 
     if shaper_sensor is not None and changed_entity == shaper_sensor:
         state = hass.states.get(shaper_sensor)
@@ -147,7 +147,7 @@ async def handle_state_change(
         try:
             await manager.set_shaper_live_pwr(power=power)
         except TimeoutError as err:
-            _LOGGER.error(TIMEOUT_ERROR, err)
+            _LOGGER.exception(TIMEOUT_ERROR, err)
 
 
 async def homeassistant_started_listener(
@@ -294,8 +294,8 @@ async def get_firmware(manager: OpenEVSEManager) -> tuple:
     data = {}
     try:
         await manager.update()
-    except Exception:
-        _LOGGER.exception("Problem retrieving firmware data")
+    except Exception as error:
+        _LOGGER.exception("Problem retrieving firmware data: %s", error)
         return "", ""
 
     try:
