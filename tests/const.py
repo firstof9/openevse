@@ -60,6 +60,8 @@ CONFIG_DATA_GRID = {
     "host": "openevse.test.tld",
     "username": "",
     "password": "",
+}
+OPTIONS_DATA_GRID = {
     "grid": "sensor.grid_usage",
     "invert_grid": False,
 }
@@ -68,9 +70,14 @@ CONFIG_DATA_SOLAR = {
     "host": "openevse.test.tld",
     "username": "",
     "password": "",
+}
+OPTIONS_DATA_SOLAR = {
     "solar": "sensor.solar_production",
     "voltage": "sensor.grid_voltage",
     "invert_grid": False,
+}
+OPTIONS_DATA_SHAPER = {
+    "shaper": "sensor.shaper_power",
 }
 DIAG_CONFIG_DATA = {
     "name": "openevse",

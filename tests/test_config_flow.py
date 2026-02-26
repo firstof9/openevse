@@ -1,6 +1,5 @@
 """Test config flow."""
 
-from ipaddress import ip_address
 from unittest.mock import patch
 
 import pytest
@@ -9,6 +8,7 @@ from homeassistant.const import CONF_HOST
 from homeassistant.data_entry_flow import FlowResultType
 from homeassistant.helpers.service_info.zeroconf import ZeroconfServiceInfo
 from pytest_homeassistant_custom_component.common import MockConfigEntry
+from ipaddress import ip_address
 
 from custom_components.openevse.const import DOMAIN
 from tests.const import CONFIG_DATA
@@ -27,10 +27,6 @@ pytestmark = pytest.mark.asyncio
                 "host": "openevse.test.tld",
                 "username": "",
                 "password": "",
-                "grid": "",
-                "solar": "",
-                "voltage": "",
-                "invert_grid": False,
             },
             "user",
             "openevse",
@@ -39,10 +35,6 @@ pytestmark = pytest.mark.asyncio
                 "host": "openevse.test.tld",
                 "username": "",
                 "password": "",
-                "grid": "",
-                "solar": "",
-                "voltage": "",
-                "invert_grid": False,
             },
         ),
     ],
@@ -93,10 +85,6 @@ async def test_form_user(
                 "host": "openevse.test.tld",
                 "username": "",
                 "password": "",
-                "grid": "",
-                "solar": "",
-                "voltage": "",
-                "invert_grid": False,
             },
             "user",
             "openevse",
@@ -105,10 +93,6 @@ async def test_form_user(
                 "host": "openevse.test.tld",
                 "username": "",
                 "password": "",
-                "grid": "",
-                "solar": "",
-                "voltage": "",
-                "invert_grid": False,
             },
         ),
     ],
@@ -144,10 +128,6 @@ async def test_form_user_connection_error(
                 "host": "openevse.test.tld",
                 "username": "",
                 "password": "",
-                "grid": "sensor.grid_power",
-                "solar": "",
-                "voltage": "",
-                "invert_grid": False,
             },
             "reconfigure",
             "openevse",
@@ -156,10 +136,6 @@ async def test_form_user_connection_error(
                 "host": "openevse.test.tld",
                 "username": "",
                 "password": "",
-                "grid": "sensor.grid_power",
-                "solar": "",
-                "voltage": "",
-                "invert_grid": False,
             },
         ),
     ],
@@ -179,6 +155,7 @@ async def test_form_reconfigure(
         domain=DOMAIN,
         title=CHARGER_NAME,
         data=CONFIG_DATA,
+        version=2,
     )
     entry.add_to_hass(hass)
     await hass.config_entries.async_setup(entry.entry_id)
@@ -215,10 +192,6 @@ async def test_form_reconfigure(
                 "host": "openevse.test2.tld",
                 "username": "",
                 "password": "",
-                "grid": "sensor.grid_power",
-                "solar": "",
-                "voltage": "",
-                "invert_grid": False,
             },
             "reconfigure",
         ),
@@ -237,6 +210,7 @@ async def test_form_reconfigure_connect_error(
         domain=DOMAIN,
         title=CHARGER_NAME,
         data=CONFIG_DATA,
+        version=2,
     )
     entry.add_to_hass(hass)
     await hass.config_entries.async_setup(entry.entry_id)
@@ -366,6 +340,7 @@ async def test_zeroconf_already_configured_host(hass):
     entry = MockConfigEntry(
         domain=DOMAIN,
         data={**CONFIG_DATA, "host": "192.168.1.123"},
+        version=2,
     )
     entry.add_to_hass(hass)
 
@@ -397,6 +372,7 @@ async def test_zeroconf_already_configured_unique_id(hass):
         domain=DOMAIN,
         unique_id="OpenEVSE: openevse-1234_1234",
         data={**CONFIG_DATA, "host": "192.168.1.50"},
+        version=2,
     )
     entry.add_to_hass(hass)
 
@@ -426,3 +402,119 @@ async def test_zeroconf_already_configured_unique_id(hass):
 
         # Verify the entry IP was updated to the new discovery IP
         assert entry.data["host"] == "192.168.1.123"
+
+
+async def test_options_flow(hass, test_charger, mock_ws_start):
+    """Test options flow for sensor configuration."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA,
+        version=2,
+    )
+    entry.add_to_hass(hass)
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    assert result["type"] is FlowResultType.FORM
+    assert result["step_id"] == "init"
+
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        user_input={
+            "grid": "sensor.grid_usage",
+            "solar": "",
+            "voltage": "sensor.grid_voltage",
+            "shaper": "sensor.shaper_power",
+            "invert_grid": False,
+        },
+    )
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    assert result["data"] == {
+        "grid": "sensor.grid_usage",
+        "solar": "",
+        "voltage": "sensor.grid_voltage",
+        "shaper": "sensor.shaper_power",
+        "invert_grid": False,
+    }
+
+
+async def test_options_flow_defaults(hass, test_charger, mock_ws_start):
+    """Test options flow shows existing values as defaults."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA,
+        options={
+            "grid": "sensor.grid_usage",
+            "solar": "",
+            "voltage": "",
+            "shaper": "",
+            "invert_grid": True,
+        },
+        version=2,
+    )
+    entry.add_to_hass(hass)
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    assert result["type"] is FlowResultType.FORM
+    assert result["step_id"] == "init"
+
+    # Submit with updated values
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        user_input={
+            "grid": "sensor.grid_usage",
+            "solar": "sensor.solar_production",
+            "voltage": "",
+            "shaper": "",
+            "invert_grid": True,
+        },
+    )
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    assert result["data"]["solar"] == "sensor.solar_production"
+
+
+async def test_migrate_from_v1(hass, test_charger, mock_ws_start):
+    """Test migration from config version 1 to version 2."""
+    # Create a v1 entry with sensor fields in data
+    v1_data = {
+        "name": "openevse",
+        "host": "openevse.test.tld",
+        "username": "",
+        "password": "",
+        "grid": "sensor.grid_usage",
+        "solar": "",
+        "voltage": "sensor.grid_voltage",
+        "invert_grid": False,
+    }
+
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=v1_data,
+        version=1,
+    )
+
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    # Verify migration happened
+    assert entry.version == 2
+
+    # Verify sensor fields moved to options
+    assert "grid" not in entry.data
+    assert "solar" not in entry.data
+    assert "voltage" not in entry.data
+    assert "invert_grid" not in entry.data
+
+    assert entry.options.get("grid") == "sensor.grid_usage"
+    assert entry.options.get("voltage") == "sensor.grid_voltage"
+
+    # Verify connection data is preserved
+    assert entry.data.get("host") == "openevse.test.tld"
+    assert entry.data.get("name") == "openevse"

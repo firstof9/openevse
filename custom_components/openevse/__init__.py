@@ -33,6 +33,7 @@ from .const import (
     CONF_GRID,
     CONF_INVERT,
     CONF_NAME,
+    CONF_SHAPER,
     CONF_SOLAR,
     CONF_VOLTAGE,
     COORDINATOR,
@@ -51,6 +52,8 @@ from .const import (
 )
 from .services import OpenEVSEServices
 
+SENSOR_OPTION_FIELDS = [CONF_GRID, CONF_SOLAR, CONF_VOLTAGE, CONF_SHAPER, CONF_INVERT]
+
 _LOGGER = logging.getLogger(__name__)
 
 divert_mode = {
@@ -67,10 +70,12 @@ async def handle_state_change(
 ) -> None:
     """Track state changes to sensor entities."""
     manager = hass.data[DOMAIN][config_entry.entry_id][MANAGER]
-    invert = config_entry.data.get(CONF_INVERT)
-    grid_sensor = config_entry.data.get(CONF_GRID)
-    solar_sensor = config_entry.data.get(CONF_SOLAR)
-    voltage_sensor = config_entry.data.get(CONF_VOLTAGE)
+    options = config_entry.options
+    invert = options.get(CONF_INVERT)
+    grid_sensor = options.get(CONF_GRID)
+    solar_sensor = options.get(CONF_SOLAR)
+    voltage_sensor = options.get(CONF_VOLTAGE)
+    shaper_sensor = options.get(CONF_SHAPER)
     changed_entity = event.data["entity_id"]
 
     if grid_sensor is not None and changed_entity == grid_sensor:
@@ -109,6 +114,19 @@ async def handle_state_change(
         _LOGGER.debug("Sending sensor data to OpenEVSE: (voltage: %s)", voltage)
         try:
             await manager.grid_voltage(voltage=voltage)
+        except TimeoutError as err:
+            _LOGGER.error(TIMEOUT_ERROR, err)
+
+    if shaper_sensor is not None and changed_entity == shaper_sensor:
+        power = hass.states.get(shaper_sensor).state
+        if power in [None, "unavailable"]:
+            power = None
+        else:
+            power = round(float(hass.states.get(shaper_sensor).state))
+
+        _LOGGER.debug("Sending sensor data to OpenEVSE: (shaper: %s)", power)
+        try:
+            await manager.set_shaper_live_pwr(power=power)
         except TimeoutError as err:
             _LOGGER.error(TIMEOUT_ERROR, err)
 
@@ -194,12 +212,15 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
         services.async_register()
 
     sensors = []
-    if config_entry.data.get(CONF_GRID):
-        sensors.append(config_entry.data.get(CONF_GRID))
-    elif config_entry.data.get(CONF_SOLAR):
-        sensors.append(config_entry.data.get(CONF_SOLAR))
-    if config_entry.data.get(CONF_VOLTAGE):
-        sensors.append(config_entry.data.get(CONF_VOLTAGE))
+    options = config_entry.options
+    if options.get(CONF_GRID):
+        sensors.append(options.get(CONF_GRID))
+    elif options.get(CONF_SOLAR):
+        sensors.append(options.get(CONF_SOLAR))
+    if options.get(CONF_VOLTAGE):
+        sensors.append(options.get(CONF_VOLTAGE))
+    if options.get(CONF_SHAPER):
+        sensors.append(options.get(CONF_SHAPER))
 
     if len(sensors) > 0:
         if hass.state == CoreState.running:
@@ -211,6 +232,39 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
                     homeassistant_started_listener, hass, config_entry, sensors
                 ),
             )
+
+    config_entry.async_on_unload(config_entry.add_update_listener(update_listener))
+
+    return True
+
+
+async def update_listener(hass: HomeAssistant, config_entry: ConfigEntry) -> None:
+    """Handle options update - reload integration."""
+    await hass.config_entries.async_reload(config_entry.entry_id)
+
+
+async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:
+    """Migrate config entry from version 1 to version 2."""
+    _LOGGER.debug(
+        "Migrating config entry from version %s to version 2",
+        config_entry.version,
+    )
+
+    if config_entry.version == 1:
+        new_data = dict(config_entry.data)
+        new_options = dict(config_entry.options)
+
+        # Move sensor fields from data to options
+        for key in SENSOR_OPTION_FIELDS:
+            if key in new_data:
+                new_options[key] = new_data.pop(key)
+
+        hass.config_entries.async_update_entry(
+            config_entry, data=new_data, options=new_options, version=2
+        )
+        _LOGGER.info(
+            "Migration to version 2 successful: sensor options moved to options flow"
+        )
 
     return True
 
@@ -395,9 +449,7 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
                 _LOGGER.debug("Could not update status for %s", sensor)
             data.update(_sensor)
 
-        for (
-            binary_sensor
-        ) in BINARY_SENSORS:  # pylint: disable=consider-using-dict-items
+        for binary_sensor in BINARY_SENSORS:  # pylint: disable=consider-using-dict-items
             _sensor = {}
             try:
                 sensor_property = BINARY_SENSORS[binary_sensor].key

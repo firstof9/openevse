@@ -23,7 +23,14 @@ from custom_components.openevse import (
 )
 from custom_components.openevse.const import COORDINATOR, DOMAIN
 
-from .const import CONFIG_DATA, CONFIG_DATA_GRID, CONFIG_DATA_SOLAR
+from .const import (
+    CONFIG_DATA,
+    CONFIG_DATA_GRID,
+    CONFIG_DATA_SOLAR,
+    OPTIONS_DATA_GRID,
+    OPTIONS_DATA_SHAPER,
+    OPTIONS_DATA_SOLAR,
+)
 
 pytestmark = pytest.mark.asyncio
 
@@ -36,6 +43,7 @@ async def test_setup_entry(hass, test_charger, mock_ws_start):
         domain=DOMAIN,
         title=CHARGER_NAME,
         data=CONFIG_DATA,
+        version=2,
     )
 
     entry.add_to_hass(hass)
@@ -56,6 +64,7 @@ async def test_setup_entry_bad_serial(hass, test_charger_bad_serial, mock_ws_sta
         domain=DOMAIN,
         title=CHARGER_NAME,
         data=CONFIG_DATA,
+        version=2,
     )
 
     entry.add_to_hass(hass)
@@ -76,6 +85,7 @@ async def test_setup_and_unload_entry(hass, test_charger):
         domain=DOMAIN,
         title=CHARGER_NAME,
         data=CONFIG_DATA,
+        version=2,
     )
 
     entry.add_to_hass(hass)
@@ -106,6 +116,8 @@ async def test_setup_entry_state_change(hass, test_charger, mock_ws_start, caplo
         domain=DOMAIN,
         title=CHARGER_NAME,
         data=CONFIG_DATA_GRID,
+        options=OPTIONS_DATA_GRID,
+        version=2,
     )
     # set a fake sensor for grid usage
     hass.states.async_set(grid_entity, "4100")
@@ -136,6 +148,8 @@ async def test_setup_entry_state_change_timeout(
         domain=DOMAIN,
         title=CHARGER_NAME,
         data=CONFIG_DATA_GRID,
+        options=OPTIONS_DATA_GRID,
+        version=2,
     )
     # set a fake sensor for grid usage
     hass.states.async_set(grid_entity, "4100")
@@ -168,6 +182,8 @@ async def test_setup_entry_state_change_2(hass, test_charger, mock_ws_start, cap
         domain=DOMAIN,
         title=CHARGER_NAME,
         data=CONFIG_DATA_SOLAR,
+        options=OPTIONS_DATA_SOLAR,
+        version=2,
     )
     # set a fake sensor for grid usage
     hass.states.async_set(solar_entity, "100")
@@ -203,6 +219,8 @@ async def test_setup_entry_state_change_2_bad_post(
         domain=DOMAIN,
         title=CHARGER_NAME,
         data=CONFIG_DATA_SOLAR,
+        options=OPTIONS_DATA_SOLAR,
+        version=2,
     )
     # set a fake sensor for grid usage
     hass.states.async_set(solar_entity, "100")
@@ -240,6 +258,7 @@ async def test_setup_entry_v2(hass, test_charger_v2, mock_ws_start):
         domain=DOMAIN,
         title=CHARGER_NAME,
         data=CONFIG_DATA,
+        version=2,
     )
 
     entry.add_to_hass(hass)
@@ -260,6 +279,7 @@ async def test_setup_entry_old_firmware(hass, test_charger, mock_ws_start):
         domain=DOMAIN,
         title=CHARGER_NAME,
         data=CONFIG_DATA,
+        version=2,
     )
 
     # Patch version_check to return False (simulating firmware < 4.1.0)
@@ -283,6 +303,8 @@ async def test_setup_entry_state_change_unavailable(
         domain=DOMAIN,
         title=CHARGER_NAME,
         data=CONFIG_DATA_GRID,
+        options=OPTIONS_DATA_GRID,
+        version=2,
     )
     # Set initial valid state
     hass.states.async_set(grid_entity, "4100")
@@ -305,6 +327,7 @@ async def test_coordinator_websocket_reconnect(hass, test_charger, mock_ws_start
         domain=DOMAIN,
         title=CHARGER_NAME,
         data=CONFIG_DATA,
+        version=2,
     )
     entry.add_to_hass(hass)
     await hass.config_entries.async_setup(entry.entry_id)
@@ -355,6 +378,7 @@ async def test_coordinator_update_errors(hass, test_charger, mock_ws_start):
         domain=DOMAIN,
         title=CHARGER_NAME,
         data=CONFIG_DATA,
+        version=2,
     )
     entry.add_to_hass(hass)
     await hass.config_entries.async_setup(entry.entry_id)
@@ -382,6 +406,7 @@ async def test_coordinator_websocket_connect_errors(hass, test_charger, mock_ws_
         domain=DOMAIN,
         title=CHARGER_NAME,
         data=CONFIG_DATA,
+        version=2,
     )
     entry.add_to_hass(hass)
     await hass.config_entries.async_setup(entry.entry_id)
@@ -432,6 +457,7 @@ async def test_firmware_check_coordinator(hass):
         domain=DOMAIN,
         title=CHARGER_NAME,
         data=CONFIG_DATA,
+        version=2,
     )
     mock_manager = mock.AsyncMock()
     mock_manager.firmware_check.return_value = {"latest": "1.0.0"}
@@ -445,7 +471,7 @@ async def test_firmware_check_coordinator(hass):
 
 async def test_setup_entry_not_ready(hass, test_charger, mock_ws_start):
     """Test setup entry sets state to SETUP_RETRY on update failure."""
-    entry = MockConfigEntry(domain=DOMAIN, data=CONFIG_DATA)
+    entry = MockConfigEntry(domain=DOMAIN, data=CONFIG_DATA, version=2)
 
     # Mock OpenEVSE.update to raise exception (simulating connection failure)
     with patch(
@@ -462,7 +488,7 @@ async def test_setup_entry_not_ready(hass, test_charger, mock_ws_start):
 
 async def test_coordinator_parse_errors(hass, test_charger, mock_ws_start, caplog):
     """Test parsing sensors handles missing attributes/errors without crashing."""
-    entry = MockConfigEntry(domain=DOMAIN, data=CONFIG_DATA)
+    entry = MockConfigEntry(domain=DOMAIN, data=CONFIG_DATA, version=2)
     entry.add_to_hass(hass)
     await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
@@ -493,7 +519,7 @@ async def test_coordinator_parse_errors(hass, test_charger, mock_ws_start, caplo
 
 async def test_websocket_update_callback(hass, test_charger, mock_ws_start):
     """Test websocket callback triggers data update on coordinator."""
-    entry = MockConfigEntry(domain=DOMAIN, data=CONFIG_DATA)
+    entry = MockConfigEntry(domain=DOMAIN, data=CONFIG_DATA, version=2)
     entry.add_to_hass(hass)
     await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
@@ -512,7 +538,9 @@ async def test_setup_entry_when_ha_running(hass, test_charger, mock_ws_start):
     hass.state = CoreState.running
 
     # Use config with grid/solar sensors to ensure listeners are registered
-    entry = MockConfigEntry(domain=DOMAIN, data=CONFIG_DATA_GRID)
+    entry = MockConfigEntry(
+        domain=DOMAIN, data=CONFIG_DATA_GRID, options=OPTIONS_DATA_GRID, version=2
+    )
 
     with patch(
         "custom_components.openevse.async_track_state_change_event"
@@ -523,3 +551,66 @@ async def test_setup_entry_when_ha_running(hass, test_charger, mock_ws_start):
 
         # Verify listeners were tracked immediately
         assert mock_track.called
+
+
+async def test_setup_entry_state_change_shaper(
+    hass, test_charger, mock_ws_start, caplog
+):
+    """Test state change with shaper sensor."""
+    shaper_entity = "sensor.shaper_power"
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA,
+        options=OPTIONS_DATA_SHAPER,
+        version=2,
+    )
+    # set a fake sensor for shaper power
+    hass.states.async_set(shaper_entity, "2500")
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    entries = hass.config_entries.async_entries(DOMAIN)
+    assert len(entries) == 1
+    await hass.async_block_till_done()
+
+    hass.states.async_set(shaper_entity, "3000")
+    await hass.async_block_till_done()
+
+    assert "Sending sensor data to OpenEVSE: (shaper: 3000)" in caplog.text
+
+
+async def test_setup_entry_state_change_shaper_timeout(
+    hass, test_charger, mock_ws_start, caplog
+):
+    """Test state change with shaper sensor timeout."""
+    shaper_entity = "sensor.shaper_power"
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA,
+        options=OPTIONS_DATA_SHAPER,
+        version=2,
+    )
+    # set a fake sensor for shaper power
+    hass.states.async_set(shaper_entity, "2500")
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    entries = hass.config_entries.async_entries(DOMAIN)
+    assert len(entries) == 1
+    await hass.async_block_till_done()
+
+    with patch(
+        "custom_components.openevse.OpenEVSE.set_shaper_live_pwr",
+        side_effect=TimeoutError,
+    ):
+        hass.states.async_set(shaper_entity, "3000")
+        await hass.async_block_till_done()
+
+    assert (
+        "Timeout error connecting to device: , please check your network connection."
+        in caplog.text
+    )

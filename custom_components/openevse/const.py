@@ -45,6 +45,7 @@ CONF_GRID = "grid"
 CONF_SOLAR = "solar"
 CONF_INVERT = "invert_grid"
 CONF_VOLTAGE = "voltage"
+CONF_SHAPER = "shaper"
 DEFAULT_HOST = "openevse.local"
 DEFAULT_NAME = "OpenEVSE"
 
