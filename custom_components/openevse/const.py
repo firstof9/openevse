@@ -17,8 +17,8 @@ from homeassistant.components.sensor import (
 from homeassistant.components.switch import SwitchDeviceClass
 from homeassistant.const import (
     PERCENTAGE,
-    Platform,
     SIGNAL_STRENGTH_DECIBELS,
+    Platform,
     UnitOfElectricCurrent,
     UnitOfElectricPotential,
     UnitOfEnergy,
@@ -30,11 +30,11 @@ from homeassistant.const import (
 from homeassistant.helpers.entity import EntityCategory
 
 from .entity import (
+    OpenEVSELightEntityDescription,
+    OpenEVSENumberEntityDescription,
     OpenEVSESelectEntityDescription,
     OpenEVSESensorEntityDescription,
     OpenEVSESwitchEntityDescription,
-    OpenEVSENumberEntityDescription,
-    OpenEVSELightEntityDescription,
 )
 
 # config flow
@@ -49,7 +49,7 @@ CONF_SHAPER = "shaper"
 DEFAULT_HOST = "openevse.local"
 DEFAULT_NAME = "OpenEVSE"
 
-# hass.data attribues
+# hass.data attributes
 UNSUB_LISTENERS = "unsub_listeners"
 
 DOMAIN = "openevse"

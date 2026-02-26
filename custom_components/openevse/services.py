@@ -197,34 +197,16 @@ class OpenEVSEServices:
             if not device_entry:
                 raise ValueError(f"Device ID {device_id} is not valid")
 
-            config_id = list(device_entry.connections)[0][1]
+            config_id = next(iter(device_entry.connections))[1]
             _LOGGER.debug("Config ID: %s", config_id)
             try:
                 manager = self.hass.data[DOMAIN][config_id][MANAGER]
-                if ATTR_STATE in data:
-                    state = data[ATTR_STATE]
-                else:
-                    state = None
-                if ATTR_CHARGE_CURRENT in data:
-                    charge_current = data[ATTR_CHARGE_CURRENT]
-                else:
-                    charge_current = None
-                if ATTR_MAX_CURRENT in data:
-                    max_current = data[ATTR_MAX_CURRENT]
-                else:
-                    max_current = None
-                if ATTR_ENERGY_LIMIT in data:
-                    energy_limit = data[ATTR_ENERGY_LIMIT]
-                else:
-                    energy_limit = None
-                if ATTR_TIME_LIMIT in data:
-                    time_limit = data[ATTR_TIME_LIMIT]
-                else:
-                    time_limit = None
-                if ATTR_AUTO_RELEASE in data:
-                    auto_release = data[ATTR_AUTO_RELEASE]
-                else:
-                    auto_release = None
+                state = data.get(ATTR_STATE)
+                charge_current = data.get(ATTR_CHARGE_CURRENT)
+                max_current = data.get(ATTR_MAX_CURRENT)
+                energy_limit = data.get(ATTR_ENERGY_LIMIT)
+                time_limit = data.get(ATTR_TIME_LIMIT)
+                auto_release = data.get(ATTR_AUTO_RELEASE)
 
                 response = await manager.set_override(
                     state=state,
@@ -254,7 +236,7 @@ class OpenEVSEServices:
             if not device_entry:
                 raise ValueError(f"Device ID {device_id} is not valid")
 
-            config_id = list(device_entry.connections)[0][1]
+            config_id = next(iter(device_entry.connections))[1]
             _LOGGER.debug("Config ID: %s Type: %s", config_id, type(config_id))
             try:
                 manager = self.hass.data[DOMAIN][config_id][MANAGER]
@@ -277,7 +259,7 @@ class OpenEVSEServices:
             if not device_entry:
                 raise ValueError(f"Device ID {device_id} is not valid")
 
-            config_id = list(device_entry.connections)[0][1]
+            config_id = next(iter(device_entry.connections))[1]
             _LOGGER.debug("Config ID: %s", config_id)
             try:
                 manager = self.hass.data[DOMAIN][config_id][MANAGER]
@@ -314,7 +296,7 @@ class OpenEVSEServices:
             if not device_entry:
                 raise ValueError(f"Device ID {device_id} is not valid")
 
-            config_id = list(device_entry.connections)[0][1]
+            config_id = next(iter(device_entry.connections))[1]
             _LOGGER.debug("Config ID: %s Type: %s", config_id, type(config_id))
             try:
                 manager = self.hass.data[DOMAIN][config_id][MANAGER]
@@ -338,7 +320,7 @@ class OpenEVSEServices:
             if not device_entry:
                 raise ValueError(f"Device ID {device_id} is not valid")
 
-            config_id = list(device_entry.connections)[0][1]
+            config_id = next(iter(device_entry.connections))[1]
             _LOGGER.debug("Config ID: %s Type: %s", config_id, type(config_id))
             try:
                 manager = self.hass.data[DOMAIN][config_id][MANAGER]
@@ -363,26 +345,14 @@ class OpenEVSEServices:
             if not device_entry:
                 raise ValueError(f"Device ID {device_id} is not valid")
 
-            config_id = list(device_entry.connections)[0][1]
+            config_id = next(iter(device_entry.connections))[1]
             _LOGGER.debug("Config ID: %s", config_id)
             try:
                 manager = self.hass.data[DOMAIN][config_id][MANAGER]
-                if ATTR_STATE in data:
-                    state = data[ATTR_STATE]
-                else:
-                    state = None
-                if ATTR_CHARGE_CURRENT in data:
-                    charge_current = data[ATTR_CHARGE_CURRENT]
-                else:
-                    charge_current = None
-                if ATTR_MAX_CURRENT in data:
-                    max_current = data[ATTR_MAX_CURRENT]
-                else:
-                    max_current = None
-                if ATTR_AUTO_RELEASE in data:
-                    auto_release = data[ATTR_AUTO_RELEASE]
-                else:
-                    auto_release = None
+                state = data.get(ATTR_STATE)
+                charge_current = data.get(ATTR_CHARGE_CURRENT)
+                max_current = data.get(ATTR_MAX_CURRENT)
+                auto_release = data.get(ATTR_AUTO_RELEASE)
 
                 response = await manager.make_claim(
                     state=state,
@@ -409,7 +379,7 @@ class OpenEVSEServices:
             if not device_entry:
                 raise ValueError(f"Device ID {device_id} is not valid")
 
-            config_id = list(device_entry.connections)[0][1]
+            config_id = next(iter(device_entry.connections))[1]
             _LOGGER.debug("Config ID: %s Type: %s", config_id, type(config_id))
             try:
                 manager = self.hass.data[DOMAIN][config_id][MANAGER]
@@ -433,17 +403,15 @@ class OpenEVSEServices:
             if not device_entry:
                 raise ValueError(f"Device ID {device_id} is not valid")
 
-            config_id = list(device_entry.connections)[0][1]
+            config_id = next(iter(device_entry.connections))[1]
             _LOGGER.debug("Config ID: %s Type: %s", config_id, type(config_id))
             try:
                 manager = self.hass.data[DOMAIN][config_id][MANAGER]
                 response = await manager.list_claims()
                 _LOGGER.debug("List claims response %s.", response)
                 claims = {}
-                x = 0
-                for claim in response:
+                for x, claim in enumerate(response):
                     claims[x] = claim
-                    x += 1
                 _LOGGER.debug("Processed response %s.", claims)
                 return claims
             except KeyError as err:
@@ -465,7 +433,7 @@ class OpenEVSEServices:
             if not device_entry:
                 raise ValueError(f"Device ID {device_id} is not valid")
 
-            config_id = list(device_entry.connections)[0][1]
+            config_id = next(iter(device_entry.connections))[1]
             _LOGGER.debug("Config ID: %s Type: %s", config_id, type(config_id))
             try:
                 manager = self.hass.data[DOMAIN][config_id][MANAGER]

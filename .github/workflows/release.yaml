@@ -32,13 +32,13 @@ jobs:
         run: |
           sed -i '/VERSION = /c\VERSION = "${{inputs.tags}}"' ${{ github.workspace }}/custom_components/openevse/const.py
           sed -i '/version/c\  \"version\": \"${{inputs.tags}}\",' ${{ github.workspace }}/custom_components/openevse/manifest.json
-          
+
       # Pack the openevse dir as a zip and upload to the release
       - name: Create Zip File
         run: |
           cd ${{ github.workspace }}/custom_components/openevse
           zip openevse.zip -r ./
-          
+
       - name: 📤 Upload zip to release
         if: ${{ github.event_name == 'release' }}
         uses: softprops/action-gh-release@v0.1.15

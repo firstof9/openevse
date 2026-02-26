@@ -34,7 +34,7 @@ disable=
   unexpected-keyword-arg,
   abstract-method,
   too-many-positional-arguments,
-  
+
 [REFACTORING]
 
 # Maximum number of nested blocks for function / method body

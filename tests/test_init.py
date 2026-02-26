@@ -15,8 +15,8 @@ from openevsehttp.exceptions import MissingSerial
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.openevse import (
-    CommandFailed,
-    InvalidValue,
+    CommandFailedError,
+    InvalidValueError,
     OpenEVSEFirmwareCheck,
     get_firmware,
     send_command,
@@ -363,12 +363,12 @@ async def test_send_command_utility(hass):
 
     # 2. Invalid Value case ($NK^21 response)
     mock_handler.send_command.return_value = ("$CMD", "$NK^21")
-    with pytest.raises(InvalidValue):
+    with pytest.raises(InvalidValueError):
         await send_command(mock_handler, "$CMD")
 
     # 3. Command Failed case (Response command mismatch)
     mock_handler.send_command.return_value = ("$OTHER", "$OK")
-    with pytest.raises(CommandFailed):
+    with pytest.raises(CommandFailedError):
         await send_command(mock_handler, "$CMD")
 
 
@@ -393,11 +393,11 @@ async def test_coordinator_update_errors(hass, test_charger, mock_ws_start):
         await coordinator._async_update_data()
 
     # 2. Generic Exception during manager.update() should raise UpdateFailed
-    with patch.object(
-        coordinator._manager, "update", side_effect=Exception("Critical")
+    with (
+        patch.object(coordinator._manager, "update", side_effect=Exception("Critical")),
+        pytest.raises(UpdateFailed),
     ):
-        with pytest.raises(UpdateFailed):
-            await coordinator._async_update_data()
+        await coordinator._async_update_data()
 
 
 async def test_coordinator_websocket_connect_errors(hass, test_charger, mock_ws_start):
@@ -425,11 +425,13 @@ async def test_coordinator_websocket_connect_errors(hass, test_charger, mock_ws_
             await coordinator._async_update_data()
 
         # 2. Generic Exception during ws_start() should raise UpdateFailed
-        with patch.object(
-            coordinator._manager, "ws_start", side_effect=Exception("Critical")
+        with (
+            patch.object(
+                coordinator._manager, "ws_start", side_effect=Exception("Critical")
+            ),
+            pytest.raises(UpdateFailed),
         ):
-            with pytest.raises(UpdateFailed):
-                await coordinator._async_update_data()
+            await coordinator._async_update_data()
 
 
 async def test_get_firmware_logic(hass):
@@ -482,7 +484,8 @@ async def test_setup_entry_not_ready(hass, test_charger, mock_ws_start):
         await hass.config_entries.async_setup(entry.entry_id)
         await hass.async_block_till_done()
 
-        # The exception is caught by HA, so we check the entry state instead of asserting raises
+        # The exception is caught by HA, so we check the entry state
+        # instead of asserting raises
         assert entry.state == ConfigEntryState.SETUP_RETRY
 
 

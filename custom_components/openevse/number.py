@@ -10,13 +10,12 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import CONF_NAME, COORDINATOR, DOMAIN, NUMBER_TYPES, MANAGER
-from .entity import OpenEVSENumberEntityDescription
-
 from . import (
     OpenEVSEManager,
     OpenEVSEUpdateCoordinator,
 )
+from .const import CONF_NAME, COORDINATOR, DOMAIN, MANAGER, NUMBER_TYPES
+from .entity import OpenEVSENumberEntityDescription
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -84,12 +83,16 @@ class OpenEVSENumberEntity(CoordinatorEntity, NumberEntity):
         """Return if entity is available."""
         data = self.coordinator.data
         attributes = ("divertmode", "divert_active")
-        if set(attributes).issubset(data.keys()) and self._type == "max_current_soft":
-            if data["divert_active"] and data["divertmode"] == "eco":
-                _LOGGER.debug(
-                    "Disabling %s due to PV Divert being active.", self._attr_name
-                )
-                return False
+        if (
+            set(attributes).issubset(data.keys())
+            and self._type == "max_current_soft"
+            and data["divert_active"]
+            and data["divertmode"] == "eco"
+        ):
+            _LOGGER.debug(
+                "Disabling %s due to PV Divert being active.", self._attr_name
+            )
+            return False
         return self.coordinator.last_update_success
 
     @property

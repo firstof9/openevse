@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, Optional
+from typing import Any, Final
 
 import voluptuous as vol
 from homeassistant import config_entries
@@ -38,7 +38,7 @@ class OpenEVSEFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
     VERSION = 2
     CONNECTION_CLASS = config_entries.CONN_CLASS_LOCAL_POLL
-    DEFAULTS = {CONF_HOST: DEFAULT_HOST, CONF_NAME: DEFAULT_NAME}
+    DEFAULTS: Final = {CONF_HOST: DEFAULT_HOST, CONF_NAME: DEFAULT_NAME}
 
     def __init__(self):
         """Set up the instance."""
@@ -128,8 +128,8 @@ class OpenEVSEFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         return await self.async_step_discovery_confirm()
 
     async def async_step_user(
-        self, user_input: Dict[str, Any] = None
-    ) -> Dict[str, Any]:
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
         """Handle a flow initialized by the user."""
         self._errors = {}
 
@@ -259,8 +259,8 @@ class OpenEVSEOptionsFlowHandler(config_entries.OptionsFlow):
 
 
 def _get_schema(  # pylint: disable-next=unused-argument
-    user_input: Optional[Dict[str, Any]],
-    default_dict: Dict[str, Any],
+    user_input: dict[str, Any] | None,
+    default_dict: dict[str, Any],
     # pylint: disable-next=unused-argument
 ) -> vol.Schema:
     """Get a schema using the default_dict as a backup."""

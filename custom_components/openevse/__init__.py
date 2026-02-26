@@ -42,8 +42,8 @@ from .const import (
     ISSUE_URL,
     LIGHT_TYPES,
     MANAGER,
-    PLATFORMS,
     NUMBER_TYPES,
+    PLATFORMS,
     SELECT_TYPES,
     SENSOR_TYPES,
     TIMEOUT_ERROR,
@@ -276,7 +276,7 @@ async def get_firmware(manager: OpenEVSEManager) -> tuple:
     try:
         await manager.update()
     except Exception as error:
-        _LOGGER.error("Problem retreiving firmware data: %s", error)
+        _LOGGER.error("Problem retrieving firmware data: %s", error)
         return "", ""
 
     try:
@@ -284,9 +284,8 @@ async def get_firmware(manager: OpenEVSEManager) -> tuple:
     except MissingSerial:
         _LOGGER.info("Missing serial number data, skipping...")
 
-    if data is not None and "model" in data:
-        if data["model"] != "unknown":
-            return data["model"], manager.wifi_firmware
+    if data and data.get("model") and data.get("model") != "unknown":
+        return data["model"], manager.wifi_firmware
 
     return f"Wifi version {manager.wifi_firmware}", manager.openevse_firmware
 
@@ -604,10 +603,10 @@ async def send_command(handler, command) -> None:
     _LOGGER.debug("send_command: %s, %s", cmd, response)
     if cmd == command:
         if response == "$NK^21":
-            raise InvalidValue
+            raise InvalidValueError
         return None
 
-    raise CommandFailed
+    raise CommandFailedError
 
 
 class OpenEVSEManager:
@@ -623,9 +622,9 @@ class OpenEVSEManager:
         self.charger = OpenEVSE(self._host, user=self._username, pwd=self._password)
 
 
-class InvalidValue(Exception):
+class InvalidValueError(Exception):
     """Exception for invalid value errors."""
 
 
-class CommandFailed(Exception):
+class CommandFailedError(Exception):
     """Exception for invalid command errors."""

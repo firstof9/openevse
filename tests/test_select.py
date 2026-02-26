@@ -9,7 +9,7 @@ from homeassistant.components.select import SERVICE_SELECT_OPTION
 from homeassistant.helpers import entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.openevse import CommandFailed, InvalidValue
+from custom_components.openevse import CommandFailedError, InvalidValueError
 from custom_components.openevse.const import COORDINATOR, DOMAIN
 
 from .const import CONFIG_DATA
@@ -253,8 +253,8 @@ async def test_select_exceptions(
         )
         assert "Could not set status for" in caplog.text
 
-    # 2. Test InvalidValue
-    with patch.object(manager, "set_divert_mode", side_effect=InvalidValue):
+    # 2. Test InvalidValueError
+    with patch.object(manager, "set_divert_mode", side_effect=InvalidValueError):
         await hass.services.async_call(
             SELECT_DOMAIN,
             SERVICE_SELECT_OPTION,
@@ -263,8 +263,8 @@ async def test_select_exceptions(
         )
         assert "invalid for command" in caplog.text
 
-    # 3. Test CommandFailed
-    with patch.object(manager, "set_divert_mode", side_effect=CommandFailed):
+    # 3. Test CommandFailedError
+    with patch.object(manager, "set_divert_mode", side_effect=CommandFailedError):
         await hass.services.async_call(
             SELECT_DOMAIN,
             SERVICE_SELECT_OPTION,

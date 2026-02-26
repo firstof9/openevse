@@ -20,7 +20,7 @@ autolabeler:
       - "/tests:/i"
   - label: "dependencies"
     title:
-      - "/build(deps):/i"      
+      - "/build(deps):/i"
 categories:
   - title: "💥 Breaking Change 💥"
     labels:

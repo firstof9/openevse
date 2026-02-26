@@ -83,7 +83,7 @@ class OpenEVSESwitch(CoordinatorEntity, SwitchEntity):
     def is_on(self) -> bool:
         """Return True if switch is on."""
         data = self.coordinator.data
-        if self._type not in data.keys():
+        if self._type not in data:
             _LOGGER.warning("switch [%s] not supported.", self._type)
             return None
         _LOGGER.debug("switch [%s]: %s", self._attr_name, data[self._type])
@@ -95,9 +95,7 @@ class OpenEVSESwitch(CoordinatorEntity, SwitchEntity):
     def available(self) -> bool:
         """Return if entity is available."""
         manager = self.hass.data[DOMAIN][self._unique_id][MANAGER]
-        if self._min_version and not manager.version_check(self._min_version):
-            return False
-        return True
+        return not (self._min_version and not manager.version_check(self._min_version))
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn the switch on."""

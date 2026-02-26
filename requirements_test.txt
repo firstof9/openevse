@@ -1,14 +1,11 @@
 -r requirements.txt
 pytest-homeassistant-custom-component
-black==26.1.0
-flake8==7.3.0
-mypy==1.19.1
-pydocstyle==6.3.0
-isort
-pylint==4.0.5
-tox==4.46.3
+mypy==1.15.0
+pylint==3.3.4
+ruff==0.9.7
+tox==4.24.1
 aioresponses
-pytest
+pytest<9
 aiohttp_cors
 zeroconf
 freezegun

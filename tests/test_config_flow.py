@@ -1,5 +1,6 @@
 """Test config flow."""
 
+from ipaddress import ip_address
 from unittest.mock import patch
 
 import pytest
@@ -8,7 +9,6 @@ from homeassistant.const import CONF_HOST
 from homeassistant.data_entry_flow import FlowResultType
 from homeassistant.helpers.service_info.zeroconf import ZeroconfServiceInfo
 from pytest_homeassistant_custom_component.common import MockConfigEntry
-from ipaddress import ip_address
 
 from custom_components.openevse.const import DOMAIN
 from tests.const import CONFIG_DATA
