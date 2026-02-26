@@ -1,14 +1,13 @@
 -r requirements.txt
 pytest-homeassistant-custom-component
-black==26.1.0
-flake8==7.3.0
-mypy==1.19.1
-pydocstyle==6.3.0
-isort
-pylint==4.0.5
-tox==4.46.3
+mypy==1.15.0
+pylint==3.3.4
+ruff==0.9.7
+tox==4.24.1
 aioresponses
-pytest
+pytest<9
 aiohttp_cors
 zeroconf
-freezegun
+freezegun==1.5.2
+pre-commit==4.5.1
+pycares>=4.11.0,<5.0.0  # Pin <5.0.0 for aiodns compatibility, >=4.11.0 for py3.13

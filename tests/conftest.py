@@ -1,31 +1,31 @@
 """Global fixtures for openevse integration."""
 
-from collections.abc import Coroutine, Generator
 import os
-from unittest.mock import patch
+from collections.abc import Coroutine, Generator
 from typing import Any, cast
+from unittest.mock import patch
 
 import openevsehttp.__main__ as main
 import pytest
 from aioresponses import aioresponses
-
-from homeassistant.core import (
-    HomeAssistant,
-)
-from homeassistant.setup import async_setup_component
-from homeassistant.components.websocket_api.http import URL
 from homeassistant.components.websocket_api.auth import (
     TYPE_AUTH,
     TYPE_AUTH_OK,
     TYPE_AUTH_REQUIRED,
 )
+from homeassistant.components.websocket_api.http import URL
+from homeassistant.core import (
+    HomeAssistant,
+)
+from homeassistant.setup import async_setup_component
+
+from tests.const import CHARGER_DATA, FW_DATA, GETFW_DATA
+
 from .typing import (
     ClientSessionGenerator,
     MockHAClientWebSocket,
     WebSocketGenerator,
 )
-
-from tests.const import CHARGER_DATA, FW_DATA, GETFW_DATA
 
 pytest_plugins = "pytest_homeassistant_custom_component"
 
@@ -50,8 +50,8 @@ def auto_enable_custom_integrations(enable_custom_integrations):
     yield
 
 
-# This fixture is used to prevent HomeAssistant from attempting to create and dismiss persistent
-# notifications. These calls would fail without this fixture since the persistent_notification
+# This fixture is used to prevent HomeAssistant from attempting to create and dismiss persistent  # noqa: E501
+# notifications. These calls would fail without this fixture since the persistent_notification  # noqa: E501
 # integration is never loaded during a test.
 @pytest.fixture(name="skip_notifications", autouse=True)
 def skip_notifications_fixture():

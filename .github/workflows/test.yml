@@ -4,63 +4,66 @@ on:
   pull_request:
   push:
     branches:
-      - main    
+      - main
 
 jobs:
   validate:
     runs-on: "ubuntu-latest"
     name: Validate
     steps:
-        - name: 📥 Checkout the repository
-          uses: actions/checkout@v4
+      - name: 📥 Checkout the repository
+        uses: actions/checkout@v4
 
-        - name: HACS validation
-          uses: "hacs/action@main"
-          with:
-            category: "integration"
-            ignore: brands
+      - name: HACS validation
+        uses: "hacs/action@main"
+        with:
+          category: "integration"
+          ignore: brands
 
-        - name: Hassfest validation
-          uses: "home-assistant/actions/hassfest@master"
+      - name: Hassfest validation
+        uses: "home-assistant/actions/hassfest@master"
 
-  style:
-    runs-on: "ubuntu-latest"
-    name: Check style formatting
-    steps:
-        - name: 📥 Checkout the repository
-          uses: actions/checkout@v4
-        - name: 🛠️ Set up Python
-          uses: actions/setup-python@v5
-          with:
-            python-version: "3.x"
-        - run: python3 -m pip install black
-        - run: black .
-
-  tests:
-    runs-on: "ubuntu-latest"
-    name: Run tests
-    strategy:
-      matrix:
-        python-version:
-          - "3.13"
-
+  pre-commit:
+    runs-on: ubuntu-latest
+    name: Pre-commit checks
     steps:
       - name: 📥 Checkout the repository
         uses: actions/checkout@v4
       - name: 🛠️ Set up Python
         uses: actions/setup-python@v5
         with:
-          fetch-depth: 2      
-      - name: Set up Python ${{ matrix.python-version }}
+          python-version: "3.13"
+          cache: "pip"
+      - name: 📦 Install pre-commit
+        run: pip install pre-commit
+      - name: 🎨 Run pre-commit
+        run: pre-commit run --all-files --show-diff-on-failure
+
+  tests:
+    runs-on: "ubuntu-latest"
+    name: Run tests
+    needs: [validate, pre-commit]
+    strategy:
+      matrix:
+        python-version:
+          - "3.13"
+          - "3.14"
+
+    steps:
+      - name: 📥 Checkout the repository
+        uses: actions/checkout@v4
+      - name: 🛠️ Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
+          cache: "pip"
       - name: 📦 Install requirements
         run: |
-          pip install tox tox-gh-actions          
+          pip install tox tox-gh-actions
       - name: 🏃 Test with tox
         run: tox
-      - name: 📤 Upload coverage to Codecov
+      - name: 📤 Upload coverage data
+        if: matrix.python-version == '3.14'
         uses: "actions/upload-artifact@v4"
         with:
           name: coverage-data
@@ -73,12 +76,12 @@ jobs:
       - name: 📥 Checkout the repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 2
+          fetch-depth: 0
       - name: 📥 Download coverage data
         uses: actions/download-artifact@v4
         with:
           name: coverage-data
       - name: 📤 Upload coverage report
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
-          token: ${{ secrets.CODECOV_TOKEN }} # required
+          token: ${{ secrets.CODECOV_TOKEN }}

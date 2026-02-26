@@ -11,8 +11,8 @@ from homeassistant.const import CONF_NAME
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from . import (
-    CommandFailed,
-    InvalidValue,
+    CommandFailedError,
+    InvalidValueError,
     OpenEVSEManager,
     OpenEVSEUpdateCoordinator,
     send_command,
@@ -106,23 +106,30 @@ class OpenEVSESelect(CoordinatorEntity, SelectEntity):
             _LOGGER.warning(
                 "Could not set status for %s error: %s", self._attr_name, err
             )
-        except InvalidValue:
+        except InvalidValueError:
             _LOGGER.error("Value %s invalid for command %s.", option, self._command)
-        except CommandFailed:
+        except CommandFailedError:
             _LOGGER.error("Command %s failed.", self._command)
 
     @property
     def available(self) -> bool:
         """Return if entity is available."""
         data = self.coordinator.data
+        if not data or not isinstance(data, dict):
+            return False
+
         manager = self.hass.data[DOMAIN][self._config.entry_id][MANAGER]
         attributes = ("divertmode", "divert_active")
-        if set(attributes).issubset(data.keys()) and self._type == "max_current_soft":
-            if data["divert_active"] and data["divertmode"] == "eco":
-                _LOGGER.debug(
-                    "Disabling %s due to PV Divert being active.", self._attr_name
-                )
-                return False
+        if (
+            set(attributes).issubset(data.keys())
+            and self._type == "max_current_soft"
+            and data["divert_active"]
+            and data["divertmode"] == "eco"
+        ):
+            _LOGGER.debug(
+                "Disabling %s due to PV Divert being active.", self._attr_name
+            )
+            return False
         if self._min_version and not manager.version_check(self._min_version):
             return False
         return self.coordinator.last_update_success
@@ -133,7 +140,7 @@ class OpenEVSESelect(CoordinatorEntity, SelectEntity):
             amps_min = self.coordinator.data["min_amps"]
             amps_max = self.coordinator.data["max_amps"] + 1
             # pylint: disable-next=consider-using-generator
-            options = list([str(item) for item in range(amps_min, amps_max)])
+            options = [str(item) for item in range(amps_min, amps_max)]
             _LOGGER.debug("Max Amps: %s", options)
             return options
         return self._default_options

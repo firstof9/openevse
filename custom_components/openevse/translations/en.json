@@ -1,41 +1,48 @@
 {
-    "config": {
-      "error": {
-        "communication": "Unable to connect to OpenEVSE charger. Please check the log for details."
-      },
-      "step": {
-        "user": {
-          "data": {
-            "name": "Alias",
-            "host": "Hostname/IP",
-            "password": "Password (optional)",
-            "username": "Username (optional)",
-            "grid": "Grid import/export sensor (optional)",
-            "solar": "Solar production sensor (optional)",
-            "invert_grid": "Invert grid import/export",
-            "voltage": "Grid voltage sensor (optional)"
-          },
-          "description": "Please enter the connection information of OpenEVSE charger.\nYou can also enter your grid import/export or solar production sensors to push data to OpenEVSE.\n\nIMPORTANT NOTE: OpenEVSE expects positive import and negative export.",
-          "title": "OpenEVSE Setup"
+  "config": {
+    "error": {
+      "communication": "Unable to connect to OpenEVSE charger. Please check the log for details."
+    },
+    "step": {
+      "user": {
+        "data": {
+          "name": "Alias",
+          "host": "Hostname/IP",
+          "password": "Password (optional)",
+          "username": "Username (optional)"
         },
-        "reconfigure": {
-          "data": {
-            "name": "Alias",
-            "host": "Hostname/IP",
-            "password": "Password (optional)",
-            "username": "Username (optional)",
-            "grid": "Grid import/export sensor (optional)",
-            "solar": "Solar production sensor (optional)",
-            "invert_grid": "Invert grid import/export",
-            "voltage": "Grid voltage sensor (optional)"
-          },
-          "description": "Please enter the connection information of OpenEVSE charger.\nYou can also enter your grid import/export or solar production sensors to push data to OpenEVSE.\n\nIMPORTANT NOTE: OpenEVSE expects positive import and negative export.",
-          "title": "OpenEVSE Setup"
-        },        
-        "discovery_confirm": {
-          "description": "Do you want to set up {name}?",
-          "title": "Discovered charger"
-        }         
+        "description": "Please enter the connection information of OpenEVSE charger.",
+        "title": "OpenEVSE Setup"
+      },
+      "reconfigure": {
+        "data": {
+          "name": "Alias",
+          "host": "Hostname/IP",
+          "password": "Password (optional)",
+          "username": "Username (optional)"
+        },
+        "description": "Please enter the connection information of OpenEVSE charger.",
+        "title": "OpenEVSE Setup"
+      },
+      "discovery_confirm": {
+        "description": "Do you want to set up {name}?",
+        "title": "Discovered charger"
       }
     }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "data": {
+          "grid": "Grid import/export sensor (optional)",
+          "solar": "Solar production sensor (optional)",
+          "voltage": "Grid voltage sensor (optional)",
+          "shaper": "Shaper live power sensor (optional)",
+          "invert_grid": "Invert grid import/export"
+        },
+        "description": "Configure sensor entities to push data to OpenEVSE.\n\nIMPORTANT NOTE: OpenEVSE expects positive import and negative export.",
+        "title": "OpenEVSE Sensor Options"
+      }
+    }
+  }
 }

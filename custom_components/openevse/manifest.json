@@ -1,15 +1,25 @@
 {
   "domain": "openevse",
   "name": "OpenEVSE",
-  "after_dependencies": ["zeroconf"],
-  "codeowners": ["@firstof9"],
+  "after_dependencies": [
+    "zeroconf"
+  ],
+  "codeowners": [
+    "@firstof9"
+  ],
   "config_flow": true,
   "documentation": "https://github.com/firstof9/openevse/",
   "import_executor": true,
   "iot_class": "local_push",
   "issue_tracker": "https://github.com/firstof9/openevse/issues",
-  "loggers": ["openevsehttp"],
-  "requirements": ["python-openevse-http==0.2.3"],
+  "loggers": [
+    "openevsehttp"
+  ],
+  "requirements": [
+    "python-openevse-http==0.2.5"
+  ],
   "version": "0.0.0-dev",
-  "zeroconf": ["_openevse._tcp.local."]
+  "zeroconf": [
+    "_openevse._tcp.local."
+  ]
 }

@@ -40,7 +40,7 @@ async def test_buttons(
     assert state.state == "unknown"  # Buttons are usually 'unknown' state
 
     # We need to mock the manager method to verify it's called.
-    # Since test_charger is a real object (OpenEVSE), we can mock the method on the instance
+    # Since test_charger is a real object (OpenEVSE), we can mock the method on the instance  # noqa: E501
     # stored in hass.data.
     manager = hass.data[DOMAIN][entry.entry_id]["manager"]
 

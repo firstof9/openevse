@@ -56,7 +56,7 @@ async def test_list_claims(
     mock_aioclient.get(
         TEST_URL_CLAIMS,
         status=200,
-        body='[{"client": 4, "priority": 500, "state": "disabled", "auto_release": true}, {"client": 65538, "priority": 50, "state": "active", "charge_current": 7, "auto_release": false}]',
+        body='[{"client": 4, "priority": 500, "state": "disabled", "auto_release": true}, {"client": 65538, "priority": 50, "state": "active", "charge_current": 7, "auto_release": false}]',  # noqa: E501
         repeat=True,
     )
     mock_aioclient.get(

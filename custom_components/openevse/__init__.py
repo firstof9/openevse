@@ -33,6 +33,7 @@ from .const import (
     CONF_GRID,
     CONF_INVERT,
     CONF_NAME,
+    CONF_SHAPER,
     CONF_SOLAR,
     CONF_VOLTAGE,
     COORDINATOR,
@@ -41,9 +42,10 @@ from .const import (
     ISSUE_URL,
     LIGHT_TYPES,
     MANAGER,
-    PLATFORMS,
     NUMBER_TYPES,
+    PLATFORMS,
     SELECT_TYPES,
+    SENSOR_FIELDS,
     SENSOR_TYPES,
     TIMEOUT_ERROR,
     UNSUB_LISTENERS,
@@ -67,50 +69,85 @@ async def handle_state_change(
 ) -> None:
     """Track state changes to sensor entities."""
     manager = hass.data[DOMAIN][config_entry.entry_id][MANAGER]
-    invert = config_entry.data.get(CONF_INVERT)
-    grid_sensor = config_entry.data.get(CONF_GRID)
-    solar_sensor = config_entry.data.get(CONF_SOLAR)
-    voltage_sensor = config_entry.data.get(CONF_VOLTAGE)
+    options = config_entry.options
+    invert = options.get(CONF_INVERT)
+    grid_sensor = options.get(CONF_GRID)
+    solar_sensor = options.get(CONF_SOLAR)
+    voltage_sensor = options.get(CONF_VOLTAGE)
+    shaper_sensor = options.get(CONF_SHAPER)
     changed_entity = event.data["entity_id"]
 
     if grid_sensor is not None and changed_entity == grid_sensor:
-        grid = hass.states.get(grid_sensor).state
-        if grid in [None, "unavailable"]:
+        state = hass.states.get(grid_sensor)
+        grid = state.state if state else None
+        if grid in [None, "unavailable", "unknown"]:
             grid = None
         else:
-            grid = round(float(hass.states.get(grid_sensor).state))
+            try:
+                grid = round(float(grid))
+            except (ValueError, TypeError):
+                _LOGGER.warning("Non-numeric state for grid sensor: %s", grid)
+                grid = None
 
         _LOGGER.debug("Sending sensor data to OpenEVSE: (grid: %s)", grid)
         try:
             await manager.self_production(grid=grid, solar=None, invert=invert)
         except TimeoutError as err:
-            _LOGGER.error(TIMEOUT_ERROR, err)
+            _LOGGER.exception(TIMEOUT_ERROR, err)
 
     elif solar_sensor is not None and changed_entity == solar_sensor:
-        solar = hass.states.get(solar_sensor).state
-        if solar in [None, "unavailable"]:
+        state = hass.states.get(solar_sensor)
+        solar = state.state if state else None
+        if solar in [None, "unavailable", "unknown"]:
             solar = None
         else:
-            solar = round(float(hass.states.get(solar_sensor).state))
+            try:
+                solar = round(float(solar))
+            except (ValueError, TypeError):
+                _LOGGER.warning("Non-numeric state for solar sensor: %s", solar)
+                solar = None
 
         _LOGGER.debug("Sending sensor data to OpenEVSE: (solar: %s)", solar)
         try:
             await manager.self_production(grid=None, solar=solar, invert=False)
         except TimeoutError as err:
-            _LOGGER.error(TIMEOUT_ERROR, err)
+            _LOGGER.exception(TIMEOUT_ERROR, err)
 
     if voltage_sensor is not None and changed_entity == voltage_sensor:
-        voltage = hass.states.get(voltage_sensor).state
-        if voltage in [None, "unavailable"]:
+        state = hass.states.get(voltage_sensor)
+        voltage = state.state if state else None
+        if voltage in [None, "unavailable", "unknown"]:
             voltage = None
         else:
-            voltage = round(float(hass.states.get(voltage_sensor).state))
+            try:
+                voltage = round(float(voltage))
+            except (ValueError, TypeError):
+                _LOGGER.warning("Non-numeric state for voltage sensor: %s", voltage)
+                voltage = None
 
         _LOGGER.debug("Sending sensor data to OpenEVSE: (voltage: %s)", voltage)
         try:
             await manager.grid_voltage(voltage=voltage)
         except TimeoutError as err:
-            _LOGGER.error(TIMEOUT_ERROR, err)
+            _LOGGER.exception(TIMEOUT_ERROR, err)
+
+    if shaper_sensor is not None and changed_entity == shaper_sensor:
+        state = hass.states.get(shaper_sensor)
+        power = state.state if state else None
+        if power in [None, "unavailable", "unknown", ""]:
+            power = None
+        else:
+            try:
+                power = round(float(power))
+            except (ValueError, TypeError):
+                _LOGGER.warning("Non-numeric state for shaper sensor: %s", power)
+                power = None
+
+        _LOGGER.debug("Sending sensor data to OpenEVSE: (shaper: %s)", power)
+        try:
+            await manager.set_shaper_live_pwr(power=power)
+        except TimeoutError as err:
+            _LOGGER.exception(TIMEOUT_ERROR, err)
 
 
 async def homeassistant_started_listener(
@@ -194,12 +231,15 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
         services.async_register()
 
     sensors = []
-    if config_entry.data.get(CONF_GRID):
-        sensors.append(config_entry.data.get(CONF_GRID))
-    elif config_entry.data.get(CONF_SOLAR):
-        sensors.append(config_entry.data.get(CONF_SOLAR))
-    if config_entry.data.get(CONF_VOLTAGE):
-        sensors.append(config_entry.data.get(CONF_VOLTAGE))
+    options = config_entry.options
+    if options.get(CONF_GRID):
+        sensors.append(options.get(CONF_GRID))
+    if options.get(CONF_SOLAR):
+        sensors.append(options.get(CONF_SOLAR))
+    if options.get(CONF_VOLTAGE):
+        sensors.append(options.get(CONF_VOLTAGE))
+    if options.get(CONF_SHAPER):
+        sensors.append(options.get(CONF_SHAPER))
 
     if len(sensors) > 0:
         if hass.state == CoreState.running:
@@ -212,6 +252,39 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
                 ),
             )
 
+    config_entry.async_on_unload(config_entry.add_update_listener(update_listener))
+
+    return True
+
+
+async def update_listener(hass: HomeAssistant, config_entry: ConfigEntry) -> None:
+    """Handle options update - reload integration."""
+    await hass.config_entries.async_reload(config_entry.entry_id)
+
+
+async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:
+    """Migrate config entry from version 1 to version 2."""
+    _LOGGER.debug(
+        "Migrating config entry from version %s to version 2",
+        config_entry.version,
+    )
+
+    if config_entry.version == 1:
+        new_data = dict(config_entry.data)
+        new_options = dict(config_entry.options)
+
+        # Move sensor fields from data to options
+        for key in SENSOR_FIELDS:
+            if key in new_data:
+                new_options[key] = new_data.pop(key)
+
+        hass.config_entries.async_update_entry(
+            config_entry, data=new_data, options=new_options, version=2
+        )
+        _LOGGER.info(
+            "Migration to version 2 successful: sensor options moved to options flow"
+        )
+
     return True
 
 
@@ -222,7 +295,7 @@ async def get_firmware(manager: OpenEVSEManager) -> tuple:
     try:
         await manager.update()
     except Exception as error:
-        _LOGGER.error("Problem retreiving firmware data: %s", error)
+        _LOGGER.exception("Problem retrieving firmware data: %s", error)
         return "", ""
 
     try:
@@ -230,9 +303,8 @@ async def get_firmware(manager: OpenEVSEManager) -> tuple:
     except MissingSerial:
         _LOGGER.info("Missing serial number data, skipping...")
 
-    if data is not None and "model" in data:
-        if data["model"] != "unknown":
-            return data["model"], manager.wifi_firmware
+    if data and data.get("model") and data.get("model") != "unknown":
+        return data["model"], manager.wifi_firmware
 
     return f"Wifi version {manager.wifi_firmware}", manager.openevse_firmware
 
@@ -395,9 +467,7 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
                 _LOGGER.debug("Could not update status for %s", sensor)
             data.update(_sensor)
 
-        for (
-            binary_sensor
-        ) in BINARY_SENSORS:  # pylint: disable=consider-using-dict-items
+        for binary_sensor in BINARY_SENSORS:  # pylint: disable=consider-using-dict-items
             _sensor = {}
             try:
                 sensor_property = BINARY_SENSORS[binary_sensor].key
@@ -552,10 +622,10 @@ async def send_command(handler, command) -> None:
     _LOGGER.debug("send_command: %s, %s", cmd, response)
     if cmd == command:
         if response == "$NK^21":
-            raise InvalidValue
+            raise InvalidValueError
         return None
 
-    raise CommandFailed
+    raise CommandFailedError
 
 
 class OpenEVSEManager:
@@ -571,9 +641,9 @@ class OpenEVSEManager:
         self.charger = OpenEVSE(self._host, user=self._username, pwd=self._password)
 
 
-class InvalidValue(Exception):
+class InvalidValueError(Exception):
     """Exception for invalid value errors."""
 
 
-class CommandFailed(Exception):
+class CommandFailedError(Exception):
     """Exception for invalid command errors."""

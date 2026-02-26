@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, Optional
+from typing import Any, Final
 
 import voluptuous as vol
 from homeassistant import config_entries
@@ -11,6 +11,10 @@ from homeassistant.components import zeroconf
 from homeassistant.const import CONF_HOST, CONF_PASSWORD, CONF_USERNAME
 from homeassistant.data_entry_flow import AbortFlow, FlowResult
 from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers.selector import (
+    EntitySelector,
+    EntitySelectorConfig,
+)
 from homeassistant.util import slugify
 from openevsehttp.__main__ import OpenEVSE
 
@@ -19,6 +23,7 @@ from .const import (
     CONF_INVERT,
     CONF_NAME,
     CONF_SERIAL,
+    CONF_SHAPER,
     CONF_SOLAR,
     CONF_VOLTAGE,
     DEFAULT_HOST,
@@ -33,9 +38,9 @@ _LOGGER = logging.getLogger(__name__)
 class OpenEVSEFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
     """Config flow for KeyMaster."""
 
-    VERSION = 1
+    VERSION = 2
     CONNECTION_CLASS = config_entries.CONN_CLASS_LOCAL_POLL
-    DEFAULTS = {CONF_HOST: DEFAULT_HOST, CONF_NAME: DEFAULT_NAME}
+    DEFAULTS: Final = {CONF_HOST: DEFAULT_HOST, CONF_NAME: DEFAULT_NAME}
 
     def __init__(self):
         """Set up the instance."""
@@ -125,8 +130,8 @@ class OpenEVSEFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         return await self.async_step_discovery_confirm()
 
     async def async_step_user(
-        self, user_input: Dict[str, Any] = None
-    ) -> Dict[str, Any]:
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
         """Handle a flow initialized by the user."""
         self._errors = {}
 
@@ -211,10 +216,61 @@ class OpenEVSEFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             errors=self._errors,
         )
 
+    @staticmethod
+    def async_get_options_flow(
+        config_entry: config_entries.ConfigEntry,
+    ) -> OpenEVSEOptionsFlowHandler:
+        """Get the options flow for this handler."""
+        return OpenEVSEOptionsFlowHandler()
+
+
+class OpenEVSEOptionsFlowHandler(config_entries.OptionsFlow):
+    """Handle OpenEVSE options."""
+
+    async def async_step_init(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Manage the options."""
+        if user_input is not None:
+            return self.async_create_entry(title="", data=user_input)
+
+        options = self.config_entry.options
+
+        return self.async_show_form(
+            step_id="init",
+            data_schema=vol.Schema(
+                {
+                    vol.Optional(
+                        CONF_GRID, default=options.get(CONF_GRID, "")
+                    ): vol.Any(
+                        EntitySelector(EntitySelectorConfig(domain="sensor")), ""
+                    ),
+                    vol.Optional(
+                        CONF_SOLAR, default=options.get(CONF_SOLAR, "")
+                    ): vol.Any(
+                        EntitySelector(EntitySelectorConfig(domain="sensor")), ""
+                    ),
+                    vol.Optional(
+                        CONF_VOLTAGE, default=options.get(CONF_VOLTAGE, "")
+                    ): vol.Any(
+                        EntitySelector(EntitySelectorConfig(domain="sensor")), ""
+                    ),
+                    vol.Optional(
+                        CONF_SHAPER, default=options.get(CONF_SHAPER, "")
+                    ): vol.Any(
+                        EntitySelector(EntitySelectorConfig(domain="sensor")), ""
+                    ),
+                    vol.Optional(
+                        CONF_INVERT, default=options.get(CONF_INVERT, False)
+                    ): bool,
+                },
+            ),
+        )
+
 
 def _get_schema(  # pylint: disable-next=unused-argument
-    user_input: Optional[Dict[str, Any]],
-    default_dict: Dict[str, Any],
+    user_input: dict[str, Any] | None,
+    default_dict: dict[str, Any],
     # pylint: disable-next=unused-argument
 ) -> vol.Schema:
     """Get a schema using the default_dict as a backup."""
@@ -239,11 +295,5 @@ def _get_schema(  # pylint: disable-next=unused-argument
             vol.Optional(
                 CONF_PASSWORD, default=_get_default(CONF_PASSWORD, "")
             ): cv.string,
-            vol.Optional(CONF_GRID, default=_get_default(CONF_GRID, "")): cv.string,
-            vol.Optional(CONF_SOLAR, default=_get_default(CONF_SOLAR, "")): cv.string,
-            vol.Optional(
-                CONF_VOLTAGE, default=_get_default(CONF_VOLTAGE, "")
-            ): cv.string,
-            vol.Optional(CONF_INVERT, default=_get_default(CONF_INVERT, False)): bool,
         },
     )
