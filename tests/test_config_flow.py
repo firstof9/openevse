@@ -23,15 +23,15 @@ pytestmark = pytest.mark.asyncio
     [
         (
             {
-                "name": "openevse",
+                "name": "OpenEVSE Charger",
                 "host": "openevse.test.tld",
                 "username": "",
                 "password": "",
             },
             "user",
-            "openevse",
+            "OpenEVSE Charger",
             {
-                "name": "openevse",
+                "name": "OpenEVSE Charger",
                 "host": "openevse.test.tld",
                 "username": "",
                 "password": "",
@@ -124,7 +124,7 @@ async def test_form_user_connection_error(
     [
         (
             {
-                "name": "openevse",
+                "name": "OpenEVSE Charger",
                 "host": "openevse.test.tld",
                 "username": "",
                 "password": "",
@@ -132,7 +132,7 @@ async def test_form_user_connection_error(
             "reconfigure",
             "openevse",
             {
-                "name": "openevse",
+                "name": "OpenEVSE Charger",
                 "host": "openevse.test.tld",
                 "username": "",
                 "password": "",

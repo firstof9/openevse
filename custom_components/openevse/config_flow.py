@@ -15,7 +15,6 @@ from homeassistant.helpers.selector import (
     EntitySelector,
     EntitySelectorConfig,
 )
-from homeassistant.util import slugify
 from openevsehttp.__main__ import OpenEVSE
 
 from .const import (
@@ -136,8 +135,6 @@ class OpenEVSEFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         self._errors = {}
 
         if user_input is not None:
-            user_input[CONF_NAME] = slugify(user_input[CONF_NAME].lower())
-
             charger = OpenEVSE(
                 user_input[CONF_HOST],
                 user=user_input[CONF_USERNAME],
@@ -178,7 +175,6 @@ class OpenEVSEFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         self._errors = {}
 
         if user_input is not None:
-            user_input[CONF_NAME] = slugify(user_input[CONF_NAME].lower())
             self._data.update(user_input)
 
             charger = OpenEVSE(
