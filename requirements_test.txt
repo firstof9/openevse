@@ -5,7 +5,7 @@ pylint==3.3.4
 ruff==0.9.7
 tox==4.46.3
 aioresponses
-pytest<9
+pytest<10
 aiohttp_cors
 zeroconf
 freezegun==1.5.2
