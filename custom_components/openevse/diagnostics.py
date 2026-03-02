@@ -15,7 +15,7 @@ from .const import COORDINATOR, DOMAIN
 REDACT_KEYS = {CONF_PASSWORD}
 
 
-async def async_get_config_entry_diagnostics(  # pylint: disable-next=unused-argument
+async def async_get_config_entry_diagnostics(
     hass: HomeAssistant, config_entry: ConfigEntry
 ) -> dict[str, Any]:
     """Return diagnostics for a config entry."""
@@ -24,7 +24,7 @@ async def async_get_config_entry_diagnostics(  # pylint: disable-next=unused-arg
     return async_redact_data(diag, REDACT_KEYS)
 
 
-async def async_get_device_diagnostics(  # pylint: disable-next=unused-argument
+async def async_get_device_diagnostics(
     hass: HomeAssistant, config_entry: ConfigEntry, device: DeviceEntry
 ) -> dict[str, Any]:
     """Return diagnostics for a device."""

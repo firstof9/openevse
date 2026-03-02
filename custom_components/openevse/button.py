@@ -24,7 +24,7 @@ async def async_setup_entry(
     manager = hass.data[DOMAIN][config_entry.entry_id][MANAGER]
     assert manager is not None
     buttons = []
-    for button in BUTTON_TYPES:  # pylint: disable=consider-using-dict-items
+    for button in BUTTON_TYPES:
         buttons.append(OpenEVSEButton(BUTTON_TYPES[button], manager, config_entry))
     async_add_entities(buttons, False)
 

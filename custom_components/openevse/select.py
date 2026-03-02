@@ -28,7 +28,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
     coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
     manager = hass.data[DOMAIN][entry.entry_id][MANAGER]
     selects = []
-    for select in SELECT_TYPES:  # pylint: disable=consider-using-dict-items
+    for select in SELECT_TYPES:
         selects.append(
             OpenEVSESelect(hass, entry, coordinator, SELECT_TYPES[select], manager)
         )
@@ -139,7 +139,6 @@ class OpenEVSESelect(CoordinatorEntity, SelectEntity):
         if self._type == "max_current_soft":
             amps_min = self.coordinator.data["min_amps"]
             amps_max = self.coordinator.data["max_amps"] + 1
-            # pylint: disable-next=consider-using-generator
             options = [str(item) for item in range(amps_min, amps_max)]
             _LOGGER.debug("Max Amps: %s", options)
             return options

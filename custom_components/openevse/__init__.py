@@ -153,7 +153,7 @@ async def handle_state_change(
 async def homeassistant_started_listener(
     hass: HomeAssistant,
     config_entry: ConfigEntry,
-    sensors: list,  # pylint: disable-next=unused-argument
+    sensors: list,
     event: Event = None,
 ):
     """Start tracking state changes after HomeAssistant has started."""
@@ -167,9 +167,7 @@ async def homeassistant_started_listener(
     )
 
 
-async def async_setup(  # pylint: disable-next=unused-argument
-    hass: HomeAssistant, config_entry: ConfigEntry
-) -> bool:
+async def async_setup(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:
     """Disallow configuration via YAML."""
     return True
 
@@ -450,7 +448,7 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
     def parse_sensors(self) -> None:
         """Parse updated sensor data."""
         data = {}
-        for sensor in SENSOR_TYPES:  # pylint: disable=consider-using-dict-items
+        for sensor in SENSOR_TYPES:
             _sensor = {}
             if SENSOR_TYPES[sensor].is_async_value:
                 continue
@@ -467,7 +465,7 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
                 _LOGGER.debug("Could not update status for %s", sensor)
             data.update(_sensor)
 
-        for binary_sensor in BINARY_SENSORS:  # pylint: disable=consider-using-dict-items
+        for binary_sensor in BINARY_SENSORS:
             _sensor = {}
             try:
                 sensor_property = BINARY_SENSORS[binary_sensor].key
@@ -485,7 +483,7 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
                     binary_sensor,
                 )
             data.update(_sensor)
-        for select in SELECT_TYPES:  # pylint: disable=consider-using-dict-items
+        for select in SELECT_TYPES:
             _sensor = {}
             if SELECT_TYPES[select].is_async_value:
                 continue
@@ -505,7 +503,7 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
                     select,
                 )
             data.update(_sensor)
-        for number in NUMBER_TYPES:  # pylint: disable=consider-using-dict-items
+        for number in NUMBER_TYPES:
             _sensor = {}
             if NUMBER_TYPES[number].is_async_value:
                 continue
@@ -525,7 +523,7 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
                     number,
                 )
             data.update(_sensor)
-        for light in LIGHT_TYPES:  # pylint: disable=consider-using-dict-items
+        for light in LIGHT_TYPES:
             _sensor = {}
             try:
                 sensor_property = LIGHT_TYPES[light].key
@@ -549,7 +547,7 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
     async def async_parse_sensors(self) -> None:
         """Parse updated sensor data using async."""
         data = {}
-        for select in SELECT_TYPES:  # pylint: disable=consider-using-dict-items
+        for select in SELECT_TYPES:
             _sensor = {}
             if not SELECT_TYPES[select].is_async_value:
                 continue
@@ -570,7 +568,7 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
                     select,
                 )
             data.update(_sensor)
-        for number in NUMBER_TYPES:  # pylint: disable=consider-using-dict-items
+        for number in NUMBER_TYPES:
             _sensor = {}
             if not NUMBER_TYPES[number].is_async_value:
                 continue
@@ -591,7 +589,7 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
                     number,
                 )
             data.update(_sensor)
-        for sensor in SENSOR_TYPES:  # pylint: disable=consider-using-dict-items
+        for sensor in SENSOR_TYPES:
             _sensor = {}
             if not SENSOR_TYPES[sensor].is_async_value:
                 continue
@@ -631,9 +629,7 @@ async def send_command(handler, command) -> None:
 class OpenEVSEManager:
     """OpenEVSE connection manager."""
 
-    def __init__(  # pylint: disable-next=unused-argument
-        self, hass: HomeAssistant, config_entry: ConfigEntry
-    ) -> None:
+    def __init__(self, hass: HomeAssistant, config_entry: ConfigEntry) -> None:
         """Initialize."""
         self._host = config_entry.data.get(CONF_HOST)
         self._username = config_entry.data.get(CONF_USERNAME)
