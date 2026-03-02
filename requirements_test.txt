@@ -2,7 +2,7 @@
 pytest-homeassistant-custom-component
 mypy==1.19.1
 pylint==4.0.5
-ruff==0.9.7
+ruff==0.15.4
 tox==4.46.3
 aioresponses
 pytest<10
