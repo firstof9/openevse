@@ -31,7 +31,7 @@ async def async_setup_entry(
 
     entities: list[NumberEntity] = []
 
-    for number in NUMBER_TYPES:  # pylint: disable=consider-using-dict-items
+    for number in NUMBER_TYPES:
         entities.append(
             OpenEVSENumberEntity(
                 config_entry, coordinator, NUMBER_TYPES[number], manager

@@ -25,7 +25,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
     manager = hass.data[DOMAIN][entry.entry_id][MANAGER]
 
     switches = []
-    for switch in SWITCH_TYPES:  # pylint: disable=consider-using-dict-items
+    for switch in SWITCH_TYPES:
         switches.append(
             OpenEVSESwitch(hass, entry, coordinator, SWITCH_TYPES[switch], manager)
         )

@@ -23,7 +23,7 @@ async def async_setup_entry(hass, entry, async_add_devices):
     coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
 
     binary_sensors = []
-    for binary_sensor in BINARY_SENSORS:  # pylint: disable=consider-using-dict-items
+    for binary_sensor in BINARY_SENSORS:
         binary_sensors.append(
             OpenEVSEBinarySensor(BINARY_SENSORS[binary_sensor], coordinator, entry)
         )

@@ -32,7 +32,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
     unique_id = entry.entry_id
 
     sensors = []
-    for sensor in SENSOR_TYPES:  # pylint: disable=consider-using-dict-items
+    for sensor in SENSOR_TYPES:
         sensors.append(
             OpenEVSESensor(SENSOR_TYPES[sensor], unique_id, coordinator, entry)
         )

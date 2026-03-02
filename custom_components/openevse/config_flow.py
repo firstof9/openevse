@@ -266,10 +266,9 @@ class OpenEVSEOptionsFlowHandler(config_entries.OptionsFlow):
         )
 
 
-def _get_schema(  # pylint: disable-next=unused-argument
+def _get_schema(
     user_input: dict[str, Any] | None,
     default_dict: dict[str, Any],
-    # pylint: disable-next=unused-argument
 ) -> vol.Schema:
     """Get a schema using the default_dict as a backup."""
     if user_input is None:

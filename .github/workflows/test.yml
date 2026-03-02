@@ -53,14 +53,17 @@ jobs:
     steps:
       - name: 📥 Checkout the repository
         uses: actions/checkout@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
       - name: 🛠️ Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-          cache: "pip"
       - name: 📦 Install requirements
         run: |
-          pip install tox tox-gh-actions
+          uv pip install --system tox tox-gh-actions tox-uv
       - name: 🏃 Test with tox
         run: tox
       - name: 📤 Upload coverage data
