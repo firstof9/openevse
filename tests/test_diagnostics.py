@@ -1,7 +1,6 @@
 """Test the OpenEVSE diagnostics."""
 
 import pytest
-from freezegun import freeze_time
 from homeassistant.const import CONF_HOST, CONF_PASSWORD, CONF_USERNAME
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
@@ -32,9 +31,9 @@ async def test_config_entry_diagnostics(hass, test_charger, mock_ws_start):
 
 
 @pytest.mark.asyncio
-@freeze_time("2026-01-09 12:00:00+00:00")
-async def test_device_diagnostics(hass, test_charger, mock_ws_start):
+async def test_device_diagnostics(hass, freezer, test_charger, mock_ws_start):
     """Test the device level diagnostics data dump."""
+    freezer.move_to("2026-01-09 12:00:00+00:00")
     entry = MockConfigEntry(
         domain=DOMAIN,
         title="openevse",
