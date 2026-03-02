@@ -31,7 +31,9 @@ async def test_config_entry_diagnostics(hass, test_charger, mock_ws_start):
 
 
 @pytest.mark.asyncio
-async def test_device_diagnostics(hass, freezer, test_charger, mock_ws_start):
+`@pytest.mark.asyncio`
+`@pytest.mark.usefixtures`("test_charger", "mock_ws_start")
+async def test_device_diagnostics(hass, freezer):
     """Test the device level diagnostics data dump."""
     freezer.move_to("2026-01-09 12:00:00+00:00")
     entry = MockConfigEntry(
