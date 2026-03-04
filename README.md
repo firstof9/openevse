@@ -19,7 +19,7 @@ Platform | Description
 -- | --
 `binary_sensor` | On/Off sensors for various settings.
 `button` | Button to restart the ESP chip or the EVSE.
-`light`  | Set the LED brightness.
+`light` | Set the LED brightness.
 `number` | Set the charge rate.
 `select` | Select the ampers limit and service level.
 `sensor` | Show info from an OpenEVSE charger's API.
@@ -42,6 +42,23 @@ Service | Return Value | Description
 `release_claim` | n | Releases a claim on a charger.
 `list_claims` | y | Lists claims on an EVSE.
 `list_overrides` | y | Lists overrides on an EVSE.
+
+---
+
+## Dashboards / UI
+
+For the best experience, it is recommended to install the [OpenEVSE Card](https://github.com/KipK/openevse-card) to visualize your charger status in Home Assistant.
+
+![OpenEVSE Card Preview](https://github.com/KipK/openevse-card/raw/main/assets/card.png)
+
+This custom card provides:
+* Real-time charging state and power usage.
+* Quick toggles for manual overrides.
+* Easy adjustment of charge limits.
+
+**Installation:** Find it in HACS under the **Frontend** section by searching for "OpenEVSE".
+
+---
 
 ## Installation via HACS (recommended)
 
@@ -73,8 +90,6 @@ You probably do not want to do this! Use the HACS method above unless you know w
 
 ## Configuration is done in the UI
 
-<!---->
-
 ## Contributions are welcome!
 
 If you want to contribute to this please read the [Contribution guidelines](CONTRIBUTING.md)
@@ -85,26 +100,26 @@ If you want to contribute to this please read the [Contribution guidelines](CONT
 
 - [ ] Add Wiki
 - [ ] Update documentation
-- [ ] Add tests
-- [x] Current
-- [x] Voltage
-- [x] Power
-- [x] Session Energy
-- [x] Total Energy
-- [x] Status
-- [x] Temps
-- [x] Vehicle connected
-- [x] Rssi
-- [x] Max current
-- [x] Charge current
+- [X] Add tests
+- [X] Current
+- [X] Voltage
+- [X] Power
+- [X] Session Energy
+- [X] Total Energy
+- [X] Status
+- [X] Temps
+- [X] Vehicle connected
+- [X] Rssi
+- [X] Max current
+- [X] Charge current
 - [X] Manual Override
 - [ ] Schedule
 - [X] Divert mode
 - [X] Auto discovery
-- [x] Setup via Home Assistant UI
-- [x] Real time updates via web socket
-- [x] Support energy integration
-- [x] Use newer OpenEVSE APIs
+- [X] Setup via Home Assistant UI
+- [X] Real time updates via web socket
+- [X] Support energy integration
+- [X] Use newer OpenEVSE APIs
 
 
 [openevse]: https://openevse.com/
