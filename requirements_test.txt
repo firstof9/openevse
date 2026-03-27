@@ -1,7 +1,7 @@
 -r requirements.txt
 pytest-homeassistant-custom-component
 mypy==1.19.1
-ruff==0.15.7
+ruff==0.15.8
 tox==4.50.3
 aioresponses
 pytest<10
