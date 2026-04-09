@@ -8,7 +8,7 @@ from homeassistant.components.number import SERVICE_SET_VALUE
 from homeassistant.helpers import entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.openevse.const import COORDINATOR, DOMAIN, NUMBER_TYPES
+from custom_components.openevse.const import COORDINATOR, DOMAIN, MANAGER, NUMBER_TYPES
 from custom_components.openevse.number import OpenEVSENumberEntity
 
 from .const import CONFIG_DATA
@@ -100,7 +100,7 @@ async def test_number_validation_error(hass, test_charger, mock_ws_start):
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
 
-    manager = hass.data[DOMAIN][entry.entry_id]["manager"]
+    manager = hass.data[DOMAIN][entry.entry_id][MANAGER]
     coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
 
     entity = OpenEVSENumberEntity(

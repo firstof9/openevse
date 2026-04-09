@@ -515,7 +515,7 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
                     sensor_property,
                     _sensor[number],
                 )
-            except (AttributeError, ValueError, KeyError):
+            except (AttributeError, ValueError, KeyError, UnsupportedFeature):
                 _LOGGER.debug(
                     "Could not update status for %s",
                     number,
@@ -593,7 +593,7 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
                     sensor_property,
                     _sensor[number],
                 )
-            except (AttributeError, ValueError, KeyError):
+            except (AttributeError, ValueError, KeyError, UnsupportedFeature):
                 _LOGGER.debug(
                     "Could not update status for %s",
                     number,
@@ -620,7 +620,7 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
                     sensor_property,
                     _sensor[sensor],
                 )
-            except (AttributeError, ValueError, KeyError):
+            except (AttributeError, ValueError, KeyError, UnsupportedFeature):
                 _LOGGER.debug(
                     "Could not update status for %s",
                     sensor,
