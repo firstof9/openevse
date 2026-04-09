@@ -24,6 +24,7 @@ from custom_components.openevse import (
     send_command,
 )
 from custom_components.openevse.const import COORDINATOR, DOMAIN, MANAGER
+from custom_components.openevse.entity import OpenEVSENumberEntityDescription
 
 from .const import (
     CONFIG_DATA,
@@ -804,3 +805,51 @@ async def test_init_coordinator_and_parser_gaps(hass, test_charger, mock_ws_star
         patch.object(manager, "get_charge_current", side_effect=AttributeError),
     ):
         await coordinator._async_update_data()
+
+
+async def test_init_cleanup_coverage_gaps(hass, test_charger, mock_ws_start):
+    """Verify final cleanup coverage gaps in __init__.py."""
+    entry = MockConfigEntry(domain=DOMAIN, data=CONFIG_DATA)
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
+    manager = hass.data[DOMAIN][entry.entry_id][MANAGER]
+
+    # Trigger exception path for select entity parsing
+    with patch(
+        "custom_components.openevse.OpenEVSE.divertmode", new_callable=mock.PropertyMock
+    ) as mock_prop:
+        mock_prop.side_effect = AttributeError
+        coordinator.parse_sensors()
+
+    # Trigger synchronous number parsing and asynchronous loop skipping logic
+    mock_number_sync = OpenEVSENumberEntityDescription(
+        key="sync_number",
+        name="Sync Number",
+        is_async_value=False,
+    )
+    mock_number_error = OpenEVSENumberEntityDescription(
+        key="error_number",
+        name="Error Number",
+        is_async_value=False,
+    )
+
+    with (
+        patch(
+            "custom_components.openevse.NUMBER_TYPES",
+            {"sync_number": mock_number_sync, "error_number": mock_number_error},
+        ),
+        patch.object(manager, "sync_number", 10, create=True),
+        patch(
+            "custom_components.openevse.OpenEVSE.error_number",
+            new_callable=mock.PropertyMock,
+            create=True,
+        ) as mock_err,
+    ):
+        mock_err.side_effect = ValueError
+        # Validate both try/except paths in synchronous parsing
+        coordinator.parse_sensors()
+        # Validate skipping logic in asynchronous parsing
+        await coordinator.async_parse_sensors()
