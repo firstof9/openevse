@@ -426,8 +426,13 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
                 )
                 raise UpdateFailed(error) from error
 
-        self.parse_sensors()
-        await self.async_parse_sensors()
+        try:
+            self.parse_sensors()
+            await self.async_parse_sensors()
+        except Exception as error:
+            _LOGGER.debug("Error parsing sensors [%s]: %s", type(error).__name__, error)
+            raise UpdateFailed(error) from error
+
         _LOGGER.debug("Coordinator data: %s", self._data)
         return self._data
 
@@ -446,12 +451,17 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
     def parse_sensors(self) -> None:
         """Parse updated sensor data."""
         data = {}
+        manager_dir = dir(self._manager)
         for sensor in SENSOR_TYPES:
             _sensor = {}
             if SENSOR_TYPES[sensor].is_async_value:
                 continue
+            sensor_property = SENSOR_TYPES[sensor].key
+            if sensor_property not in manager_dir:
+                _LOGGER.debug("Could not update status for %s", sensor)
+                continue
+
             try:
-                sensor_property = SENSOR_TYPES[sensor].key
                 _sensor[sensor] = getattr(self._manager, sensor_property)
                 _LOGGER.debug(
                     "sensor: %s sensor_property: %s value: %s",
@@ -459,14 +469,22 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
                     sensor_property,
                     _sensor[sensor],
                 )
-            except (AttributeError, ValueError, KeyError, UnsupportedFeature):
+            except (ValueError, KeyError, UnsupportedFeature):
                 _LOGGER.debug("Could not update status for %s", sensor)
+                continue
             data.update(_sensor)
 
         for binary_sensor in BINARY_SENSORS:
             _sensor = {}
+            sensor_property = BINARY_SENSORS[binary_sensor].key
+            if sensor_property not in manager_dir:
+                _LOGGER.debug(
+                    "Could not update status for %s",
+                    binary_sensor,
+                )
+                continue
+
             try:
-                sensor_property = BINARY_SENSORS[binary_sensor].key
                 # Data can be sent as boolean or as 1/0
                 _sensor[binary_sensor] = bool(getattr(self._manager, sensor_property))
                 _LOGGER.debug(
@@ -475,19 +493,26 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
                     sensor_property,
                     _sensor[binary_sensor],
                 )
-            except (AttributeError, ValueError, KeyError, UnsupportedFeature):
+            except (ValueError, KeyError, UnsupportedFeature):
                 _LOGGER.debug(
                     "Could not update status for %s",
                     binary_sensor,
                 )
+                continue
             data.update(_sensor)
         for select in SELECT_TYPES:
             _sensor = {}
             if SELECT_TYPES[select].is_async_value:
                 continue
+            sensor_property = SELECT_TYPES[select].key
+            if sensor_property not in manager_dir:
+                _LOGGER.debug(
+                    "Could not update status for %s",
+                    select,
+                )
+                continue
+
             try:
-                sensor_property = SELECT_TYPES[select].key
-                # Data can be sent as boolean or as 1/0
                 _sensor[select] = getattr(self._manager, sensor_property)
                 _LOGGER.debug(
                     "select: %s sensor_property: %s value %s",
@@ -495,19 +520,26 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
                     sensor_property,
                     _sensor[select],
                 )
-            except (AttributeError, ValueError, KeyError, UnsupportedFeature):
+            except (ValueError, KeyError, UnsupportedFeature):
                 _LOGGER.debug(
                     "Could not update status for %s",
                     select,
                 )
+                continue
             data.update(_sensor)
         for number in NUMBER_TYPES:
             _sensor = {}
             if NUMBER_TYPES[number].is_async_value:
                 continue
+            sensor_property = NUMBER_TYPES[number].key
+            if sensor_property not in manager_dir:
+                _LOGGER.debug(
+                    "Could not update status for %s",
+                    number,
+                )
+                continue
+
             try:
-                sensor_property = NUMBER_TYPES[number].key
-                # Data can be sent as boolean or as 1/0
                 _sensor[number] = getattr(self._manager, sensor_property)
                 _LOGGER.debug(
                     "number: %s sensor_property: %s value %s",
@@ -515,17 +547,24 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
                     sensor_property,
                     _sensor[number],
                 )
-            except (AttributeError, ValueError, KeyError, UnsupportedFeature):
+            except (ValueError, KeyError, UnsupportedFeature):
                 _LOGGER.debug(
                     "Could not update status for %s",
                     number,
                 )
+                continue
             data.update(_sensor)
         for light in LIGHT_TYPES:
             _sensor = {}
+            sensor_property = LIGHT_TYPES[light].key
+            if sensor_property not in manager_dir:
+                _LOGGER.debug(
+                    "Could not update status for %s",
+                    light,
+                )
+                continue
+
             try:
-                sensor_property = LIGHT_TYPES[light].key
-                # Data can be sent as boolean or as 1/0
                 _sensor[light] = getattr(self._manager, sensor_property)
                 _LOGGER.debug(
                     "light: %s sensor_property: %s value %s",
@@ -533,26 +572,34 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
                     sensor_property,
                     _sensor[light],
                 )
-            except (AttributeError, ValueError, KeyError, UnsupportedFeature):
+            except (ValueError, KeyError, UnsupportedFeature):
                 _LOGGER.debug(
                     "Could not update status for %s",
                     light,
                 )
+                continue
             data.update(_sensor)
-        _LOGGER.debug("DEBUG: %s", data)
+        _LOGGER.debug("Parsed data: %s", data)
         self._data.update(data)
 
     async def async_parse_sensors(self) -> None:
         """Parse updated sensor data using async."""
         data = {}
+        manager_dir = dir(self._manager)
         for select in SELECT_TYPES:
             _sensor = {}
             if not SELECT_TYPES[select].is_async_value:
                 continue
+            sensor_property = SELECT_TYPES[select].key
+            sensor_value = SELECT_TYPES[select].value
+            if sensor_value not in manager_dir:
+                _LOGGER.debug(
+                    "Could not update status for %s",
+                    select,
+                )
+                continue
+
             try:
-                sensor_property = SELECT_TYPES[select].key
-                sensor_value = SELECT_TYPES[select].value
-                # Data can be sent as boolean or as 1/0
                 attr = getattr(self._manager, sensor_value)
                 result = attr() if callable(attr) else attr
 
@@ -566,20 +613,27 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
                     sensor_property,
                     _sensor[select],
                 )
-            except (AttributeError, ValueError, KeyError, UnsupportedFeature):
+            except (ValueError, KeyError, UnsupportedFeature):
                 _LOGGER.debug(
                     "Could not update status for %s",
                     select,
                 )
+                continue
             data.update(_sensor)
         for number in NUMBER_TYPES:
             _sensor = {}
             if not NUMBER_TYPES[number].is_async_value:
                 continue
+            sensor_property = NUMBER_TYPES[number].key
+            sensor_value = NUMBER_TYPES[number].value
+            if sensor_value not in manager_dir:
+                _LOGGER.debug(
+                    "Could not update status for %s",
+                    number,
+                )
+                continue
+
             try:
-                sensor_property = NUMBER_TYPES[number].key
-                sensor_value = NUMBER_TYPES[number].value
-                # Data can be sent as boolean or as 1/0
                 attr = getattr(self._manager, sensor_value)
                 result = attr() if callable(attr) else attr
 
@@ -593,20 +647,27 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
                     sensor_property,
                     _sensor[number],
                 )
-            except (AttributeError, ValueError, KeyError, UnsupportedFeature):
+            except (ValueError, KeyError, UnsupportedFeature):
                 _LOGGER.debug(
                     "Could not update status for %s",
                     number,
                 )
+                continue
             data.update(_sensor)
         for sensor in SENSOR_TYPES:
             _sensor = {}
             if not SENSOR_TYPES[sensor].is_async_value:
                 continue
+            sensor_property = SENSOR_TYPES[sensor].key
+            sensor_value = SENSOR_TYPES[sensor].value
+            if sensor_value not in manager_dir:
+                _LOGGER.debug(
+                    "Could not update status for %s",
+                    sensor,
+                )
+                continue
+
             try:
-                sensor_property = SENSOR_TYPES[sensor].key
-                sensor_value = SENSOR_TYPES[sensor].value
-                # Data can be sent as boolean or as 1/0
                 attr = getattr(self._manager, sensor_value)
                 result = attr() if callable(attr) else attr
 
@@ -620,13 +681,14 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
                     sensor_property,
                     _sensor[sensor],
                 )
-            except (AttributeError, ValueError, KeyError, UnsupportedFeature):
+            except (ValueError, KeyError, UnsupportedFeature):
                 _LOGGER.debug(
                     "Could not update status for %s",
                     sensor,
                 )
+                continue
             data.update(_sensor)
-        _LOGGER.debug("DEBUG: %s", data)
+        _LOGGER.debug("Parsed async data: %s", data)
         self._data.update(data)
 
 
