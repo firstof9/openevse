@@ -1,13 +1,15 @@
 """Test openevse switches."""
 
 import logging
+from unittest.mock import MagicMock, patch
 
 import pytest
 from homeassistant.components.switch import DOMAIN as SWITCH_DOMAIN
 from homeassistant.helpers import entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.openevse.const import COORDINATOR, DOMAIN
+from custom_components.openevse.const import COORDINATOR, DOMAIN, MANAGER
+from custom_components.openevse.switch import OpenEVSESwitch
 
 from .conftest import TEST_URL_CONFIG
 from .const import CONFIG_DATA
@@ -158,3 +160,50 @@ async def test_switches_v2(
         state = hass.states.get(entity_id)
         assert state
         assert state.state == "unavailable"
+
+
+async def test_switch_coverage_gaps(hass, test_charger, mock_ws_start):
+    """Test switch coverage gaps."""
+    entry = MockConfigEntry(domain=DOMAIN, data=CONFIG_DATA)
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
+    manager = hass.data[DOMAIN][entry.entry_id][MANAGER]
+
+    # Test is_on when data is missing
+    description = MagicMock(
+        key="missing_switch", name="Missing", toggle_command="test", min_version=None
+    )
+    switch = OpenEVSESwitch(hass, entry, coordinator, description, manager)
+    assert switch.is_on is None
+
+    # Test toggling of claim-based switches
+    description_claim = MagicMock(
+        key="state", name="Claim", toggle_command="claim", min_version=None
+    )
+    switch_claim = OpenEVSESwitch(hass, entry, coordinator, description_claim, manager)
+
+    # turn_on -> release_claim (if current state is not sleeping)
+    coordinator.data["state"] = "active"  # is_on = False
+    with patch.object(manager, "release_claim") as mock_release:
+        await switch_claim.async_turn_on()
+        mock_release.assert_called_once()
+
+    # turn_off -> make_claim (if current state is sleeping)
+    coordinator.data["state"] = "sleeping"  # is_on = True
+    with patch.object(manager, "make_claim") as mock_make:
+        await switch_claim.async_turn_off()
+        mock_make.assert_called_once_with(state="active")
+
+    # Test early returns when switch is already in desired state
+    coordinator.data["state"] = "sleeping"  # is_on = True
+    with patch.object(manager, "release_claim") as mock_release:
+        await switch_claim.async_turn_on()
+        mock_release.assert_not_called()
+
+    coordinator.data["state"] = "active"  # is_on = False
+    with patch.object(manager, "make_claim") as mock_make:
+        await switch_claim.async_turn_off()
+        mock_make.assert_not_called()

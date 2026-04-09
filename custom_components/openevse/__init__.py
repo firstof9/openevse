@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import functools
+import inspect
 import logging
 from datetime import timedelta
 
@@ -408,13 +409,10 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
             )
             raise UpdateFailed(error) from error
 
-        try:
-            assert self._manager.websocket
-        except AssertionError as error:
-            _LOGGER.debug("Websocket not setup.")
-            raise UpdateFailed(error) from error
-
-        if self._manager.websocket.state != "connected":
+        if (
+            self._manager.websocket is None
+            or self._manager.websocket.state != "connected"
+        ):
             _LOGGER.debug("Connecting to websocket...")
             try:
                 self._manager.ws_start()
@@ -461,7 +459,7 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
                     sensor_property,
                     _sensor[sensor],
                 )
-            except (ValueError, KeyError, UnsupportedFeature):
+            except (AttributeError, ValueError, KeyError, UnsupportedFeature):
                 _LOGGER.debug("Could not update status for %s", sensor)
             data.update(_sensor)
 
@@ -477,7 +475,7 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
                     sensor_property,
                     _sensor[binary_sensor],
                 )
-            except (ValueError, KeyError, UnsupportedFeature):
+            except (AttributeError, ValueError, KeyError, UnsupportedFeature):
                 _LOGGER.debug(
                     "Could not update status for %s",
                     binary_sensor,
@@ -497,7 +495,7 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
                     sensor_property,
                     _sensor[select],
                 )
-            except (ValueError, KeyError, UnsupportedFeature):
+            except (AttributeError, ValueError, KeyError, UnsupportedFeature):
                 _LOGGER.debug(
                     "Could not update status for %s",
                     select,
@@ -517,7 +515,7 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
                     sensor_property,
                     _sensor[number],
                 )
-            except (ValueError, KeyError):
+            except (AttributeError, ValueError, KeyError):
                 _LOGGER.debug(
                     "Could not update status for %s",
                     number,
@@ -535,7 +533,7 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
                     sensor_property,
                     _sensor[light],
                 )
-            except (ValueError, KeyError, UnsupportedFeature):
+            except (AttributeError, ValueError, KeyError, UnsupportedFeature):
                 _LOGGER.debug(
                     "Could not update status for %s",
                     light,
@@ -555,14 +553,18 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
                 sensor_property = SELECT_TYPES[select].key
                 sensor_value = SELECT_TYPES[select].value
                 # Data can be sent as boolean or as 1/0
-                _sensor[select] = await getattr(self._manager, sensor_value)
+                attr = getattr(self._manager, sensor_value)
+                if inspect.iscoroutinefunction(attr):
+                    _sensor[select] = await attr()
+                else:
+                    _sensor[select] = await attr
                 _LOGGER.debug(
                     "select: %s sensor_property: %s value %s",
                     select,
                     sensor_property,
                     _sensor[select],
                 )
-            except (ValueError, KeyError, UnsupportedFeature):
+            except (AttributeError, ValueError, KeyError, UnsupportedFeature):
                 _LOGGER.debug(
                     "Could not update status for %s",
                     select,
@@ -576,14 +578,18 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
                 sensor_property = NUMBER_TYPES[number].key
                 sensor_value = NUMBER_TYPES[number].value
                 # Data can be sent as boolean or as 1/0
-                _sensor[number] = await getattr(self._manager, sensor_value)
+                attr = getattr(self._manager, sensor_value)
+                if inspect.iscoroutinefunction(attr):
+                    _sensor[number] = await attr()
+                else:
+                    _sensor[number] = await attr
                 _LOGGER.debug(
                     "number: %s sensor_property: %s value %s",
                     number,
                     sensor_property,
                     _sensor[number],
                 )
-            except (ValueError, KeyError):
+            except (AttributeError, ValueError, KeyError):
                 _LOGGER.debug(
                     "Could not update status for %s",
                     number,
@@ -597,14 +603,18 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
                 sensor_property = SENSOR_TYPES[sensor].key
                 sensor_value = SENSOR_TYPES[sensor].value
                 # Data can be sent as boolean or as 1/0
-                _sensor[sensor] = await getattr(self._manager, sensor_value)
+                attr = getattr(self._manager, sensor_value)
+                if inspect.iscoroutinefunction(attr):
+                    _sensor[sensor] = await attr()
+                else:
+                    _sensor[sensor] = await attr
                 _LOGGER.debug(
                     "number: %s sensor_property: %s value %s",
                     sensor,
                     sensor_property,
                     _sensor[sensor],
                 )
-            except (ValueError, KeyError):
+            except (AttributeError, ValueError, KeyError):
                 _LOGGER.debug(
                     "Could not update status for %s",
                     sensor,

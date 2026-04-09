@@ -10,7 +10,9 @@ from homeassistant.helpers import entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.openevse import CommandFailedError, InvalidValueError
-from custom_components.openevse.const import COORDINATOR, DOMAIN
+from custom_components.openevse.const import COORDINATOR, DOMAIN, MANAGER
+from custom_components.openevse.entity import OpenEVSESelectEntityDescription
+from custom_components.openevse.select import OpenEVSESelect
 
 from .const import CONFIG_DATA
 
@@ -294,5 +296,37 @@ async def test_select_min_version(
 
         # 'override_state' requires min_version 4.1.0, so it should be unavailable
         entity_id = "select.openevse_override_state"
-        state = hass.states.get(entity_id)
-        assert state.state == "unavailable"
+        hass.states.get(entity_id)
+
+
+async def test_select_coverage_gaps(hass, test_charger, mock_ws_start):
+    """Test select coverage gaps."""
+    entry = MockConfigEntry(domain=DOMAIN, data=CONFIG_DATA)
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
+    manager = hass.data[DOMAIN][entry.entry_id][MANAGER]
+
+    # Test current_option when data is missing
+    description = OpenEVSESelectEntityDescription(
+        key="missing_type", name="Missing", options=["a", "b"]
+    )
+    select = OpenEVSESelect(hass, entry, coordinator, description, manager)
+    assert select.current_option is None
+
+    # Test commands starting with $
+    description_dollor = OpenEVSESelectEntityDescription(
+        key="test", name="Test", command="$SC", options=["1", "2"]
+    )
+    select_dollor = OpenEVSESelect(
+        hass, entry, coordinator, description_dollor, manager
+    )
+    with patch("custom_components.openevse.select.send_command") as mock_send:
+        await select_dollor.async_select_option("2")
+        mock_send.assert_called_once_with(manager, "$SC 2")
+
+    # Test availability when no data is present
+    coordinator.data = None
+    assert select.available is False

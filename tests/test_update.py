@@ -9,7 +9,8 @@ from homeassistant.components.update import (
 from homeassistant.components.update import DOMAIN as UPDATE_DOMAIN
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.openevse.const import DOMAIN
+from custom_components.openevse.const import COORDINATOR, DOMAIN, FW_COORDINATOR
+from custom_components.openevse.update import OpenEVSEUpdateEntity
 from tests.typing import WebSocketGenerator
 
 from .const import CONFIG_DATA, FW_DATA
@@ -53,3 +54,20 @@ async def test_update_entity(
     )
     result = await ws_client.receive_json()
     assert result["result"] == FW_DATA["release_notes"]
+
+
+async def test_update_coverage_gaps(hass, test_charger, mock_ws_start):
+    """Test update coverage gaps."""
+    entry = MockConfigEntry(domain=DOMAIN, data=CONFIG_DATA)
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
+    fw_coordinator = hass.data[DOMAIN][entry.entry_id][FW_COORDINATOR]
+
+    update = OpenEVSEUpdateEntity(coordinator, fw_coordinator, entry)
+
+    # Test installed_version when coordinator data is missing
+    coordinator.data = None
+    assert update.installed_version is None

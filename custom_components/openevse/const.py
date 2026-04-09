@@ -400,7 +400,7 @@ SENSOR_TYPES: Final[dict[str, OpenEVSESensorEntityDescription]] = {
         name="Override State",
         entity_category=EntityCategory.DIAGNOSTIC,
         is_async_value=True,
-        value="async_override_state",
+        value="get_override_state",
         min_version="4.1.0",
     ),
     "current_power": OpenEVSESensorEntityDescription(
@@ -457,7 +457,7 @@ SELECT_TYPES: Final[dict[str, OpenEVSESelectEntityDescription]] = {
         entity_category=EntityCategory.CONFIG,
         entity_registry_enabled_default=False,
         is_async_value=True,
-        value="async_charge_current",
+        value="get_charge_current",
     ),
     "override_state": OpenEVSESelectEntityDescription(
         key="override_state",
@@ -465,7 +465,7 @@ SELECT_TYPES: Final[dict[str, OpenEVSESelectEntityDescription]] = {
         entity_category=EntityCategory.CONFIG,
         default_options=OVERRIDE_STATE,
         is_async_value=True,
-        value="async_override_state",
+        value="get_override_state",
         min_version="4.1.0",
     ),
     "divertmode": OpenEVSESelectEntityDescription(
@@ -559,7 +559,7 @@ NUMBER_TYPES: Final[dict[str, OpenEVSENumberEntityDescription]] = {
         device_class=NumberDeviceClass.CURRENT,
         mode=NumberMode.AUTO,
         is_async_value=True,
-        value="async_charge_current",
+        value="get_charge_current",
     ),
 }
 

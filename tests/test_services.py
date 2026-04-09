@@ -2,8 +2,10 @@
 
 import json
 import logging
+from unittest.mock import MagicMock, patch
 
 import pytest
+from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
@@ -801,3 +803,41 @@ async def test_services_with_none_values(
             blocking=True,
         )
         assert "Set Override response:" in caplog.text
+
+
+async def test_services_coverage_gaps(hass, test_charger, mock_ws_start, caplog):
+    """Verify services coverage gaps."""
+    entry = MockConfigEntry(domain=DOMAIN, data=CONFIG_DATA)
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    # Test ValueError if device ID is not valid
+    with pytest.raises(ValueError, match="Device ID invalid_device is not valid"):
+        await hass.services.async_call(
+            DOMAIN,
+            "make_claim",
+            {"device_id": "invalid_device", "state": "active"},
+            blocking=True,
+        )
+
+    # Test ValueError if device has no connections
+    dev_reg = dr.async_get(hass)
+    device_no_conn = dev_reg.async_get_or_create(
+        config_entry_id=entry.entry_id,
+        identifiers={(DOMAIN, "no_conn")},
+    )
+
+    with (
+        patch(
+            "homeassistant.helpers.device_registry.DeviceRegistry.async_get",
+            return_value=MagicMock(connections=set()),
+        ),
+        pytest.raises(ValueError, match="has no connections"),
+    ):
+        await hass.services.async_call(
+            DOMAIN,
+            "make_claim",
+            {"device_id": device_no_conn.id, "state": "active"},
+            blocking=True,
+        )

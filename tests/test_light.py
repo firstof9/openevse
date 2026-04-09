@@ -47,7 +47,7 @@ async def test_light(
     mock_aioclient.post(
         TEST_URL_CONFIG,
         status=200,
-        body='{"msg": "Ok"}',
+        body='{"msg": "OK"}',
         repeat=True,
     )
 

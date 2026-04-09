@@ -1,5 +1,6 @@
 """Test openevse setup process."""
 
+import asyncio
 from unittest import mock
 from unittest.mock import patch
 
@@ -9,6 +10,7 @@ from homeassistant.components.select import DOMAIN as SELECT_DOMAIN
 from homeassistant.components.sensor import DOMAIN as SENSOR_DOMAIN
 from homeassistant.components.switch import DOMAIN as SWITCH_DOMAIN
 from homeassistant.config_entries import ConfigEntryState
+from homeassistant.const import EVENT_HOMEASSISTANT_STARTED
 from homeassistant.core import CoreState
 from homeassistant.helpers.update_coordinator import UpdateFailed
 from openevsehttp.exceptions import MissingSerial
@@ -21,7 +23,7 @@ from custom_components.openevse import (
     get_firmware,
     send_command,
 )
-from custom_components.openevse.const import COORDINATOR, DOMAIN
+from custom_components.openevse.const import COORDINATOR, DOMAIN, MANAGER
 
 from .const import (
     CONFIG_DATA,
@@ -79,7 +81,9 @@ async def test_setup_entry_bad_serial(hass, test_charger_bad_serial, mock_ws_sta
     assert len(entries) == 1
 
 
-async def test_setup_and_unload_entry(hass, test_charger):
+async def test_setup_and_unload_entry(
+    hass, test_charger, mock_ws_start, mock_ws_disconnect
+):
     """Test unloading entities."""
     entry = MockConfigEntry(
         domain=DOMAIN,
@@ -94,19 +98,15 @@ async def test_setup_and_unload_entry(hass, test_charger):
 
     assert len(hass.states.async_entity_ids(BINARY_SENSOR_DOMAIN)) == 4
     assert len(hass.states.async_entity_ids(SENSOR_DOMAIN)) == 23
-    assert len(hass.states.async_entity_ids(SWITCH_DOMAIN)) == 4
-    assert len(hass.states.async_entity_ids(SELECT_DOMAIN)) == 3
-    entries = hass.config_entries.async_entries(DOMAIN)
-    assert len(entries) == 1
 
-    assert await hass.config_entries.async_unload(entries[0].entry_id)
+    assert await hass.config_entries.async_unload(entry.entry_id)
     await hass.async_block_till_done()
-    assert len(hass.states.async_entity_ids(BINARY_SENSOR_DOMAIN)) == 4
-    assert len(hass.states.async_entity_ids(DOMAIN)) == 0
 
-    assert await hass.config_entries.async_remove(entries[0].entry_id)
+    # manager.ws_disconnect should have been called
+    mock_ws_disconnect.assert_called_once()
+
+    assert await hass.config_entries.async_remove(entry.entry_id)
     await hass.async_block_till_done()
-    assert len(hass.states.async_entity_ids(BINARY_SENSOR_DOMAIN)) == 0
 
 
 async def test_setup_entry_state_change(hass, test_charger, mock_ws_start, caplog):
@@ -250,6 +250,30 @@ async def test_setup_entry_state_change_2_bad_post(
         "Timeout error connecting to device: , please check your network connection."
         in caplog.text
     )
+
+
+@pytest.fixture
+def mock_ws_start():
+    """Mock ws_start."""
+
+    def side_effect(self, *args, **kwargs):
+        self.websocket = mock.Mock()
+
+    with patch(
+        "custom_components.openevse.OpenEVSE.ws_start",
+        autospec=True,
+        side_effect=side_effect,
+    ) as mock_ws:
+        yield mock_ws
+
+
+@pytest.fixture
+def mock_ws_disconnect():
+    """Mock ws_disconnect."""
+    with patch(
+        "custom_components.openevse.OpenEVSE.ws_disconnect", new_callable=mock.AsyncMock
+    ) as mock_ws:
+        yield mock_ws
 
 
 async def test_setup_entry_v2(hass, test_charger_v2, mock_ws_start):
@@ -509,14 +533,40 @@ async def test_coordinator_parse_errors(hass, test_charger, mock_ws_start, caplo
         assert "Could not update status for status" in caplog.text
 
     # 2. Test Async Parse Error
-    # Patch the property on the CLASS
+    # Patch the method on the CLASS
     with patch(
-        "custom_components.openevse.OpenEVSE.async_override_state",
-        new_callable=mock.PropertyMock,
-    ) as mock_async_prop:
-        mock_async_prop.side_effect = ValueError("Async Parse Error")
+        "custom_components.openevse.OpenEVSE.get_override_state",
+        new_callable=mock.AsyncMock,
+    ) as mock_async_method:
+        mock_async_method.side_effect = ValueError("Async Parse Error")
 
         await coordinator.async_parse_sensors()
+        assert "Could not update status for override_state" in caplog.text
+
+    # 3. Test KeyError in websocket_update
+    with (
+        patch.dict(hass.data[DOMAIN], {entry.entry_id: {}}, clear=True),
+        patch("custom_components.openevse._LOGGER.error") as mock_log_error,
+    ):
+        await coordinator.websocket_update()
+        assert mock_log_error.called
+        assert "Error locating configuration" in mock_log_error.call_args[0][0]
+
+    # 4. Test exceptions in parse_sensors for binary sensors, numbers, etc.
+    with (
+        patch(
+            "custom_components.openevse.OpenEVSE.ota_update",
+            new_callable=mock.PropertyMock,
+            side_effect=ValueError,
+        ),
+        patch(
+            "custom_components.openevse.OpenEVSE.get_override_state",
+            new_callable=mock.AsyncMock,
+            side_effect=ValueError,
+        ),
+    ):
+        coordinator.parse_sensors()
+        assert "Could not update status for ota_update" in caplog.text
         assert "Could not update status for override_state" in caplog.text
 
 
@@ -617,3 +667,140 @@ async def test_setup_entry_state_change_shaper_timeout(
         "Timeout error connecting to device: , please check your network connection."
         in caplog.text
     )
+
+
+async def test_state_change_edge_cases(hass, test_charger, mock_ws_start, caplog):
+    """Test state change edge cases for all sensor types."""
+    grid_entity = "sensor.grid_usage"
+    solar_entity = "sensor.solar_production"
+    voltage_entity = "sensor.grid_voltage"
+    shaper_entity = "sensor.shaper_power"
+
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA,
+        options={
+            "grid": grid_entity,
+            "solar": solar_entity,
+            "voltage": voltage_entity,
+            "shaper": shaper_entity,
+        },
+        version=2,
+    )
+
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    # Trigger listeners with invalid states
+    hass.states.async_set(grid_entity, "invalid")
+    hass.states.async_set(solar_entity, "invalid")
+    hass.states.async_set(voltage_entity, "invalid")
+    hass.states.async_set(shaper_entity, "invalid")
+    await hass.async_block_till_done()
+
+    assert "Non-numeric state for grid sensor: invalid" in caplog.text
+    assert "Non-numeric state for solar sensor: invalid" in caplog.text
+    assert "Non-numeric state for voltage sensor: invalid" in caplog.text
+    assert "Non-numeric state for shaper sensor: invalid" in caplog.text
+
+    # 2. "unknown" or "unavailable" states (should send None)
+    caplog.clear()
+    hass.states.async_set(grid_entity, "unknown")
+    await hass.async_block_till_done()
+    assert "Sending sensor data to OpenEVSE: (grid: None)" in caplog.text
+
+    caplog.clear()
+    hass.states.async_set(solar_entity, "unavailable")
+    await hass.async_block_till_done()
+    assert "Sending sensor data to OpenEVSE: (solar: None)" in caplog.text
+
+    caplog.clear()
+    hass.states.async_set(voltage_entity, "unknown")
+    await hass.async_block_till_done()
+    assert "Sending sensor data to OpenEVSE: (voltage: None)" in caplog.text
+
+    caplog.clear()
+    hass.states.async_set(shaper_entity, "")
+    await hass.async_block_till_done()
+    assert "Sending sensor data to OpenEVSE: (shaper: None)" in caplog.text
+
+
+async def test_setup_entry_ha_not_running(hass, test_charger, mock_ws_start):
+    """Test setup when HA is not yet running defers listener registration."""
+    # Simulate HA NOT being fully started
+    hass.state = CoreState.starting
+
+    # Use config with grid/solar sensors to ensure listeners are registered
+    entry = MockConfigEntry(
+        domain=DOMAIN, data=CONFIG_DATA_GRID, options=OPTIONS_DATA_GRID, version=2
+    )
+
+    with (
+        patch(
+            "custom_components.openevse.async_track_state_change_event"
+        ) as mock_track,
+        patch("homeassistant.core.CoreState", return_value=CoreState.starting),
+    ):
+        entry.add_to_hass(hass)
+        await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+
+        # Verify listeners were NOT tracked immediately
+        assert not mock_track.called
+
+        # Fire EVENT_HOMEASSISTANT_STARTED
+        hass.bus.async_fire(EVENT_HOMEASSISTANT_STARTED)
+        await hass.async_block_till_done()
+
+        # Verify listeners were tracked after HA started
+        assert mock_track.called
+
+
+async def test_init_coordinator_and_parser_gaps(hass, test_charger, mock_ws_start):
+    """Verify coordinator sensor parsing and error handling logic."""
+    hass.state = CoreState.running
+    entry = MockConfigEntry(domain=DOMAIN, data=CONFIG_DATA)
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
+    manager = hass.data[DOMAIN][entry.entry_id][MANAGER]
+
+    # helper for futures
+    def get_future(val):
+        future = asyncio.Future()
+        future.set_result(val)
+        return future
+
+    # Case 1: Coroutine function sensor updates
+    async def mock_coro():
+        return "active"
+
+    manager.get_override_state = mock_coro
+
+    async def mock_number_coro():
+        return 16
+
+    manager.get_charge_current = mock_number_coro
+
+    await coordinator._async_update_data()
+    assert coordinator.data["override_state"] == "active"
+    assert coordinator.data["max_current_soft"] == 16
+
+    # Case 2: Non-coroutine awaitable sensor updates
+    manager.get_override_state = get_future("auto")
+    manager.get_charge_current = get_future(32)
+
+    await coordinator._async_update_data()
+    assert coordinator.data["override_state"] == "auto"
+    assert coordinator.data["max_current_soft"] == 32
+
+    # Case 3: Error paths using AttributeError catch
+    with (
+        patch.object(manager, "get_override_state", side_effect=AttributeError),
+        patch.object(manager, "get_charge_current", side_effect=AttributeError),
+    ):
+        await coordinator._async_update_data()

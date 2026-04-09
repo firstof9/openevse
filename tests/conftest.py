@@ -29,8 +29,11 @@ from .typing import (
 
 pytest_plugins = "pytest_homeassistant_custom_component"
 
-TEST_URL_GITHUB = (
+TEST_URL_GITHUB_V4 = (
     "https://api.github.com/repos/OpenEVSE/ESP32_WiFi_V4.x/releases/latest"
+)
+TEST_URL_GITHUB_V2 = (
+    "https://api.github.com/repos/OpenEVSE/ESP8266_WiFi_v2.x/releases/latest"
 )
 TEST_URL_STATUS = "http://openevse.test.tld/status"
 TEST_URL_CONFIG = "http://openevse.test.tld/config"
@@ -123,7 +126,13 @@ def test_charger(mock_aioclient):
         repeat=True,
     )
     mock_aioclient.get(
-        TEST_URL_GITHUB,
+        TEST_URL_GITHUB_V4,
+        status=200,
+        body=load_fixture("github.json"),
+        repeat=True,
+    )
+    mock_aioclient.get(
+        TEST_URL_GITHUB_V2,
         status=200,
         body=load_fixture("github.json"),
         repeat=True,
@@ -183,7 +192,13 @@ def test_charger_services(mock_aioclient):
         repeat=True,
     )
     mock_aioclient.get(
-        TEST_URL_GITHUB,
+        TEST_URL_GITHUB_V4,
+        status=200,
+        body=load_fixture("github.json"),
+        repeat=True,
+    )
+    mock_aioclient.get(
+        TEST_URL_GITHUB_V2,
         status=200,
         body=load_fixture("github.json"),
         repeat=True,
@@ -225,7 +240,13 @@ def test_charger_bad_serial(mock_aioclient):
         repeat=True,
     )
     mock_aioclient.get(
-        TEST_URL_GITHUB,
+        TEST_URL_GITHUB_V4,
+        status=200,
+        body=load_fixture("github.json"),
+        repeat=True,
+    )
+    mock_aioclient.get(
+        TEST_URL_GITHUB_V2,
         status=200,
         body=load_fixture("github.json"),
         repeat=True,
@@ -272,7 +293,13 @@ def test_charger_bad_post(mock_aioclient):
         repeat=True,
     )
     mock_aioclient.get(
-        TEST_URL_GITHUB,
+        TEST_URL_GITHUB_V4,
+        status=200,
+        body=load_fixture("github.json"),
+        repeat=True,
+    )
+    mock_aioclient.get(
+        TEST_URL_GITHUB_V2,
         status=200,
         body=load_fixture("github.json"),
         repeat=True,
@@ -320,7 +347,13 @@ def test_charger_new(mock_aioclient):
         repeat=True,
     )
     mock_aioclient.get(
-        TEST_URL_GITHUB,
+        TEST_URL_GITHUB_V4,
+        status=200,
+        body=load_fixture("github.json"),
+        repeat=True,
+    )
+    mock_aioclient.get(
+        TEST_URL_GITHUB_V2,
         status=200,
         body=load_fixture("github.json"),
         repeat=True,
@@ -396,7 +429,13 @@ def test_charger_v2(mock_aioclient):
         repeat=True,
     )
     mock_aioclient.get(
-        TEST_URL_GITHUB,
+        TEST_URL_GITHUB_V4,
+        status=200,
+        body=load_fixture("v2_github.json"),
+        repeat=True,
+    )
+    mock_aioclient.get(
+        TEST_URL_GITHUB_V2,
         status=200,
         body=load_fixture("v2_github.json"),
         repeat=True,
