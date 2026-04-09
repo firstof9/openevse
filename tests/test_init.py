@@ -738,12 +738,9 @@ async def test_setup_entry_ha_not_running(hass, test_charger, mock_ws_start):
         domain=DOMAIN, data=CONFIG_DATA_GRID, options=OPTIONS_DATA_GRID, version=2
     )
 
-    with (
-        patch(
-            "custom_components.openevse.async_track_state_change_event"
-        ) as mock_track,
-        patch("homeassistant.core.CoreState", return_value=CoreState.starting),
-    ):
+    with patch(
+        "custom_components.openevse.async_track_state_change_event"
+    ) as mock_track:
         entry.add_to_hass(hass)
         await hass.config_entries.async_setup(entry.entry_id)
         await hass.async_block_till_done()
@@ -799,7 +796,15 @@ async def test_init_coordinator_and_parser_gaps(hass, test_charger, mock_ws_star
     assert coordinator.data["override_state"] == "auto"
     assert coordinator.data["max_current_soft"] == 32
 
-    # Case 3: Error paths using AttributeError catch
+    # Case 3: Non-awaitable sensor updates (direct values)
+    manager.get_override_state = "disabled"
+    manager.get_charge_current = 24
+
+    await coordinator._async_update_data()
+    assert coordinator.data["override_state"] == "disabled"
+    assert coordinator.data["max_current_soft"] == 24
+
+    # Case 4: Error paths using AttributeError catch
     with (
         patch.object(manager, "get_override_state", side_effect=AttributeError),
         patch.object(manager, "get_charge_current", side_effect=AttributeError),

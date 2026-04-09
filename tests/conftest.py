@@ -134,7 +134,7 @@ def test_charger(mock_aioclient):
     mock_aioclient.get(
         TEST_URL_GITHUB_V2,
         status=200,
-        body=load_fixture("github.json"),
+        body=load_fixture("v2_github.json"),
         repeat=True,
     )
     mock_aioclient.post(
@@ -200,7 +200,7 @@ def test_charger_services(mock_aioclient):
     mock_aioclient.get(
         TEST_URL_GITHUB_V2,
         status=200,
-        body=load_fixture("github.json"),
+        body=load_fixture("v2_github.json"),
         repeat=True,
     )
     mock_aioclient.post(
@@ -248,7 +248,7 @@ def test_charger_bad_serial(mock_aioclient):
     mock_aioclient.get(
         TEST_URL_GITHUB_V2,
         status=200,
-        body=load_fixture("github.json"),
+        body=load_fixture("v2_github.json"),
         repeat=True,
     )
     mock_aioclient.get(
@@ -301,7 +301,7 @@ def test_charger_bad_post(mock_aioclient):
     mock_aioclient.get(
         TEST_URL_GITHUB_V2,
         status=200,
-        body=load_fixture("github.json"),
+        body=load_fixture("v2_github.json"),
         repeat=True,
     )
     mock_aioclient.get(
@@ -355,7 +355,7 @@ def test_charger_new(mock_aioclient):
     mock_aioclient.get(
         TEST_URL_GITHUB_V2,
         status=200,
-        body=load_fixture("github.json"),
+        body=load_fixture("v2_github.json"),
         repeat=True,
     )
     mock_aioclient.post(
@@ -431,7 +431,7 @@ def test_charger_v2(mock_aioclient):
     mock_aioclient.get(
         TEST_URL_GITHUB_V4,
         status=200,
-        body=load_fixture("v2_github.json"),
+        body=load_fixture("github.json"),
         repeat=True,
     )
     mock_aioclient.get(

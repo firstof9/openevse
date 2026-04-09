@@ -8,14 +8,14 @@ from homeassistant.components.number import SERVICE_SET_VALUE
 from homeassistant.helpers import entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.openevse.const import DOMAIN
+from custom_components.openevse.const import COORDINATOR, DOMAIN, NUMBER_TYPES
+from custom_components.openevse.number import OpenEVSENumberEntity
 
 from .const import CONFIG_DATA
 
 pytestmark = pytest.mark.asyncio
 
 CHARGER_NAME = "openevse"
-COORDINATOR = "coordinator"
 # SERVICE_SET_VALUE = "set_value"
 
 
@@ -86,3 +86,26 @@ async def test_number(
             "Disabling openevse Charge Rate due to PV Divert being active."
             in caplog.text
         )
+
+
+async def test_number_validation_error(hass, test_charger, mock_ws_start):
+    """Test validation error for non-integer charge rate."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA,
+    )
+
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    manager = hass.data[DOMAIN][entry.entry_id]["manager"]
+    coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
+
+    entity = OpenEVSENumberEntity(
+        entry, coordinator, NUMBER_TYPES["max_current_soft"], manager
+    )
+
+    with pytest.raises(ValueError, match="charge rate must be whole amps"):
+        await entity.async_set_native_value(21.5)

@@ -554,10 +554,12 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
                 sensor_value = SELECT_TYPES[select].value
                 # Data can be sent as boolean or as 1/0
                 attr = getattr(self._manager, sensor_value)
-                if inspect.iscoroutinefunction(attr):
-                    _sensor[select] = await attr()
+                result = attr() if callable(attr) else attr
+
+                if inspect.isawaitable(result):
+                    _sensor[select] = await result
                 else:
-                    _sensor[select] = await attr
+                    _sensor[select] = result
                 _LOGGER.debug(
                     "select: %s sensor_property: %s value %s",
                     select,
@@ -579,10 +581,12 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
                 sensor_value = NUMBER_TYPES[number].value
                 # Data can be sent as boolean or as 1/0
                 attr = getattr(self._manager, sensor_value)
-                if inspect.iscoroutinefunction(attr):
-                    _sensor[number] = await attr()
+                result = attr() if callable(attr) else attr
+
+                if inspect.isawaitable(result):
+                    _sensor[number] = await result
                 else:
-                    _sensor[number] = await attr
+                    _sensor[number] = result
                 _LOGGER.debug(
                     "number: %s sensor_property: %s value %s",
                     number,
@@ -604,10 +608,12 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
                 sensor_value = SENSOR_TYPES[sensor].value
                 # Data can be sent as boolean or as 1/0
                 attr = getattr(self._manager, sensor_value)
-                if inspect.iscoroutinefunction(attr):
-                    _sensor[sensor] = await attr()
+                result = attr() if callable(attr) else attr
+
+                if inspect.isawaitable(result):
+                    _sensor[sensor] = await result
                 else:
-                    _sensor[sensor] = await attr
+                    _sensor[sensor] = result
                 _LOGGER.debug(
                     "number: %s sensor_property: %s value %s",
                     sensor,

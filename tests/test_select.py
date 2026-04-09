@@ -296,7 +296,9 @@ async def test_select_min_version(
 
         # 'override_state' requires min_version 4.1.0, so it should be unavailable
         entity_id = "select.openevse_override_state"
-        hass.states.get(entity_id)
+        state = hass.states.get(entity_id)
+        assert state is not None
+        assert state.state == "unavailable"
 
 
 async def test_select_coverage_gaps(hass, test_charger, mock_ws_start):
