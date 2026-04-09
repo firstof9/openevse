@@ -1,7 +1,7 @@
 """Test openevse select entities."""
 
 import logging
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from homeassistant.components.select import DOMAIN as SELECT_DOMAIN
@@ -319,15 +319,17 @@ async def test_select_coverage_gaps(hass, test_charger, mock_ws_start):
     assert select.current_option is None
 
     # Test commands starting with $
-    description_dollor = OpenEVSESelectEntityDescription(
+    description_dollar = OpenEVSESelectEntityDescription(
         key="test", name="Test", command="$SC", options=["1", "2"]
     )
-    select_dollor = OpenEVSESelect(
-        hass, entry, coordinator, description_dollor, manager
+    select_dollar = OpenEVSESelect(
+        hass, entry, coordinator, description_dollar, manager
     )
-    with patch("custom_components.openevse.select.send_command") as mock_send:
-        await select_dollor.async_select_option("2")
-        mock_send.assert_called_once_with(manager, "$SC 2")
+    with patch(
+        "custom_components.openevse.select.send_command", new_callable=AsyncMock
+    ) as mock_send:
+        await select_dollar.async_select_option("2")
+        mock_send.assert_awaited_once_with(manager, "$SC 2")
 
     # Test availability when no data is present
     coordinator.data = None
