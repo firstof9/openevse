@@ -62,6 +62,11 @@ class OpenEVSESelect(CoordinatorEntity, SelectEntity):
         self._min_version = description.min_version
 
     @property
+    def options(self) -> list[str]:
+        """Return a set of selectable options."""
+        return self.get_options()
+
+    @property
     def device_info(self):
         """Return a port description for device registry."""
         info = {

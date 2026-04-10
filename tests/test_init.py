@@ -942,11 +942,11 @@ async def test_async_parse_sensors_missing_attribute(hass, test_charger, mock_ws
 
     # Verify attributes missing from dir are skipped in async parsing loop
     with patch.object(OpenEVSE, "__dir__", return_value=[]):
-        await coordinator.async_parse_sensors()
-    assert "override_state" not in coordinator._data
-    assert "usage_this_session" not in coordinator._data
+        snapshot = await coordinator.async_parse_sensors()
+    assert "override_state" not in snapshot
+    assert "usage_this_session" not in snapshot
 
     # Verify ValueErrors in async path are caught and sensors are skipped
     with patch.object(manager, "get_charge_current", side_effect=ValueError):
-        await coordinator.async_parse_sensors()
-    assert "max_current_soft" not in coordinator._data
+        snapshot = await coordinator.async_parse_sensors()
+    assert "max_current_soft" not in snapshot

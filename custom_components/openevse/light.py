@@ -74,9 +74,10 @@ class OpenEVSELight(CoordinatorEntity, LightEntity):
 
         self._attr_name = f"{self._config.data[CONF_NAME]} {self._name}"
         self._attr_unique_id = f"{self._name}_{self._unique_id}"
-        self._attr_brightness = (
-            coordinator.data.get(self._type, 0) if coordinator.data else 0
-        )
+        if coordinator.data and self._type in coordinator.data:
+            self._attr_brightness = coordinator.data[self._type]
+        else:
+            self._attr_brightness = 0
 
     @property
     def device_info(self) -> dict:
@@ -92,9 +93,8 @@ class OpenEVSELight(CoordinatorEntity, LightEntity):
     @property
     def brightness(self) -> int | None:
         """Return the brightness of this light between 0..255."""
-        self._attr_brightness = (
-            self.coordinator.data.get(self._type, 0) if self.coordinator.data else 0
-        )
+        if self.coordinator.data and self._type in self.coordinator.data:
+            self._attr_brightness = self.coordinator.data[self._type]
         return self._attr_brightness
 
     @property
