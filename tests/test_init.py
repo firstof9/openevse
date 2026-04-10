@@ -571,6 +571,13 @@ async def test_coordinator_parse_errors(hass, test_charger, mock_ws_start, caplo
         assert "Could not update status for ota_update" in caplog.text
         assert "Could not update status for override_state" in caplog.text
 
+    # 5. Test Exception in websocket_update parser block
+    with patch.object(
+        coordinator, "parse_sensors", side_effect=ValueError("WebSocket Parsing Error")
+    ):
+        await coordinator.websocket_update()
+        assert "Parsing Error" in caplog.text
+
 
 async def test_websocket_update_callback(hass, test_charger, mock_ws_start):
     """Test websocket callback triggers data update on coordinator."""
