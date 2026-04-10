@@ -18,7 +18,7 @@ class OpenEVSESelectEntityDescription(SelectEntityDescription):
     command: str | None = None
     default_options: list | None = None
     is_async_value: bool | None = False
-    value: int | None = None
+    value: str | None = None
     min_version: str | None = None
 
 
@@ -39,7 +39,7 @@ class OpenEVSENumberEntityDescription(NumberEntityDescription):
     min: int | None = None
     max: int | None = None
     is_async_value: bool | None = False
-    value: int | None = None
+    value: str | None = None
 
 
 @dataclass
@@ -55,5 +55,5 @@ class OpenEVSESensorEntityDescription(SensorEntityDescription):
     """Class describing OpenEVSE sensor entities."""
 
     is_async_value: bool | None = False
-    value: int | None = None
+    value: str | None = None
     min_version: str | None = None

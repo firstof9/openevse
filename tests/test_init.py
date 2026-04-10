@@ -896,12 +896,12 @@ async def test_parse_sensors_missing_attribute(hass, test_charger, mock_ws_start
 
     # Test missing attributes across all entity groups (skipped via dir check)
     with patch.object(OpenEVSE, "__dir__", return_value=[]):
-        coordinator.parse_sensors()
+        snapshot = coordinator.parse_sensors()
 
-    assert "status" not in coordinator._data
-    assert "vehicle_connected" not in coordinator._data
-    assert "divert_mode" not in coordinator._data
-    assert "max_current_soft" not in coordinator._data
+    assert "status" not in snapshot
+    assert "vehicle_connected" not in snapshot
+    assert "divert_mode" not in snapshot
+    assert "max_current_soft" not in snapshot
 
     # Ensure ValueErrors during attribute access are caught and the sensor is skipped
     with patch(
@@ -909,8 +909,8 @@ async def test_parse_sensors_missing_attribute(hass, test_charger, mock_ws_start
         new_callable=mock.PropertyMock,
     ) as mock_prop:
         mock_prop.side_effect = ValueError
-        coordinator.parse_sensors()
-    assert "divert_mode" not in coordinator._data
+        snapshot = coordinator.parse_sensors()
+    assert "divert_mode" not in snapshot
 
     # Test missing sync number by patching a mock entity into NUMBER_TYPES
     mock_num = OpenEVSENumberEntityDescription(
@@ -922,8 +922,8 @@ async def test_parse_sensors_missing_attribute(hass, test_charger, mock_ws_start
         patch("custom_components.openevse.NUMBER_TYPES", {"sync_num": mock_num}),
         patch.object(OpenEVSE, "__dir__", return_value=[]),
     ):
-        coordinator.parse_sensors()
-    assert "sync_num" not in coordinator._data
+        snapshot = coordinator.parse_sensors()
+    assert "sync_num" not in snapshot
 
 
 @pytest.mark.asyncio

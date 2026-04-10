@@ -481,11 +481,10 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
                 if value_cast:
                     value = value_cast(value)
                 _LOGGER.debug(
-                    "%s: %s sensor_property: %s value%s: %s",
+                    "%s: %s sensor_property: %s value: %s",
                     label,
                     key,
                     sensor_property,
-                    ":" if label == "sensor" else "",
                     value,
                 )
                 data[key] = value

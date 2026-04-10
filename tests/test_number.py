@@ -116,4 +116,4 @@ async def test_number_validation_error(hass, test_charger, mock_ws_start):
         manager, "set_current", wraps=manager.set_current
     ) as mock_set_current:
         await entity.async_set_native_value(21.0)
-        mock_set_current.assert_called_with(21)
+        mock_set_current.assert_awaited_once_with(21)
