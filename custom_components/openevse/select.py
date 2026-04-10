@@ -146,8 +146,10 @@ class OpenEVSESelect(CoordinatorEntity, SelectEntity):
                 if self._default_options:
                     return self._default_options
                 return [str(item) for item in range(6, 49)]
-            amps_min = self.coordinator.data.get("min_amps", 6)
-            amps_max = self.coordinator.data.get("max_amps", 48) + 1
+            raw_min = self.coordinator.data.get("min_amps")
+            raw_max = self.coordinator.data.get("max_amps")
+            amps_min = raw_min if raw_min is not None else 6
+            amps_max = (raw_max if raw_max is not None else 48) + 1
             options = [str(item) for item in range(amps_min, amps_max)]
             _LOGGER.debug("Max Amps: %s", options)
             return options
