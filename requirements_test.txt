@@ -2,7 +2,7 @@
 pytest-homeassistant-custom-component
 mypy==1.20.0
 ruff==0.15.10
-tox==4.52.0
+tox==4.52.1
 aioresponses
 pytest<10
 aiohttp_cors
