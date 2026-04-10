@@ -334,3 +334,12 @@ async def test_select_coverage_gaps(hass, test_charger, mock_ws_start):
     # Test availability when no data is present
     coordinator.data = None
     assert select.available is False
+
+    # Test get_options for max_current_soft when data is missing
+    description_max = OpenEVSESelectEntityDescription(
+        key="max_current_soft",
+        name="Charge Rate",
+        default_options=["6", "48"],
+    )
+    select_max = OpenEVSESelect(hass, entry, coordinator, description_max, manager)
+    assert select_max.options == ["6", "48"]

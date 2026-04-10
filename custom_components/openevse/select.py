@@ -137,8 +137,10 @@ class OpenEVSESelect(CoordinatorEntity, SelectEntity):
     def get_options(self) -> list[str]:
         """Return a set of selectable options."""
         if self._type == "max_current_soft":
-            amps_min = self.coordinator.data["min_amps"]
-            amps_max = self.coordinator.data["max_amps"] + 1
+            if not self.coordinator.data:
+                return self._default_options
+            amps_min = self.coordinator.data.get("min_amps", 6)
+            amps_max = self.coordinator.data.get("max_amps", 48) + 1
             options = [str(item) for item in range(amps_min, amps_max)]
             _LOGGER.debug("Max Amps: %s", options)
             return options
