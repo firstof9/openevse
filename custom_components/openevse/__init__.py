@@ -427,8 +427,9 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
                 raise UpdateFailed(error) from error
 
         try:
-            self.parse_sensors()
-            await self.async_parse_sensors()
+            new_data = self.parse_sensors()
+            new_data.update(await self.async_parse_sensors())
+            self._data = new_data
         except Exception as error:
             _LOGGER.debug("Error parsing sensors [%s]: %s", type(error).__name__, error)
             raise UpdateFailed(error) from error
@@ -441,8 +442,9 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
         """Trigger processing updated websocket data."""
         _LOGGER.debug("Websocket update!")
         try:
-            self.parse_sensors()
-            await self.async_parse_sensors()
+            new_data = self.parse_sensors()
+            new_data.update(await self.async_parse_sensors())
+            self._data = new_data
         except (ValueError, KeyError, UnsupportedFeature) as error:
             _LOGGER.debug("Error parsing sensors [%s]: %s", type(error).__name__, error)
             return
@@ -492,7 +494,40 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
                 continue
         return data
 
-    def parse_sensors(self) -> None:
+    async def _collect_async_values(self, descriptors, label) -> dict:
+        """Collect async values from descriptors."""
+        data = {}
+        manager_dir = dir(self._manager)
+        for key, descriptor in descriptors.items():
+            if not getattr(descriptor, "is_async_value", False):
+                continue
+            sensor_property = descriptor.key
+            sensor_value = getattr(descriptor, "value", None)
+            if sensor_value not in manager_dir:
+                _LOGGER.debug("Could not update status for %s", key)
+                continue
+
+            try:
+                attr = getattr(self._manager, sensor_value)
+                result = attr() if callable(attr) else attr
+
+                if inspect.isawaitable(result):
+                    data[key] = await result
+                else:
+                    data[key] = result
+                _LOGGER.debug(
+                    "%s: %s sensor_property: %s value %s",
+                    label,
+                    key,
+                    sensor_property,
+                    data[key],
+                )
+            except (ValueError, KeyError, UnsupportedFeature):
+                _LOGGER.debug("Could not update status for %s", key)
+                continue
+        return data
+
+    def parse_sensors(self) -> dict:
         """Parse updated sensor data."""
         data = {}
         data.update(self._collect_values(SENSOR_TYPES, "sensor"))
@@ -501,116 +536,16 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
         data.update(self._collect_values(NUMBER_TYPES, "number"))
         data.update(self._collect_values(LIGHT_TYPES, "light"))
         _LOGGER.debug("Parsed data: %s", data)
-        self._data.update(data)
+        return data
 
-    async def async_parse_sensors(self) -> None:
+    async def async_parse_sensors(self) -> dict:
         """Parse updated sensor data using async."""
         data = {}
-        manager_dir = dir(self._manager)
-        for select in SELECT_TYPES:
-            _sensor = {}
-            if not SELECT_TYPES[select].is_async_value:
-                continue
-            sensor_property = SELECT_TYPES[select].key
-            sensor_value = SELECT_TYPES[select].value
-            if sensor_value not in manager_dir:
-                _LOGGER.debug(
-                    "Could not update status for %s",
-                    select,
-                )
-                continue
-
-            try:
-                attr = getattr(self._manager, sensor_value)
-                result = attr() if callable(attr) else attr
-
-                if inspect.isawaitable(result):
-                    _sensor[select] = await result
-                else:
-                    _sensor[select] = result
-                _LOGGER.debug(
-                    "select: %s sensor_property: %s value %s",
-                    select,
-                    sensor_property,
-                    _sensor[select],
-                )
-            except (ValueError, KeyError, UnsupportedFeature):
-                _LOGGER.debug(
-                    "Could not update status for %s",
-                    select,
-                )
-                continue
-            data.update(_sensor)
-        for number in NUMBER_TYPES:
-            _sensor = {}
-            if not NUMBER_TYPES[number].is_async_value:
-                continue
-            sensor_property = NUMBER_TYPES[number].key
-            sensor_value = NUMBER_TYPES[number].value
-            if sensor_value not in manager_dir:
-                _LOGGER.debug(
-                    "Could not update status for %s",
-                    number,
-                )
-                continue
-
-            try:
-                attr = getattr(self._manager, sensor_value)
-                result = attr() if callable(attr) else attr
-
-                if inspect.isawaitable(result):
-                    _sensor[number] = await result
-                else:
-                    _sensor[number] = result
-                _LOGGER.debug(
-                    "number: %s sensor_property: %s value %s",
-                    number,
-                    sensor_property,
-                    _sensor[number],
-                )
-            except (ValueError, KeyError, UnsupportedFeature):
-                _LOGGER.debug(
-                    "Could not update status for %s",
-                    number,
-                )
-                continue
-            data.update(_sensor)
-        for sensor in SENSOR_TYPES:
-            _sensor = {}
-            if not SENSOR_TYPES[sensor].is_async_value:
-                continue
-            sensor_property = SENSOR_TYPES[sensor].key
-            sensor_value = SENSOR_TYPES[sensor].value
-            if sensor_value not in manager_dir:
-                _LOGGER.debug(
-                    "Could not update status for %s",
-                    sensor,
-                )
-                continue
-
-            try:
-                attr = getattr(self._manager, sensor_value)
-                result = attr() if callable(attr) else attr
-
-                if inspect.isawaitable(result):
-                    _sensor[sensor] = await result
-                else:
-                    _sensor[sensor] = result
-                _LOGGER.debug(
-                    "sensor: %s sensor_property: %s value %s",
-                    sensor,
-                    sensor_property,
-                    _sensor[sensor],
-                )
-            except (ValueError, KeyError, UnsupportedFeature):
-                _LOGGER.debug(
-                    "Could not update status for %s",
-                    sensor,
-                )
-                continue
-            data.update(_sensor)
+        data.update(await self._collect_async_values(SELECT_TYPES, "select"))
+        data.update(await self._collect_async_values(NUMBER_TYPES, "number"))
+        data.update(await self._collect_async_values(SENSOR_TYPES, "sensor"))
         _LOGGER.debug("Parsed async data: %s", data)
-        self._data.update(data)
+        return data
 
 
 async def send_command(handler, command) -> None:

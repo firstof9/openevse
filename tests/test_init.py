@@ -801,7 +801,7 @@ async def test_init_coordinator_and_parser_gaps(hass, test_charger, mock_ws_star
 
     manager.get_charge_current = mock_number_coro
 
-    await coordinator._async_update_data()
+    await coordinator.async_refresh()
     assert coordinator.data["override_state"] == "active"
     assert coordinator.data["max_current_soft"] == 16
 
@@ -809,7 +809,7 @@ async def test_init_coordinator_and_parser_gaps(hass, test_charger, mock_ws_star
     manager.get_override_state = get_future("auto")
     manager.get_charge_current = get_future(32)
 
-    await coordinator._async_update_data()
+    await coordinator.async_refresh()
     assert coordinator.data["override_state"] == "auto"
     assert coordinator.data["max_current_soft"] == 32
 
@@ -817,7 +817,7 @@ async def test_init_coordinator_and_parser_gaps(hass, test_charger, mock_ws_star
     manager.get_override_state = "disabled"
     manager.get_charge_current = 24
 
-    await coordinator._async_update_data()
+    await coordinator.async_refresh()
     assert coordinator.data["override_state"] == "disabled"
     assert coordinator.data["max_current_soft"] == 24
 
