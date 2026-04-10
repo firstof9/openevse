@@ -443,8 +443,16 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
         try:
             self.parse_sensors()
             await self.async_parse_sensors()
-        except Exception as error:
+        except (ValueError, KeyError, UnsupportedFeature) as error:
             _LOGGER.debug("Error parsing sensors [%s]: %s", type(error).__name__, error)
+            return
+        except Exception as error:
+            _LOGGER.warning(
+                "Unexpected error parsing sensors [%s]: %s",
+                type(error).__name__,
+                error,
+                exc_info=True,
+            )
             return
         try:
             coordinator = self.hass.data[DOMAIN][self.config.entry_id][COORDINATOR]

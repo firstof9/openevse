@@ -19,6 +19,7 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 from custom_components.openevse import (
     CommandFailedError,
     InvalidValueError,
+    OpenEVSE,
     OpenEVSEFirmwareCheck,
     get_firmware,
     send_command,
@@ -571,12 +572,20 @@ async def test_coordinator_parse_errors(hass, test_charger, mock_ws_start, caplo
         assert "Could not update status for ota_update" in caplog.text
         assert "Could not update status for override_state" in caplog.text
 
-    # 5. Test Exception in websocket_update parser block
+    # 5. Test Unexpected Exception in websocket_update parser block (WARNING path)
     with patch.object(
-        coordinator, "parse_sensors", side_effect=ValueError("WebSocket Parsing Error")
+        coordinator, "parse_sensors", side_effect=RuntimeError("Unexpected Error")
     ):
         await coordinator.websocket_update()
-        assert "Parsing Error" in caplog.text
+        assert "Unexpected error parsing sensors" in caplog.text
+        assert "RuntimeError" in caplog.text
+
+    # 6. Test Known Exception in websocket_update parser block (DEBUG path)
+    with patch.object(
+        coordinator, "parse_sensors", side_effect=ValueError("Known Error")
+    ):
+        await coordinator.websocket_update()
+        assert "Error parsing sensors [ValueError]: Known Error" in caplog.text
 
 
 async def test_websocket_update_callback(hass, test_charger, mock_ws_start):
@@ -872,6 +881,7 @@ async def test_init_cleanup_coverage_gaps(hass, test_charger, mock_ws_start):
         await coordinator.async_parse_sensors()
 
 
+@pytest.mark.asyncio
 async def test_parse_sensors_missing_attribute(hass, test_charger, mock_ws_start):
     """Test parse_sensors with missing attributes and ValueErrors."""
     entry = MockConfigEntry(domain=DOMAIN, data=CONFIG_DATA)
@@ -885,7 +895,7 @@ async def test_parse_sensors_missing_attribute(hass, test_charger, mock_ws_start
     coordinator._data = {}
 
     # Test missing attributes across all entity groups (skipped via dir check)
-    with patch("custom_components.openevse.dir", return_value=[]):
+    with patch.object(OpenEVSE, "__dir__", return_value=[]):
         coordinator.parse_sensors()
 
     assert "status" not in coordinator._data
@@ -910,12 +920,13 @@ async def test_parse_sensors_missing_attribute(hass, test_charger, mock_ws_start
     )
     with (
         patch("custom_components.openevse.NUMBER_TYPES", {"sync_num": mock_num}),
-        patch("custom_components.openevse.dir", return_value=[]),
+        patch.object(OpenEVSE, "__dir__", return_value=[]),
     ):
         coordinator.parse_sensors()
     assert "sync_num" not in coordinator._data
 
 
+@pytest.mark.asyncio
 async def test_async_parse_sensors_missing_attribute(hass, test_charger, mock_ws_start):
     """Test async_parse_sensors with missing attributes and ValueErrors."""
     entry = MockConfigEntry(domain=DOMAIN, data=CONFIG_DATA)
@@ -930,7 +941,7 @@ async def test_async_parse_sensors_missing_attribute(hass, test_charger, mock_ws
     coordinator._data = {}
 
     # Verify attributes missing from dir are skipped in async parsing loop
-    with patch("custom_components.openevse.dir", return_value=[]):
+    with patch.object(OpenEVSE, "__dir__", return_value=[]):
         await coordinator.async_parse_sensors()
     assert "override_state" not in coordinator._data
     assert "usage_this_session" not in coordinator._data
