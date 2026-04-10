@@ -567,6 +567,7 @@ async def test_coordinator_parse_errors(hass, test_charger, mock_ws_start, caplo
         ),
     ):
         coordinator.parse_sensors()
+        await coordinator.async_parse_sensors()
         assert "Could not update status for ota_update" in caplog.text
         assert "Could not update status for override_state" in caplog.text
 
@@ -930,4 +931,4 @@ async def test_async_parse_sensors_missing_attribute(hass, test_charger, mock_ws
     # Verify ValueErrors in async path are caught and sensors are skipped
     with patch.object(manager, "get_charge_current", side_effect=ValueError):
         await coordinator.async_parse_sensors()
-    assert "charge_rate" not in coordinator._data
+    assert "max_current_soft" not in coordinator._data

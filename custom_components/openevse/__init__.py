@@ -440,8 +440,12 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
     async def websocket_update(self):
         """Trigger processing updated websocket data."""
         _LOGGER.debug("Websocket update!")
-        self.parse_sensors()
-        await self.async_parse_sensors()
+        try:
+            self.parse_sensors()
+            await self.async_parse_sensors()
+        except Exception as error:
+            _LOGGER.debug("Error parsing sensors [%s]: %s", type(error).__name__, error)
+            return
         try:
             coordinator = self.hass.data[DOMAIN][self.config.entry_id][COORDINATOR]
             coordinator.async_set_updated_data(self._data)
