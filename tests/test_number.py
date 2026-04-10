@@ -1,6 +1,7 @@
 """Test OpenEVSE number platform."""
 
 import logging
+from unittest.mock import patch
 
 import pytest
 from homeassistant.components.number import DOMAIN as NUMBER_DOMAIN
@@ -109,3 +110,10 @@ async def test_number_validation_error(hass, test_charger, mock_ws_start):
 
     with pytest.raises(ValueError, match="charge rate must be whole amps"):
         await entity.async_set_native_value(21.5)
+
+    # Test success path
+    with patch.object(
+        manager, "set_current", wraps=manager.set_current
+    ) as mock_set_current:
+        await entity.async_set_native_value(21.0)
+        mock_set_current.assert_called_with(21)
