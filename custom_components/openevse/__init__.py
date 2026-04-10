@@ -688,7 +688,7 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
                 else:
                     _sensor[sensor] = result
                 _LOGGER.debug(
-                    "number: %s sensor_property: %s value %s",
+                    "sensor: %s sensor_property: %s value %s",
                     sensor,
                     sensor_property,
                     _sensor[sensor],
