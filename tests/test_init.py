@@ -1,6 +1,7 @@
 """Test openevse setup process."""
 
 import asyncio
+import logging
 from unittest import mock
 from unittest.mock import patch
 
@@ -581,8 +582,11 @@ async def test_coordinator_parse_errors(hass, test_charger, mock_ws_start, caplo
         assert "RuntimeError" in caplog.text
 
     # 6. Test Known Exception in websocket_update parser block (DEBUG path)
-    with patch.object(
-        coordinator, "parse_sensors", side_effect=ValueError("Known Error")
+    with (
+        patch.object(
+            coordinator, "parse_sensors", side_effect=ValueError("Known Error")
+        ),
+        caplog.at_level(logging.DEBUG),
     ):
         await coordinator.websocket_update()
         assert "Error parsing sensors [ValueError]: Known Error" in caplog.text
@@ -839,7 +843,6 @@ async def test_init_cleanup_coverage_gaps(hass, test_charger, mock_ws_start):
     await hass.async_block_till_done()
 
     coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
-    manager = hass.data[DOMAIN][entry.entry_id][MANAGER]
 
     # Trigger exception path for select entity parsing
     # Now that AttributeError is unmasked, it bubbles out of parse_sensors
@@ -867,18 +870,36 @@ async def test_init_cleanup_coverage_gaps(hass, test_charger, mock_ws_start):
             "custom_components.openevse.NUMBER_TYPES",
             {"sync_number": mock_number_sync, "error_number": mock_number_error},
         ),
-        patch.object(manager, "sync_number", 10, create=True),
-        patch(
-            "custom_components.openevse.OpenEVSE.error_number",
+        patch.object(OpenEVSE, "__dir__", return_value=["sync_number", "error_number"]),
+        patch.object(
+            OpenEVSE, "sync_number", new_callable=mock.PropertyMock, create=True
+        ) as mock_sync,
+        patch.object(
+            OpenEVSE,
+            "error_number",
             new_callable=mock.PropertyMock,
             create=True,
+            side_effect=ValueError,
         ) as mock_err,
     ):
-        mock_err.side_effect = ValueError
+        mock_sync.return_value = 10
         # Validate both try/except paths in synchronous parsing
-        coordinator.parse_sensors()
+        snapshot = coordinator.parse_sensors()
+        assert mock_sync.call_count == 1
+        assert mock_err.call_count == 1
+        assert snapshot["sync_number"] == 10
+        assert "error_number" not in snapshot
+
         # Validate skipping logic in asynchronous parsing
-        await coordinator.async_parse_sensors()
+        async_snapshot = await coordinator.async_parse_sensors()
+        # count should not increase as they are sync sensors
+        assert mock_sync.call_count == 1
+        assert mock_err.call_count == 1
+        assert "sync_number" not in async_snapshot
+        assert "error_number" not in async_snapshot
+
+    await hass.config_entries.async_unload(entry.entry_id)
+    await hass.async_block_till_done()
 
 
 @pytest.mark.asyncio

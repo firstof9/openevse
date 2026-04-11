@@ -99,13 +99,17 @@ class OpenEVSENumberEntity(CoordinatorEntity, NumberEntity):
     def native_min_value(self) -> float:
         """Return the minimum value."""
         min_ = self.coordinator.data.get("min_amps") if self.coordinator.data else None
-        return float(self._min if min_ is None else min_)
+        if min_ is None:
+            min_ = self._min
+        return float(min_ if min_ is not None else 6)
 
     @property
     def native_max_value(self) -> float:
         """Return the maximum value."""
         max_ = self.coordinator.data.get("max_amps") if self.coordinator.data else None
-        return float(self._max if max_ is None else max_)
+        if max_ is None:
+            max_ = self._max
+        return float(max_ if max_ is not None else 48)
 
     @property
     def native_value(self) -> float | None:

@@ -100,9 +100,9 @@ class OpenEVSELight(CoordinatorEntity, LightEntity):
     @property
     def is_on(self) -> bool:
         """Return true if light is on."""
-        if self._attr_brightness is None:
+        if self.brightness is None:
             return False
-        return bool(self._attr_brightness != 0)
+        return bool(self.brightness != 0)
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Instruct the light to turn on."""
