@@ -492,10 +492,13 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
                 continue
         return data
 
-    async def _collect_async_values(self, descriptors, label) -> dict:
+    async def _collect_async_values(
+        self, descriptors, label, seen_results=None
+    ) -> dict:
         """Collect async values from descriptors."""
         data = {}
-        seen_results = {}
+        if seen_results is None:
+            seen_results = {}
         manager_dir = dir(self._manager)
         for key, descriptor in descriptors.items():
             if not getattr(descriptor, "is_async_value", False):
@@ -554,9 +557,16 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
     async def async_parse_sensors(self) -> dict:
         """Parse updated sensor data using async."""
         data = {}
-        data.update(await self._collect_async_values(SELECT_TYPES, "select"))
-        data.update(await self._collect_async_values(NUMBER_TYPES, "number"))
-        data.update(await self._collect_async_values(SENSOR_TYPES, "sensor"))
+        seen_results = {}
+        data.update(
+            await self._collect_async_values(SELECT_TYPES, "select", seen_results)
+        )
+        data.update(
+            await self._collect_async_values(NUMBER_TYPES, "number", seen_results)
+        )
+        data.update(
+            await self._collect_async_values(SENSOR_TYPES, "sensor", seen_results)
+        )
         _LOGGER.debug("Parsed async data: %s", data)
         return data
 
