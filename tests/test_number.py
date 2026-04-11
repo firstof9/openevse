@@ -127,8 +127,6 @@ async def test_number_coverage_gaps(hass, test_charger, mock_ws_start):
     await hass.async_block_till_done()
 
     coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
-    from custom_components.openevse.const import NUMBER_TYPES
-    from custom_components.openevse.number import OpenEVSENumberEntity
 
     # 1. Test fallback when coordinator.data is None
     entity = OpenEVSENumberEntity(

@@ -26,7 +26,10 @@ from custom_components.openevse import (
     send_command,
 )
 from custom_components.openevse.const import COORDINATOR, DOMAIN, MANAGER
-from custom_components.openevse.entity import OpenEVSENumberEntityDescription
+from custom_components.openevse.entity import (
+    OpenEVSENumberEntityDescription,
+    OpenEVSESensorEntityDescription,
+)
 
 from .const import (
     CONFIG_DATA,
@@ -981,8 +984,6 @@ async def test_collect_async_values_seen_results(hass, test_charger, mock_ws_sta
     await hass.async_block_till_done()
 
     coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
-
-    from custom_components.openevse.entity import OpenEVSESensorEntityDescription
 
     mock_descriptors = {
         "sensor1": OpenEVSESensorEntityDescription(

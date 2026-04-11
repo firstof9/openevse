@@ -1,5 +1,7 @@
 """Test OpenEVSE button platform."""
 
+from unittest.mock import AsyncMock
+
 import pytest
 from homeassistant.components.button import DOMAIN as BUTTON_DOMAIN
 from homeassistant.components.button import SERVICE_PRESS
@@ -45,7 +47,6 @@ async def test_buttons(
     manager = hass.data[DOMAIN][entry.entry_id]["manager"]
 
     # Using the standard mock approach for the method on the live object
-    from unittest.mock import AsyncMock
 
     manager.restart_wifi = AsyncMock()
     manager.restart_evse = AsyncMock()

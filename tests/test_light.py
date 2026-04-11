@@ -5,7 +5,8 @@ from homeassistant.components.light import ATTR_BRIGHTNESS
 from homeassistant.components.light import DOMAIN as LIGHT_DOMAIN
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.openevse.const import COORDINATOR, DOMAIN, MANAGER
+from custom_components.openevse.const import COORDINATOR, DOMAIN, LIGHT_TYPES, MANAGER
+from custom_components.openevse.light import OpenEVSELight
 
 from .conftest import TEST_URL_CONFIG
 from .const import CONFIG_DATA
@@ -118,8 +119,6 @@ async def test_light_coverage_gaps(hass, test_charger, mock_ws_start):
 
     coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
     manager = hass.data[DOMAIN][entry.entry_id][MANAGER]
-    from custom_components.openevse.const import LIGHT_TYPES
-    from custom_components.openevse.light import OpenEVSELight
 
     # Case: coordinator.data is empty during init
     coordinator.data = {}

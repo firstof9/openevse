@@ -11,7 +11,7 @@ from homeassistant.components.light import (
     LightEntity,
 )
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
@@ -90,11 +90,16 @@ class OpenEVSELight(CoordinatorEntity, LightEntity):
 
         return info
 
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        """Handle updated data from the coordinator."""
+        if self.coordinator.data and self._type in self.coordinator.data:
+            self._attr_brightness = self.coordinator.data[self._type]
+        self.async_write_ha_state()
+
     @property
     def brightness(self) -> int | None:
         """Return the brightness of this light between 0..255."""
-        if self.coordinator.data and self._type in self.coordinator.data:
-            self._attr_brightness = self.coordinator.data[self._type]
         return self._attr_brightness
 
     @property
