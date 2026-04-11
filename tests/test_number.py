@@ -117,3 +117,28 @@ async def test_number_validation_error(hass, test_charger, mock_ws_start):
     ) as mock_set_current:
         await entity.async_set_native_value(21.0)
         mock_set_current.assert_awaited_once_with(21)
+
+
+async def test_number_coverage_gaps(hass, test_charger, mock_ws_start):
+    """Test number coverage gaps."""
+    entry = MockConfigEntry(domain=DOMAIN, data=CONFIG_DATA)
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
+    from custom_components.openevse.const import NUMBER_TYPES
+    from custom_components.openevse.number import OpenEVSENumberEntity
+
+    # 1. Test fallback when coordinator.data is None
+    entity = OpenEVSENumberEntity(
+        entry, coordinator, NUMBER_TYPES["max_current_soft"], None
+    )
+    coordinator.data = None
+    assert entity.native_min_value == 6.0
+    assert entity.native_max_value == 48.0
+
+    # 2. Test fallback when coordinator.data is present but keys are missing
+    coordinator.data = {}
+    assert entity.native_min_value == 6.0
+    assert entity.native_max_value == 48.0

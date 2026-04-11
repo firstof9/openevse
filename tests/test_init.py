@@ -3,7 +3,7 @@
 import asyncio
 import logging
 from unittest import mock
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from homeassistant.components.binary_sensor import DOMAIN as BINARY_SENSOR_DOMAIN
@@ -971,3 +971,45 @@ async def test_async_parse_sensors_missing_attribute(hass, test_charger, mock_ws
     with patch.object(manager, "get_charge_current", side_effect=ValueError):
         snapshot = await coordinator.async_parse_sensors()
     assert "max_current_soft" not in snapshot
+
+
+async def test_collect_async_values_seen_results(hass, test_charger, mock_ws_start):
+    """Test _collect_async_values with duplicate value properties (seen_results)."""
+    entry = MockConfigEntry(domain=DOMAIN, data=CONFIG_DATA)
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
+
+    from custom_components.openevse.entity import OpenEVSESensorEntityDescription
+
+    mock_descriptors = {
+        "sensor1": OpenEVSESensorEntityDescription(
+            key="sensor1", name="Sensor 1", value="get_charge_time", is_async_value=True
+        ),
+        "sensor2": OpenEVSESensorEntityDescription(
+            key="sensor2", name="Sensor 2", value="get_charge_time", is_async_value=True
+        ),
+    }
+
+    with (
+        patch.object(OpenEVSE, "__dir__", return_value=["get_charge_time"]),
+        patch.object(
+            OpenEVSE,
+            "get_charge_time",
+            new_callable=AsyncMock,
+            return_value=123,
+            create=True,
+        ) as mock_get,
+    ):
+        # We need to use internal method directly
+        data = await coordinator._collect_async_values(mock_descriptors, "test")
+
+    assert data["sensor1"] == 123
+    assert data["sensor2"] == 123
+    # Ensure manager method was only called once due to optimization
+    mock_get.assert_awaited_once()
+
+    await hass.config_entries.async_unload(entry.entry_id)
+    await hass.async_block_till_done()
