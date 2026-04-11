@@ -424,9 +424,7 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
                 raise UpdateFailed(error) from error
 
         try:
-            new_data = self.parse_sensors()
-            new_data.update(await self.async_parse_sensors())
-            self._data = new_data
+            await self._update_data_snapshot()
         except Exception as error:
             _LOGGER.debug("Error parsing sensors [%s]: %s", type(error).__name__, error)
             raise UpdateFailed(error) from error
@@ -439,9 +437,7 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
         """Trigger processing updated websocket data."""
         _LOGGER.debug("Websocket update!")
         try:
-            new_data = self.parse_sensors()
-            new_data.update(await self.async_parse_sensors())
-            self._data = new_data
+            await self._update_data_snapshot()
         except (ValueError, KeyError, UnsupportedFeature) as error:
             _LOGGER.debug("Error parsing sensors [%s]: %s", type(error).__name__, error)
             return
@@ -458,6 +454,12 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
             coordinator.async_set_updated_data(self._data)
         except KeyError as err:
             _LOGGER.error("Error locating configuration: %s", err)
+
+    async def _update_data_snapshot(self) -> None:
+        """Update the data snapshot."""
+        new_data = self.parse_sensors()
+        new_data.update(await self.async_parse_sensors())
+        self._data = new_data
 
     def _collect_values(
         self, descriptors, label, value_cast=None, skip_async=True
