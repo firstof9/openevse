@@ -493,6 +493,7 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
     async def _collect_async_values(self, descriptors, label) -> dict:
         """Collect async values from descriptors."""
         data = {}
+        seen_results = {}
         manager_dir = dir(self._manager)
         for key, descriptor in descriptors.items():
             if not getattr(descriptor, "is_async_value", False):
@@ -503,14 +504,28 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
                 _LOGGER.debug("Could not update status for %s", key)
                 continue
 
+            if sensor_value in seen_results:
+                data[key] = seen_results[sensor_value]
+                _LOGGER.debug(
+                    "%s: %s sensor_property: %s value %s",
+                    label,
+                    key,
+                    sensor_property,
+                    data[key],
+                )
+                continue
+
             try:
                 attr = getattr(self._manager, sensor_value)
                 result = attr() if callable(attr) else attr
 
                 if inspect.isawaitable(result):
-                    data[key] = await result
+                    val = await result
                 else:
-                    data[key] = result
+                    val = result
+
+                seen_results[sensor_value] = val
+                data[key] = val
                 _LOGGER.debug(
                     "%s: %s sensor_property: %s value %s",
                     label,

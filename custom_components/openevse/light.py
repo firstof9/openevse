@@ -77,7 +77,7 @@ class OpenEVSELight(CoordinatorEntity, LightEntity):
         if coordinator.data and self._type in coordinator.data:
             self._attr_brightness = coordinator.data[self._type]
         else:
-            self._attr_brightness = 0
+            self._attr_brightness = None
 
     @property
     def device_info(self) -> dict:
