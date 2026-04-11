@@ -95,6 +95,8 @@ class OpenEVSELight(CoordinatorEntity, LightEntity):
         """Handle updated data from the coordinator."""
         if self.coordinator.data and self._type in self.coordinator.data:
             self._attr_brightness = self.coordinator.data[self._type]
+        else:
+            self._attr_brightness = None
         self.async_write_ha_state()
 
     @property
