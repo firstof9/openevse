@@ -82,6 +82,8 @@ class OpenEVSENumberEntity(CoordinatorEntity, NumberEntity):
     def available(self) -> bool:
         """Return if entity is available."""
         data = self.coordinator.data
+        if data is None:
+            return self.coordinator.last_update_success
         attributes = ("divertmode", "divert_active")
         if (
             set(attributes).issubset(data.keys())
@@ -116,7 +118,7 @@ class OpenEVSENumberEntity(CoordinatorEntity, NumberEntity):
         """Return the entity value."""
         data = self.coordinator.data
         value = None
-        if self._type in data and data is not None:
+        if data is not None and self._type in data:
             value = data[self._type]
         _LOGGER.debug("Number [%s] updated value: %s", self._type, value)
         return None if value is None else float(value)

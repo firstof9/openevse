@@ -409,12 +409,16 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
             )
             raise UpdateFailed(error) from error
 
-        if self._manager.ws_state != "connected":
+        ws_state = self._manager.ws_state
+        if ws_state == "stopped" or (
+            ws_state == "disconnected"
+            and not getattr(self._manager, "_ws_listening", False)
+        ):
             _LOGGER.debug("Connecting to websocket...")
             try:
                 self._manager.ws_start()
-            except RuntimeError:
-                pass
+            except RuntimeError as err:
+                _LOGGER.debug("Websocket connection issue: %s", err)
             except Exception as error:
                 _LOGGER.debug(
                     "Error connecting to websocket [%s]: %s",
