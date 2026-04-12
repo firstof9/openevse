@@ -52,12 +52,13 @@ class OpenEVSESelect(CoordinatorEntity, SelectEntity):
         self.hass = hass
         self._config = config_entry
         self.coordinator = coordinator
+        self._description = description
         self._type = description.key
         self._attr_name = f"{config_entry.data[CONF_NAME]} {description.name}"
         self._attr_unique_id = f"{self._attr_name}_{config_entry.entry_id}"
         self._command = description.command
         self._manager = manager
-        self._default_options = description.default_options
+        self._default_options = description.options or description.default_options
         self._attr_options = self.get_options()
         self._min_version = description.min_version
 
@@ -83,7 +84,7 @@ class OpenEVSESelect(CoordinatorEntity, SelectEntity):
         if data is not None and self._type in data:
             state = data[self._type]
             _LOGGER.debug("Select [%s] updated value: %s", self._type, state)
-            return str(state)
+            return None if state is None else str(state)
         return None
 
     async def async_select_option(self, option: Any) -> None:
@@ -141,6 +142,8 @@ class OpenEVSESelect(CoordinatorEntity, SelectEntity):
 
     def get_options(self) -> list[str]:
         """Return a set of selectable options."""
+        if self._description.options is not None:
+            return self._description.options
         if self._type == "max_current_soft":
             if not self.coordinator.data:
                 if self._default_options:
