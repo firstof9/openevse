@@ -1,5 +1,7 @@
 """Provide tests for OpenEVSE light platform."""
 
+from unittest.mock import patch
+
 import pytest
 from homeassistant.components.light import ATTR_BRIGHTNESS
 from homeassistant.components.light import DOMAIN as LIGHT_DOMAIN
@@ -123,4 +125,11 @@ async def test_light_coverage_gaps(hass, test_charger, mock_ws_start):
     # Case: coordinator.data is empty during init
     coordinator.data = {}
     light = OpenEVSELight(entry, coordinator, LIGHT_TYPES["led_brightness"], manager)
+    assert light._attr_brightness is None
+
+    # Verify _handle_coordinator_update with missing data
+    coordinator.data = {"other_key": 1}
+    light.hass = hass
+    with patch.object(light, "async_write_ha_state"):
+        light._handle_coordinator_update()
     assert light._attr_brightness is None

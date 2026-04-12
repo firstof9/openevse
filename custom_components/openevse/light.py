@@ -59,7 +59,7 @@ class OpenEVSELight(CoordinatorEntity, LightEntity):
         light_description: OpenEVSELightEntityDescription,
         manager: OpenEVSEManager,
     ) -> None:
-        """Initialize the sensor."""
+        """Initialize the light."""
         super().__init__(coordinator)
         self._config = config
         self.entity_description = light_description

@@ -17,7 +17,6 @@ from .const import CONFIG_DATA
 pytestmark = pytest.mark.asyncio
 
 CHARGER_NAME = "openevse"
-# SERVICE_SET_VALUE = "set_value"
 
 
 async def test_number(
@@ -140,3 +139,7 @@ async def test_number_coverage_gaps(hass, test_charger, mock_ws_start):
     coordinator.data = {}
     assert entity.native_min_value == 6.0
     assert entity.native_max_value == 48.0
+
+    # Verify available when data is not a dict
+    coordinator.data = "not a dict"
+    assert entity.available == coordinator.last_update_success

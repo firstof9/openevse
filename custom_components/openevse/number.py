@@ -50,7 +50,7 @@ class OpenEVSENumberEntity(CoordinatorEntity, NumberEntity):
         description: OpenEVSENumberEntityDescription,
         manager: OpenEVSEManager,
     ) -> None:
-        """Initialize a ZwaveNumberEntity entity."""
+        """Initialize an OpenEVSE number entity."""
         super().__init__(coordinator)
         self._description = description
         self._unique_id = config_entry.entry_id
