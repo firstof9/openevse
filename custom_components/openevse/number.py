@@ -82,7 +82,7 @@ class OpenEVSENumberEntity(CoordinatorEntity, NumberEntity):
     def available(self) -> bool:
         """Return if entity is available."""
         data = self.coordinator.data
-        if data is None:
+        if not isinstance(data, dict):
             return self.coordinator.last_update_success
         attributes = ("divertmode", "divert_active")
         if (

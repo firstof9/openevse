@@ -401,8 +401,10 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
         """Update sensor data."""
         try:
             await self._manager.update()
-        except RuntimeError:
-            pass
+        except RuntimeError as error:
+            _LOGGER.debug(
+                "Error updating sensors [%s]: %s", type(error).__name__, error
+            )
         except Exception as error:
             _LOGGER.debug(
                 "Error updating sensors [%s]: %s", type(error).__name__, error

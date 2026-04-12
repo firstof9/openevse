@@ -80,7 +80,7 @@ class OpenEVSESelect(CoordinatorEntity, SelectEntity):
     def current_option(self) -> str | None:
         """Return the selected entity option to represent the entity state."""
         data = self.coordinator.data
-        if self._type in data and data is not None:
+        if data is not None and self._type in data:
             state = data[self._type]
             _LOGGER.debug("Select [%s] updated value: %s", self._type, state)
             return str(state)
