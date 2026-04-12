@@ -447,6 +447,7 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
         except (ValueError, KeyError, UnsupportedFeature) as error:
             _LOGGER.debug("Error parsing sensors [%s]: %s", type(error).__name__, error)
             return
+        # Prevent callback failure from stopping future sensor updates; log and continue
         except Exception as error:
             _LOGGER.warning(
                 "Unexpected error parsing sensors [%s]: %s",
