@@ -156,4 +156,4 @@ class OpenEVSESelect(CoordinatorEntity, SelectEntity):
             options = [str(item) for item in range(amps_min, amps_max)]
             _LOGGER.debug("Max Amps: %s", options)
             return options
-        return self._default_options
+        return self._default_options or []
