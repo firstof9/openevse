@@ -383,11 +383,16 @@ async def test_coordinator_websocket_reconnect(hass, test_charger, mock_ws_start
         # Set the state on the mock websocket to 'disconnected'
         coordinator._manager.websocket.state = "disconnected"
 
-        # Trigger a manual refresh which checks the websocket state
+        # 1. _ws_listening is True -> should NOT reconnect
+        coordinator._manager._ws_listening = True
         await coordinator.async_refresh()
         await hass.async_block_till_done()
+        assert not mock_ws_connect.called
 
-        # Verify ws_start was called to reconnect
+        # 2. _ws_listening is False -> SHOULD reconnect
+        coordinator._manager._ws_listening = False
+        await coordinator.async_refresh()
+        await hass.async_block_till_done()
         assert mock_ws_connect.called
 
 
