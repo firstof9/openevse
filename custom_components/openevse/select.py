@@ -52,14 +52,20 @@ class OpenEVSESelect(CoordinatorEntity, SelectEntity):
         self.hass = hass
         self._config = config_entry
         self.coordinator = coordinator
+        self._description = description
         self._type = description.key
         self._attr_name = f"{config_entry.data[CONF_NAME]} {description.name}"
         self._attr_unique_id = f"{self._attr_name}_{config_entry.entry_id}"
         self._command = description.command
         self._manager = manager
-        self._default_options = description.default_options
+        self._default_options = description.options or description.default_options
         self._attr_options = self.get_options()
         self._min_version = description.min_version
+
+    @property
+    def options(self) -> list[str]:
+        """Return a set of selectable options."""
+        return self.get_options()
 
     @property
     def device_info(self):
@@ -75,10 +81,10 @@ class OpenEVSESelect(CoordinatorEntity, SelectEntity):
     def current_option(self) -> str | None:
         """Return the selected entity option to represent the entity state."""
         data = self.coordinator.data
-        if self._type in data and data is not None:
+        if isinstance(data, dict) and self._type in data:
             state = data[self._type]
             _LOGGER.debug("Select [%s] updated value: %s", self._type, state)
-            return str(state)
+            return None if state is None else str(state)
         return None
 
     async def async_select_option(self, option: Any) -> None:
@@ -136,10 +142,26 @@ class OpenEVSESelect(CoordinatorEntity, SelectEntity):
 
     def get_options(self) -> list[str]:
         """Return a set of selectable options."""
+        if self._description.options is not None:
+            return self._description.options
+        data = self.coordinator.data
         if self._type == "max_current_soft":
-            amps_min = self.coordinator.data["min_amps"]
-            amps_max = self.coordinator.data["max_amps"] + 1
+            if not isinstance(data, dict):
+                if self._default_options:
+                    return self._default_options
+                return [str(item) for item in range(6, 49)]
+            try:
+                raw_min = data.get("min_amps")
+                amps_min = round(float(raw_min)) if raw_min is not None else 6
+            except (ValueError, TypeError):
+                amps_min = 6
+            try:
+                raw_max = data.get("max_amps")
+                amps_max = round(float(raw_max)) if raw_max is not None else 48
+            except (ValueError, TypeError):
+                amps_max = 48
+            amps_max += 1
             options = [str(item) for item in range(amps_min, amps_max)]
             _LOGGER.debug("Max Amps: %s", options)
             return options
-        return self._default_options
+        return self._default_options or []

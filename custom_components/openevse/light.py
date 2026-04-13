@@ -11,7 +11,7 @@ from homeassistant.components.light import (
     LightEntity,
 )
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
@@ -59,7 +59,7 @@ class OpenEVSELight(CoordinatorEntity, LightEntity):
         light_description: OpenEVSELightEntityDescription,
         manager: OpenEVSEManager,
     ) -> None:
-        """Initialize the sensor."""
+        """Initialize the light."""
         super().__init__(coordinator)
         self._config = config
         self.entity_description = light_description
@@ -74,7 +74,11 @@ class OpenEVSELight(CoordinatorEntity, LightEntity):
 
         self._attr_name = f"{self._config.data[CONF_NAME]} {self._name}"
         self._attr_unique_id = f"{self._name}_{self._unique_id}"
-        self._attr_brightness = coordinator.data[self._type]
+        data = coordinator.data
+        if isinstance(data, dict) and self._type in data:
+            self._attr_brightness = data[self._type]
+        else:
+            self._attr_brightness = None
 
     @property
     def device_info(self) -> dict:
@@ -87,16 +91,27 @@ class OpenEVSELight(CoordinatorEntity, LightEntity):
 
         return info
 
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        """Handle updated data from the coordinator."""
+        data = self.coordinator.data
+        if isinstance(data, dict) and self._type in data:
+            self._attr_brightness = data[self._type]
+        else:
+            self._attr_brightness = None
+        self.async_write_ha_state()
+
     @property
     def brightness(self) -> int | None:
         """Return the brightness of this light between 0..255."""
-        self._attr_brightness = self.coordinator.data[self._type]
         return self._attr_brightness
 
     @property
-    def is_on(self) -> bool:
+    def is_on(self) -> bool | None:
         """Return true if light is on."""
-        return bool(self._attr_brightness != 0)
+        if self.brightness is None:
+            return None
+        return bool(self.brightness != 0)
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Instruct the light to turn on."""

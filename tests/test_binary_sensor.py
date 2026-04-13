@@ -3,11 +3,17 @@
 import logging
 
 import pytest
-from homeassistant.components.binary_sensor import DOMAIN as BINARY_SENSOR_DOMAIN
+from homeassistant.components.binary_sensor import (
+    DOMAIN as BINARY_SENSOR_DOMAIN,
+)
+from homeassistant.components.binary_sensor import (
+    BinarySensorEntityDescription,
+)
 from homeassistant.helpers import entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.openevse.const import DOMAIN
+from custom_components.openevse.binary_sensor import OpenEVSEBinarySensor
+from custom_components.openevse.const import COORDINATOR, DOMAIN
 
 from .const import CONFIG_DATA
 
@@ -47,8 +53,8 @@ async def test_binary_sensors(
     assert updated_entry.disabled is False
 
     # Reload to apply enabled state
-    await hass.config_entries.async_forward_entry_unload(entry, "binary_sensor")
-    await hass.config_entries.async_forward_entry_setups(entry, ["binary_sensor"])
+    await hass.config_entries.async_forward_entry_unload(entry, BINARY_SENSOR_DOMAIN)
+    await hass.config_entries.async_forward_entry_setups(entry, [BINARY_SENSOR_DOMAIN])
     await hass.async_block_till_done()
 
     state = hass.states.get(entity_id)
@@ -71,8 +77,8 @@ async def test_binary_sensors(
     entity_registry.async_update_entity(entity_entry.entity_id, disabled_by=None)
 
     # Reload again for the second enabled sensor
-    await hass.config_entries.async_forward_entry_unload(entry, "binary_sensor")
-    await hass.config_entries.async_forward_entry_setups(entry, ["binary_sensor"])
+    await hass.config_entries.async_forward_entry_unload(entry, BINARY_SENSOR_DOMAIN)
+    await hass.config_entries.async_forward_entry_setups(entry, [BINARY_SENSOR_DOMAIN])
     await hass.async_block_till_done()
 
     state = hass.states.get(entity_id)
@@ -109,3 +115,21 @@ async def test_binary_sensors_v2(
         state = hass.states.get(entity_id)
         assert state
         assert state.state == "off"
+
+
+async def test_binary_sensor_coverage_gaps(hass, test_charger, mock_ws_start):
+    """Test binary_sensor coverage gaps."""
+    entry = MockConfigEntry(domain=DOMAIN, data=CONFIG_DATA)
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
+
+    # Test is_on property when sensor type is missing from coordinator data
+    description_bin = BinarySensorEntityDescription(
+        key="missing_bin", name="Missing Bin"
+    )
+    bin_sensor = OpenEVSEBinarySensor(description_bin, coordinator, entry)
+    coordinator.data = {}
+    assert bin_sensor.is_on is None

@@ -29,8 +29,11 @@ from .typing import (
 
 pytest_plugins = "pytest_homeassistant_custom_component"
 
-TEST_URL_GITHUB = (
+TEST_URL_GITHUB_V4 = (
     "https://api.github.com/repos/OpenEVSE/ESP32_WiFi_V4.x/releases/latest"
+)
+TEST_URL_GITHUB_V2 = (
+    "https://api.github.com/repos/OpenEVSE/ESP8266_WiFi_v2.x/releases/latest"
 )
 TEST_URL_STATUS = "http://openevse.test.tld/status"
 TEST_URL_CONFIG = "http://openevse.test.tld/config"
@@ -122,12 +125,7 @@ def test_charger(mock_aioclient):
         body=load_fixture("status.json"),
         repeat=True,
     )
-    mock_aioclient.get(
-        TEST_URL_GITHUB,
-        status=200,
-        body=load_fixture("github.json"),
-        repeat=True,
-    )
+    register_github_release_mocks(mock_aioclient)
     mock_aioclient.post(
         TEST_URL_OVERRIDE,
         status=200,
@@ -182,12 +180,7 @@ def test_charger_services(mock_aioclient):
         body=load_fixture("status.json"),
         repeat=True,
     )
-    mock_aioclient.get(
-        TEST_URL_GITHUB,
-        status=200,
-        body=load_fixture("github.json"),
-        repeat=True,
-    )
+    register_github_release_mocks(mock_aioclient)
     mock_aioclient.post(
         TEST_URL_OVERRIDE,
         status=200,
@@ -224,12 +217,7 @@ def test_charger_bad_serial(mock_aioclient):
         body=load_fixture("status.json"),
         repeat=True,
     )
-    mock_aioclient.get(
-        TEST_URL_GITHUB,
-        status=200,
-        body=load_fixture("github.json"),
-        repeat=True,
-    )
+    register_github_release_mocks(mock_aioclient)
     mock_aioclient.get(
         TEST_URL_CLAIMS_TARGET,
         status=200,
@@ -271,12 +259,7 @@ def test_charger_bad_post(mock_aioclient):
         body=load_fixture("status.json"),
         repeat=True,
     )
-    mock_aioclient.get(
-        TEST_URL_GITHUB,
-        status=200,
-        body=load_fixture("github.json"),
-        repeat=True,
-    )
+    register_github_release_mocks(mock_aioclient)
     mock_aioclient.get(
         TEST_URL_CLAIMS_TARGET,
         status=200,
@@ -319,12 +302,7 @@ def test_charger_new(mock_aioclient):
         body=load_fixture("status-new.json"),
         repeat=True,
     )
-    mock_aioclient.get(
-        TEST_URL_GITHUB,
-        status=200,
-        body=load_fixture("github.json"),
-        repeat=True,
-    )
+    register_github_release_mocks(mock_aioclient)
     mock_aioclient.post(
         TEST_URL_OVERRIDE,
         status=200,
@@ -368,6 +346,24 @@ def load_fixture(filename):
         return fptr.read()
 
 
+def register_github_release_mocks(
+    mock_aioclient, v4_repo="github.json", v2_repo="v2_github.json"
+):
+    """Register GitHub release mocks."""
+    mock_aioclient.get(
+        TEST_URL_GITHUB_V4,
+        status=200,
+        body=load_fixture(v4_repo),
+        repeat=True,
+    )
+    mock_aioclient.get(
+        TEST_URL_GITHUB_V2,
+        status=200,
+        body=load_fixture(v2_repo),
+        repeat=True,
+    )
+
+
 @pytest.fixture(name="test_charger_v2")
 def test_charger_v2(mock_aioclient):
     """Load the charger data."""
@@ -395,12 +391,7 @@ def test_charger_v2(mock_aioclient):
         body=load_fixture("v2_status.json"),
         repeat=True,
     )
-    mock_aioclient.get(
-        TEST_URL_GITHUB,
-        status=200,
-        body=load_fixture("v2_github.json"),
-        repeat=True,
-    )
+    register_github_release_mocks(mock_aioclient)
     mock_aioclient.post(
         TEST_URL_OVERRIDE,
         status=404,

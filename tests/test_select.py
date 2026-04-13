@@ -1,7 +1,7 @@
 """Test openevse select entities."""
 
 import logging
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from homeassistant.components.select import DOMAIN as SELECT_DOMAIN
@@ -10,7 +10,9 @@ from homeassistant.helpers import entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.openevse import CommandFailedError, InvalidValueError
-from custom_components.openevse.const import COORDINATOR, DOMAIN
+from custom_components.openevse.const import COORDINATOR, DOMAIN, MANAGER
+from custom_components.openevse.entity import OpenEVSESelectEntityDescription
+from custom_components.openevse.select import OpenEVSESelect
 
 from .const import CONFIG_DATA
 
@@ -295,4 +297,97 @@ async def test_select_min_version(
         # 'override_state' requires min_version 4.1.0, so it should be unavailable
         entity_id = "select.openevse_override_state"
         state = hass.states.get(entity_id)
+        assert state is not None
         assert state.state == "unavailable"
+
+
+async def test_select_coverage_gaps(hass, test_charger, mock_ws_start):
+    """Test select coverage gaps."""
+    entry = MockConfigEntry(domain=DOMAIN, data=CONFIG_DATA)
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
+    manager = hass.data[DOMAIN][entry.entry_id][MANAGER]
+
+    # Test current_option when data is missing
+    description = OpenEVSESelectEntityDescription(
+        key="missing_type", name="Missing", options=["a", "b"]
+    )
+    select = OpenEVSESelect(hass, entry, coordinator, description, manager)
+    assert select.current_option is None
+
+    # Test commands starting with $
+    description_dollar = OpenEVSESelectEntityDescription(
+        key="test", name="Test", command="$SC", options=["1", "2"]
+    )
+    select_dollar = OpenEVSESelect(
+        hass, entry, coordinator, description_dollar, manager
+    )
+    with patch(
+        "custom_components.openevse.select.send_command", new_callable=AsyncMock
+    ) as mock_send:
+        await select_dollar.async_select_option("2")
+        mock_send.assert_awaited_once_with(manager, "$SC 2")
+
+    # Test availability when no data is present
+    coordinator.data = None
+    assert select.available is False
+
+    # Test get_options for max_current_soft when data is missing
+    description_max = OpenEVSESelectEntityDescription(
+        key="max_current_soft",
+        name="Charge Rate",
+        default_options=["6", "48"],
+    )
+    select_max = OpenEVSESelect(hass, entry, coordinator, description_max, manager)
+    assert select_max.options == ["6", "48"]
+
+    # Test get_options for max_current_soft when data and default_options are missing
+    description_no_default = OpenEVSESelectEntityDescription(
+        key="max_current_soft",
+        name="Charge Rate",
+        default_options=None,
+    )
+    coordinator.data = None
+    select_no_default = OpenEVSESelect(
+        hass, entry, coordinator, description_no_default, manager
+    )
+    assert "6" in select_no_default.options
+    assert "48" in select_no_default.options
+
+
+async def test_select_get_options_edge_cases(hass, test_charger, mock_ws_start):
+    """Test get_options edge cases for malformed data."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA,
+    )
+    entry.add_to_hass(hass)
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
+    select_desc = OpenEVSESelectEntityDescription(
+        key="max_current_soft",
+        name="Charge Rate",
+    )
+    entity = OpenEVSESelect(hass, entry, coordinator, select_desc, test_charger)
+
+    # 1. Malformed min_amps (string)
+    coordinator.data = {"min_amps": "invalid", "max_amps": 40}
+    options = entity.get_options()
+    assert options[0] == "6"
+
+    # 2. Malformed max_amps (string)
+    coordinator.data = {"min_amps": 10, "max_amps": "invalid"}
+    options = entity.get_options()
+    assert options[-1] == "48"
+
+    # 3. Both malformed
+    coordinator.data = {"min_amps": "invalid", "max_amps": "invalid"}
+    options = entity.get_options()
+    assert options[0] == "6"
+    assert options[-1] == "48"

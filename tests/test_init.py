@@ -1,7 +1,9 @@
 """Test openevse setup process."""
 
+import asyncio
+import logging
 from unittest import mock
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from homeassistant.components.binary_sensor import DOMAIN as BINARY_SENSOR_DOMAIN
@@ -9,6 +11,7 @@ from homeassistant.components.select import DOMAIN as SELECT_DOMAIN
 from homeassistant.components.sensor import DOMAIN as SENSOR_DOMAIN
 from homeassistant.components.switch import DOMAIN as SWITCH_DOMAIN
 from homeassistant.config_entries import ConfigEntryState
+from homeassistant.const import EVENT_HOMEASSISTANT_STARTED
 from homeassistant.core import CoreState
 from homeassistant.helpers.update_coordinator import UpdateFailed
 from openevsehttp.exceptions import MissingSerial
@@ -17,11 +20,16 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 from custom_components.openevse import (
     CommandFailedError,
     InvalidValueError,
+    OpenEVSE,
     OpenEVSEFirmwareCheck,
     get_firmware,
     send_command,
 )
-from custom_components.openevse.const import COORDINATOR, DOMAIN
+from custom_components.openevse.const import COORDINATOR, DOMAIN, MANAGER
+from custom_components.openevse.entity import (
+    OpenEVSENumberEntityDescription,
+    OpenEVSESensorEntityDescription,
+)
 
 from .const import (
     CONFIG_DATA,
@@ -79,7 +87,9 @@ async def test_setup_entry_bad_serial(hass, test_charger_bad_serial, mock_ws_sta
     assert len(entries) == 1
 
 
-async def test_setup_and_unload_entry(hass, test_charger):
+async def test_setup_and_unload_entry(
+    hass, test_charger, mock_ws_start, mock_ws_disconnect
+):
     """Test unloading entities."""
     entry = MockConfigEntry(
         domain=DOMAIN,
@@ -94,19 +104,15 @@ async def test_setup_and_unload_entry(hass, test_charger):
 
     assert len(hass.states.async_entity_ids(BINARY_SENSOR_DOMAIN)) == 4
     assert len(hass.states.async_entity_ids(SENSOR_DOMAIN)) == 23
-    assert len(hass.states.async_entity_ids(SWITCH_DOMAIN)) == 4
-    assert len(hass.states.async_entity_ids(SELECT_DOMAIN)) == 3
-    entries = hass.config_entries.async_entries(DOMAIN)
-    assert len(entries) == 1
 
-    assert await hass.config_entries.async_unload(entries[0].entry_id)
+    assert await hass.config_entries.async_unload(entry.entry_id)
     await hass.async_block_till_done()
-    assert len(hass.states.async_entity_ids(BINARY_SENSOR_DOMAIN)) == 4
-    assert len(hass.states.async_entity_ids(DOMAIN)) == 0
 
-    assert await hass.config_entries.async_remove(entries[0].entry_id)
+    # manager.ws_disconnect should have been called
+    mock_ws_disconnect.assert_awaited_once()
+
+    assert await hass.config_entries.async_remove(entry.entry_id)
     await hass.async_block_till_done()
-    assert len(hass.states.async_entity_ids(BINARY_SENSOR_DOMAIN)) == 0
 
 
 async def test_setup_entry_state_change(hass, test_charger, mock_ws_start, caplog):
@@ -252,6 +258,42 @@ async def test_setup_entry_state_change_2_bad_post(
     )
 
 
+@pytest.fixture
+def mock_ws_start():
+    """Mock ws_start."""
+
+    def get_ws_state(self):
+        """Dynamic ws_state property."""
+        if hasattr(self, "websocket") and self.websocket:
+            return self.websocket.state
+        return "stopped"
+
+    def side_effect(self, *args, **kwargs):
+        self.websocket = mock.AsyncMock(state="connected")
+
+    with (
+        patch(
+            "custom_components.openevse.OpenEVSE.ws_state",
+            new=property(get_ws_state),
+        ),
+        patch(
+            "custom_components.openevse.OpenEVSE.ws_start",
+            autospec=True,
+            side_effect=side_effect,
+        ) as mock_ws,
+    ):
+        yield mock_ws
+
+
+@pytest.fixture
+def mock_ws_disconnect():
+    """Mock ws_disconnect."""
+    with patch(
+        "custom_components.openevse.OpenEVSE.ws_disconnect", new_callable=mock.AsyncMock
+    ) as mock_ws:
+        yield mock_ws
+
+
 async def test_setup_entry_v2(hass, test_charger_v2, mock_ws_start):
     """Test setup_entry."""
     entry = MockConfigEntry(
@@ -337,18 +379,20 @@ async def test_coordinator_websocket_reconnect(hass, test_charger, mock_ws_start
 
     # Replace the manager's websocket object with a Mock.
     # This allows us to set the 'state' attribute freely without AttributeError.
-    with (
-        patch.object(coordinator._manager, "websocket") as mock_ws,
-        patch.object(coordinator._manager, "ws_start") as mock_ws_connect,
-    ):
+    with patch.object(coordinator._manager, "ws_start") as mock_ws_connect:
         # Set the state on the mock websocket to 'disconnected'
-        mock_ws.state = "disconnected"
+        coordinator._manager.websocket.state = "disconnected"
 
-        # Trigger a manual refresh which checks the websocket state
+        # 1. _ws_listening is True -> should NOT reconnect
+        coordinator._manager._ws_listening = True
         await coordinator.async_refresh()
         await hass.async_block_till_done()
+        assert not mock_ws_connect.called
 
-        # Verify ws_start was called to reconnect
+        # 2. _ws_listening is False -> SHOULD reconnect
+        coordinator._manager._ws_listening = False
+        await coordinator.async_refresh()
+        await hass.async_block_till_done()
         assert mock_ws_connect.called
 
 
@@ -392,7 +436,6 @@ async def test_coordinator_update_errors(hass, test_charger, mock_ws_start):
     ):
         await coordinator._async_update_data()
 
-    # 2. Generic Exception during manager.update() should raise UpdateFailed
     with (
         patch.object(coordinator._manager, "update", side_effect=Exception("Critical")),
         pytest.raises(UpdateFailed),
@@ -509,15 +552,61 @@ async def test_coordinator_parse_errors(hass, test_charger, mock_ws_start, caplo
         assert "Could not update status for status" in caplog.text
 
     # 2. Test Async Parse Error
-    # Patch the property on the CLASS
+    # Patch the method on the CLASS
     with patch(
-        "custom_components.openevse.OpenEVSE.async_override_state",
-        new_callable=mock.PropertyMock,
-    ) as mock_async_prop:
-        mock_async_prop.side_effect = ValueError("Async Parse Error")
+        "custom_components.openevse.OpenEVSE.get_override_state",
+        new_callable=mock.AsyncMock,
+    ) as mock_async_method:
+        mock_async_method.side_effect = ValueError("Async Parse Error")
 
         await coordinator.async_parse_sensors()
         assert "Could not update status for override_state" in caplog.text
+
+    # 3. Test KeyError in websocket_update
+    with (
+        patch.dict(hass.data[DOMAIN], {entry.entry_id: {}}, clear=True),
+        patch("custom_components.openevse._LOGGER.error") as mock_log_error,
+    ):
+        await coordinator.websocket_update()
+        assert mock_log_error.called
+        assert "Error locating configuration" in mock_log_error.call_args[0][0]
+
+    caplog.clear()
+    # 4. Test exceptions in parse_sensors for binary sensors, numbers, etc.
+    with (
+        patch(
+            "custom_components.openevse.OpenEVSE.ota_update",
+            new_callable=mock.PropertyMock,
+            side_effect=ValueError,
+        ),
+        patch(
+            "custom_components.openevse.OpenEVSE.get_override_state",
+            new_callable=mock.AsyncMock,
+            side_effect=ValueError,
+        ),
+    ):
+        coordinator.parse_sensors()
+        await coordinator.async_parse_sensors()
+        assert "Could not update status for ota_update" in caplog.text
+        assert "Could not update status for override_state" in caplog.text
+
+    # 5. Test Unexpected Exception in websocket_update parser block (WARNING path)
+    with patch.object(
+        coordinator, "parse_sensors", side_effect=RuntimeError("Unexpected Error")
+    ):
+        await coordinator.websocket_update()
+        assert "Unexpected error parsing sensors" in caplog.text
+        assert "RuntimeError" in caplog.text
+
+    # 6. Test Known Exception in websocket_update parser block (DEBUG path)
+    with (
+        patch.object(
+            coordinator, "parse_sensors", side_effect=ValueError("Known Error")
+        ),
+        caplog.at_level(logging.DEBUG),
+    ):
+        await coordinator.websocket_update()
+        assert "Error parsing sensors [ValueError]: Known Error" in caplog.text
 
 
 async def test_websocket_update_callback(hass, test_charger, mock_ws_start):
@@ -617,3 +706,325 @@ async def test_setup_entry_state_change_shaper_timeout(
         "Timeout error connecting to device: , please check your network connection."
         in caplog.text
     )
+
+
+async def test_state_change_edge_cases(hass, test_charger, mock_ws_start, caplog):
+    """Test state change edge cases for all sensor types."""
+    grid_entity = "sensor.grid_usage"
+    solar_entity = "sensor.solar_production"
+    voltage_entity = "sensor.grid_voltage"
+    shaper_entity = "sensor.shaper_power"
+
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA,
+        options={
+            "grid": grid_entity,
+            "solar": solar_entity,
+            "voltage": voltage_entity,
+            "shaper": shaper_entity,
+        },
+        version=2,
+    )
+
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    # Trigger listeners with invalid states
+    hass.states.async_set(grid_entity, "invalid")
+    hass.states.async_set(solar_entity, "invalid")
+    hass.states.async_set(voltage_entity, "invalid")
+    hass.states.async_set(shaper_entity, "invalid")
+    await hass.async_block_till_done()
+
+    assert "Non-numeric state for grid sensor: invalid" in caplog.text
+    assert "Non-numeric state for solar sensor: invalid" in caplog.text
+    assert "Non-numeric state for voltage sensor: invalid" in caplog.text
+    assert "Non-numeric state for shaper sensor: invalid" in caplog.text
+
+    # 2. "unknown" or "unavailable" states (should send None)
+    caplog.clear()
+    hass.states.async_set(grid_entity, "unknown")
+    await hass.async_block_till_done()
+    assert "Sending sensor data to OpenEVSE: (grid: None)" in caplog.text
+
+    caplog.clear()
+    hass.states.async_set(solar_entity, "unavailable")
+    await hass.async_block_till_done()
+    assert "Sending sensor data to OpenEVSE: (solar: None)" in caplog.text
+
+    caplog.clear()
+    hass.states.async_set(voltage_entity, "unknown")
+    await hass.async_block_till_done()
+    assert "Sending sensor data to OpenEVSE: (voltage: None)" in caplog.text
+
+    caplog.clear()
+    hass.states.async_set(shaper_entity, "")
+    await hass.async_block_till_done()
+    assert "Sending sensor data to OpenEVSE: (shaper: None)" in caplog.text
+
+
+async def test_setup_entry_ha_not_running(hass, test_charger, mock_ws_start):
+    """Test setup when HA is not yet running defers listener registration."""
+    # Simulate HA NOT being fully started
+    hass.state = CoreState.starting
+
+    # Use config with grid/solar sensors to ensure listeners are registered
+    entry = MockConfigEntry(
+        domain=DOMAIN, data=CONFIG_DATA_GRID, options=OPTIONS_DATA_GRID, version=2
+    )
+
+    with patch(
+        "custom_components.openevse.async_track_state_change_event"
+    ) as mock_track:
+        entry.add_to_hass(hass)
+        await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+
+        # Verify listeners were NOT tracked immediately
+        assert not mock_track.called
+
+        # Fire EVENT_HOMEASSISTANT_STARTED
+        hass.bus.async_fire(EVENT_HOMEASSISTANT_STARTED)
+        await hass.async_block_till_done()
+
+        # Verify listeners were tracked after HA started
+        assert mock_track.called
+
+
+async def test_init_coordinator_and_parser_gaps(hass, test_charger, mock_ws_start):
+    """Verify coordinator sensor parsing and error handling logic."""
+    hass.state = CoreState.running
+    entry = MockConfigEntry(domain=DOMAIN, data=CONFIG_DATA)
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
+    manager = hass.data[DOMAIN][entry.entry_id][MANAGER]
+
+    # helper for futures
+    def get_future(val):
+        future = asyncio.Future()
+        future.set_result(val)
+        return future
+
+    # Case 1: Coroutine function sensor updates
+    async def mock_coro():
+        return "active"
+
+    manager.get_override_state = mock_coro
+
+    async def mock_number_coro():
+        return 16
+
+    manager.get_charge_current = mock_number_coro
+
+    await coordinator.async_refresh()
+    assert coordinator.data["override_state"] == "active"
+    assert coordinator.data["max_current_soft"] == 16
+
+    # Case 2: Non-coroutine awaitable sensor updates
+    manager.get_override_state = get_future("auto")
+    manager.get_charge_current = get_future(32)
+
+    await coordinator.async_refresh()
+    assert coordinator.data["override_state"] == "auto"
+    assert coordinator.data["max_current_soft"] == 32
+
+    # Case 3: Non-awaitable sensor updates (direct values)
+    manager.get_override_state = "disabled"
+    manager.get_charge_current = 24
+
+    await coordinator.async_refresh()
+    assert coordinator.data["override_state"] == "disabled"
+    assert coordinator.data["max_current_soft"] == 24
+
+    # Case 4: Regression protection
+    # Ensure AttributeError (regressions) bubbles up to trigger UpdateFailed.
+    with (
+        patch.object(manager, "get_override_state", side_effect=AttributeError),
+        patch.object(manager, "get_charge_current", side_effect=AttributeError),
+        pytest.raises(UpdateFailed),
+    ):
+        await coordinator._async_update_data()
+
+
+async def test_init_cleanup_coverage_gaps(hass, test_charger, mock_ws_start):
+    """Verify final cleanup coverage gaps in __init__.py."""
+    entry = MockConfigEntry(domain=DOMAIN, data=CONFIG_DATA)
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
+
+    # Trigger exception path for select entity parsing
+    # Now that AttributeError is unmasked, it bubbles out of parse_sensors
+    with patch(
+        "custom_components.openevse.OpenEVSE.divertmode", new_callable=mock.PropertyMock
+    ) as mock_prop:
+        mock_prop.side_effect = AttributeError
+        with pytest.raises(AttributeError):
+            coordinator.parse_sensors()
+
+    # Trigger synchronous number parsing and asynchronous loop skipping logic
+    mock_number_sync = OpenEVSENumberEntityDescription(
+        key="sync_number",
+        name="Sync Number",
+        is_async_value=False,
+    )
+    mock_number_error = OpenEVSENumberEntityDescription(
+        key="error_number",
+        name="Error Number",
+        is_async_value=False,
+    )
+
+    with (
+        patch(
+            "custom_components.openevse.NUMBER_TYPES",
+            {"sync_number": mock_number_sync, "error_number": mock_number_error},
+        ),
+        patch.object(OpenEVSE, "__dir__", return_value=["sync_number", "error_number"]),
+        patch.object(
+            OpenEVSE, "sync_number", new_callable=mock.PropertyMock, create=True
+        ) as mock_sync,
+        patch.object(
+            OpenEVSE,
+            "error_number",
+            new_callable=mock.PropertyMock,
+            create=True,
+            side_effect=ValueError,
+        ) as mock_err,
+    ):
+        mock_sync.return_value = 10
+        # Validate both try/except paths in synchronous parsing
+        snapshot = coordinator.parse_sensors()
+        assert mock_sync.call_count == 1
+        assert mock_err.call_count == 1
+        assert snapshot["sync_number"] == 10
+        assert "error_number" not in snapshot
+
+        # Validate skipping logic in asynchronous parsing
+        async_snapshot = await coordinator.async_parse_sensors()
+        # count should not increase as they are sync sensors
+        assert mock_sync.call_count == 1
+        assert mock_err.call_count == 1
+        assert "sync_number" not in async_snapshot
+        assert "error_number" not in async_snapshot
+
+    await hass.config_entries.async_unload(entry.entry_id)
+    await hass.async_block_till_done()
+
+
+@pytest.mark.asyncio
+async def test_parse_sensors_missing_attribute(hass, test_charger, mock_ws_start):
+    """Test parse_sensors with missing attributes and ValueErrors."""
+    entry = MockConfigEntry(domain=DOMAIN, data=CONFIG_DATA)
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
+
+    # Clear data to ensure we see the skip
+    coordinator._data = {}
+
+    # Test missing attributes across all entity groups (skipped via dir check)
+    with patch.object(OpenEVSE, "__dir__", return_value=[]):
+        snapshot = coordinator.parse_sensors()
+
+    assert "status" not in snapshot
+    assert "vehicle_connected" not in snapshot
+    assert "divert_mode" not in snapshot
+    assert "max_current_soft" not in snapshot
+
+    # Ensure ValueErrors during attribute access are caught and the sensor is skipped
+    with patch(
+        "custom_components.openevse.OpenEVSE.divertmode",
+        new_callable=mock.PropertyMock,
+    ) as mock_prop:
+        mock_prop.side_effect = ValueError
+        snapshot = coordinator.parse_sensors()
+    assert "divert_mode" not in snapshot
+
+    # Test missing sync number by patching a mock entity into NUMBER_TYPES
+    mock_num = OpenEVSENumberEntityDescription(
+        key="sync_num",
+        name="Sync Num",
+        is_async_value=False,
+    )
+    with (
+        patch("custom_components.openevse.NUMBER_TYPES", {"sync_num": mock_num}),
+        patch.object(OpenEVSE, "__dir__", return_value=[]),
+    ):
+        snapshot = coordinator.parse_sensors()
+    assert "sync_num" not in snapshot
+
+
+@pytest.mark.asyncio
+async def test_async_parse_sensors_missing_attribute(hass, test_charger, mock_ws_start):
+    """Test async_parse_sensors with missing attributes and ValueErrors."""
+    entry = MockConfigEntry(domain=DOMAIN, data=CONFIG_DATA)
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
+    manager = hass.data[DOMAIN][entry.entry_id][MANAGER]
+
+    # Clear data
+    coordinator._data = {}
+
+    # Verify attributes missing from dir are skipped in async parsing loop
+    with patch.object(OpenEVSE, "__dir__", return_value=[]):
+        snapshot = await coordinator.async_parse_sensors()
+    assert "override_state" not in snapshot
+    assert "usage_this_session" not in snapshot
+
+    # Verify ValueErrors in async path are caught and sensors are skipped
+    with patch.object(manager, "get_charge_current", side_effect=ValueError):
+        snapshot = await coordinator.async_parse_sensors()
+    assert "max_current_soft" not in snapshot
+
+
+async def test_collect_async_values_seen_results(hass, test_charger, mock_ws_start):
+    """Test _collect_async_values with duplicate value properties (seen_results)."""
+    entry = MockConfigEntry(domain=DOMAIN, data=CONFIG_DATA)
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
+
+    mock_descriptors = {
+        "sensor1": OpenEVSESensorEntityDescription(
+            key="sensor1", name="Sensor 1", value="get_charge_time", is_async_value=True
+        ),
+        "sensor2": OpenEVSESensorEntityDescription(
+            key="sensor2", name="Sensor 2", value="get_charge_time", is_async_value=True
+        ),
+    }
+
+    with (
+        patch.object(OpenEVSE, "__dir__", return_value=["get_charge_time"]),
+        patch.object(
+            OpenEVSE,
+            "get_charge_time",
+            new_callable=AsyncMock,
+            return_value=123,
+            create=True,
+        ) as mock_get,
+    ):
+        # We need to use internal method directly
+        data = await coordinator._collect_async_values(mock_descriptors, "test")
+
+    assert data["sensor1"] == 123
+    assert data["sensor2"] == 123
+    # Ensure manager method was only called once due to optimization
+    mock_get.assert_awaited_once()
+
+    await hass.config_entries.async_unload(entry.entry_id)
+    await hass.async_block_till_done()

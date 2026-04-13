@@ -50,7 +50,7 @@ class OpenEVSENumberEntity(CoordinatorEntity, NumberEntity):
         description: OpenEVSENumberEntityDescription,
         manager: OpenEVSEManager,
     ) -> None:
-        """Initialize a ZwaveNumberEntity entity."""
+        """Initialize an OpenEVSE number entity."""
         super().__init__(coordinator)
         self._description = description
         self._unique_id = config_entry.entry_id
@@ -82,6 +82,8 @@ class OpenEVSENumberEntity(CoordinatorEntity, NumberEntity):
     def available(self) -> bool:
         """Return if entity is available."""
         data = self.coordinator.data
+        if not isinstance(data, dict):
+            return self.coordinator.last_update_success
         attributes = ("divertmode", "divert_active")
         if (
             set(attributes).issubset(data.keys())
@@ -98,21 +100,27 @@ class OpenEVSENumberEntity(CoordinatorEntity, NumberEntity):
     @property
     def native_min_value(self) -> float:
         """Return the minimum value."""
-        min_ = self.coordinator.data["min_amps"]
-        return float(self._min if min_ is None else min_)
+        data = self.coordinator.data
+        min_ = data.get("min_amps") if isinstance(data, dict) else None
+        if min_ is None:
+            min_ = self._min
+        return float(min_ if min_ is not None else 6)
 
     @property
     def native_max_value(self) -> float:
         """Return the maximum value."""
-        max_ = self.coordinator.data["max_amps"]
-        return float(self._max if max_ is None else max_)
+        data = self.coordinator.data
+        max_ = data.get("max_amps") if isinstance(data, dict) else None
+        if max_ is None:
+            max_ = self._max
+        return float(max_ if max_ is not None else 48)
 
     @property
     def native_value(self) -> float | None:
         """Return the entity value."""
         data = self.coordinator.data
         value = None
-        if self._type in data and data is not None:
+        if isinstance(data, dict) and self._type in data:
             value = data[self._type]
         _LOGGER.debug("Number [%s] updated value: %s", self._type, value)
         return None if value is None else float(value)
@@ -125,5 +133,7 @@ class OpenEVSENumberEntity(CoordinatorEntity, NumberEntity):
 
     async def async_set_native_value(self, value: float) -> None:
         """Set new value."""
+        if not value.is_integer():
+            raise ValueError("charge rate must be whole amps")
         _LOGGER.debug("Command: %s Value: %s", self._command, value)
-        await getattr(self._manager, self._command)(value)
+        await getattr(self._manager, self._command)(int(value))

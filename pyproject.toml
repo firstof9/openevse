@@ -16,6 +16,7 @@ select = [
     "T20", # flake8-print
     "SIM", # flake8-simplify
     "RUF", # Ruff-specific rules
+    "PLC", # Pylint Convention
 ]
 ignore = [
     "D202", # No blank lines allowed after function docstring

@@ -1,11 +1,14 @@
 """Provide tests for OpenEVSE light platform."""
 
+from unittest.mock import patch
+
 import pytest
 from homeassistant.components.light import ATTR_BRIGHTNESS
 from homeassistant.components.light import DOMAIN as LIGHT_DOMAIN
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.openevse.const import DOMAIN
+from custom_components.openevse.const import COORDINATOR, DOMAIN, LIGHT_TYPES, MANAGER
+from custom_components.openevse.light import OpenEVSELight
 
 from .conftest import TEST_URL_CONFIG
 from .const import CONFIG_DATA
@@ -47,7 +50,7 @@ async def test_light(
     mock_aioclient.post(
         TEST_URL_CONFIG,
         status=200,
-        body='{"msg": "Ok"}',
+        body='{"msg": "OK"}',
         repeat=True,
     )
 
@@ -107,3 +110,26 @@ async def test_light_v2(
     assert len(entries) == 1
 
     assert DOMAIN in hass.config.components
+
+
+async def test_light_coverage_gaps(hass, test_charger, mock_ws_start):
+    """Test light coverage gaps."""
+    entry = MockConfigEntry(domain=DOMAIN, data=CONFIG_DATA)
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
+    manager = hass.data[DOMAIN][entry.entry_id][MANAGER]
+
+    # Case: coordinator.data is empty during init
+    coordinator.data = {}
+    light = OpenEVSELight(entry, coordinator, LIGHT_TYPES["led_brightness"], manager)
+    assert light._attr_brightness is None
+
+    # Verify _handle_coordinator_update with missing data
+    coordinator.data = {"other_key": 1}
+    light.hass = hass
+    with patch.object(light, "async_write_ha_state"):
+        light._handle_coordinator_update()
+    assert light._attr_brightness is None

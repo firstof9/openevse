@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import functools
+import inspect
 import logging
 from datetime import timedelta
 
@@ -379,6 +380,7 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
         self.hass = hass
         self._manager = manager
         self._data = {}
+        self._update_lock = asyncio.Lock()
         self._manager.callback = self.websocket_update
 
         _LOGGER.debug("Data will be update every %s", self.interval)
@@ -400,36 +402,41 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
         """Update sensor data."""
         try:
             await self._manager.update()
-        except RuntimeError:
-            pass
-        except Exception as error:
+        except RuntimeError as error:
             _LOGGER.debug(
+                "Error updating sensors [%s]: %s", type(error).__name__, error
+            )
+        except Exception as error:
+            _LOGGER.warning(
                 "Error updating sensors [%s]: %s", type(error).__name__, error
             )
             raise UpdateFailed(error) from error
 
-        try:
-            assert self._manager.websocket
-        except AssertionError as error:
-            _LOGGER.debug("Websocket not setup.")
-            raise UpdateFailed(error) from error
-
-        if self._manager.websocket.state != "connected":
+        ws_state = self._manager.ws_state
+        if ws_state == "stopped" or (
+            ws_state == "disconnected"
+            and not getattr(self._manager, "_ws_listening", False)
+        ):
             _LOGGER.debug("Connecting to websocket...")
             try:
                 self._manager.ws_start()
-            except RuntimeError:
-                pass
+            except RuntimeError as err:
+                _LOGGER.debug("Websocket connection issue: %s", err)
             except Exception as error:
-                _LOGGER.debug(
+                _LOGGER.warning(
                     "Error connecting to websocket [%s]: %s",
                     type(error).__name__,
                     error,
                 )
                 raise UpdateFailed(error) from error
 
-        self.parse_sensors()
-        await self.async_parse_sensors()
+        try:
+            async with self._update_lock:
+                await self._update_data_snapshot()
+        except Exception as error:
+            _LOGGER.debug("Error parsing sensors [%s]: %s", type(error).__name__, error)
+            raise UpdateFailed(error) from error
+
         _LOGGER.debug("Coordinator data: %s", self._data)
         return self._data
 
@@ -437,181 +444,141 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
     async def websocket_update(self):
         """Trigger processing updated websocket data."""
         _LOGGER.debug("Websocket update!")
-        self.parse_sensors()
-        await self.async_parse_sensors()
+        try:
+            async with self._update_lock:
+                await self._update_data_snapshot()
+        except (ValueError, KeyError, UnsupportedFeature) as error:
+            _LOGGER.debug("Error parsing sensors [%s]: %s", type(error).__name__, error)
+            return
+        # Prevent callback failure from stopping future sensor updates; log and continue
+        except Exception as error:
+            _LOGGER.warning(
+                "Unexpected error parsing sensors [%s]: %s",
+                type(error).__name__,
+                error,
+                exc_info=True,
+            )
+            return
         try:
             coordinator = self.hass.data[DOMAIN][self.config.entry_id][COORDINATOR]
             coordinator.async_set_updated_data(self._data)
         except KeyError as err:
             _LOGGER.error("Error locating configuration: %s", err)
 
-    def parse_sensors(self) -> None:
+    async def _update_data_snapshot(self) -> None:
+        """Update the data snapshot."""
+        new_data = self.parse_sensors()
+        new_data.update(await self.async_parse_sensors())
+        self._data = new_data
+
+    def _collect_values(
+        self, descriptors, label, value_cast=None, skip_async=True
+    ) -> dict:
+        """Collect values from descriptors."""
+        data = {}
+        manager_dir = dir(self._manager)
+        for key, descriptor in descriptors.items():
+            if skip_async and getattr(descriptor, "is_async_value", False):
+                continue
+            sensor_property = descriptor.key
+            if sensor_property not in manager_dir:
+                _LOGGER.debug("Could not update status for %s", key)
+                continue
+
+            try:
+                value = getattr(self._manager, sensor_property)
+                if value_cast:
+                    value = value_cast(value)
+                _LOGGER.debug(
+                    "%s: %s sensor_property: %s value: %s",
+                    label,
+                    key,
+                    sensor_property,
+                    value,
+                )
+                data[key] = value
+            except (ValueError, KeyError, UnsupportedFeature):
+                _LOGGER.debug("Could not update status for %s", key)
+                continue
+        return data
+
+    async def _collect_async_values(
+        self, descriptors, label, seen_results=None
+    ) -> dict:
+        """Collect async values from descriptors."""
+        data = {}
+        if seen_results is None:
+            seen_results = {}
+        manager_dir = dir(self._manager)
+        for key, descriptor in descriptors.items():
+            if not getattr(descriptor, "is_async_value", False):
+                continue
+            sensor_property = descriptor.key
+            sensor_value = getattr(descriptor, "value", None)
+            if sensor_value not in manager_dir:
+                _LOGGER.debug("Could not update status for %s", key)
+                continue
+
+            if sensor_value in seen_results:
+                data[key] = seen_results[sensor_value]
+                _LOGGER.debug(
+                    "%s: %s sensor_property: %s value %s",
+                    label,
+                    key,
+                    sensor_property,
+                    data[key],
+                )
+                continue
+
+            try:
+                attr = getattr(self._manager, sensor_value)
+                result = attr() if callable(attr) else attr
+
+                if inspect.isawaitable(result):
+                    val = await result
+                else:
+                    val = result
+
+                seen_results[sensor_value] = val
+                data[key] = val
+                _LOGGER.debug(
+                    "%s: %s sensor_property: %s value %s",
+                    label,
+                    key,
+                    sensor_property,
+                    data[key],
+                )
+            except (ValueError, KeyError, UnsupportedFeature):
+                _LOGGER.debug("Could not update status for %s", key)
+                continue
+        return data
+
+    def parse_sensors(self) -> dict:
         """Parse updated sensor data."""
         data = {}
-        for sensor in SENSOR_TYPES:
-            _sensor = {}
-            if SENSOR_TYPES[sensor].is_async_value:
-                continue
-            try:
-                sensor_property = SENSOR_TYPES[sensor].key
-                _sensor[sensor] = getattr(self._manager, sensor_property)
-                _LOGGER.debug(
-                    "sensor: %s sensor_property: %s value: %s",
-                    sensor,
-                    sensor_property,
-                    _sensor[sensor],
-                )
-            except (ValueError, KeyError, UnsupportedFeature):
-                _LOGGER.debug("Could not update status for %s", sensor)
-            data.update(_sensor)
+        data.update(self._collect_values(SENSOR_TYPES, "sensor"))
+        data.update(self._collect_values(BINARY_SENSORS, "binary sensor", bool))
+        data.update(self._collect_values(SELECT_TYPES, "select"))
+        data.update(self._collect_values(NUMBER_TYPES, "number"))
+        data.update(self._collect_values(LIGHT_TYPES, "light"))
+        _LOGGER.debug("Parsed data: %s", data)
+        return data
 
-        for binary_sensor in BINARY_SENSORS:
-            _sensor = {}
-            try:
-                sensor_property = BINARY_SENSORS[binary_sensor].key
-                # Data can be sent as boolean or as 1/0
-                _sensor[binary_sensor] = bool(getattr(self._manager, sensor_property))
-                _LOGGER.debug(
-                    "binary sensor: %s sensor_property: %s value %s",
-                    binary_sensor,
-                    sensor_property,
-                    _sensor[binary_sensor],
-                )
-            except (ValueError, KeyError, UnsupportedFeature):
-                _LOGGER.debug(
-                    "Could not update status for %s",
-                    binary_sensor,
-                )
-            data.update(_sensor)
-        for select in SELECT_TYPES:
-            _sensor = {}
-            if SELECT_TYPES[select].is_async_value:
-                continue
-            try:
-                sensor_property = SELECT_TYPES[select].key
-                # Data can be sent as boolean or as 1/0
-                _sensor[select] = getattr(self._manager, sensor_property)
-                _LOGGER.debug(
-                    "select: %s sensor_property: %s value %s",
-                    select,
-                    sensor_property,
-                    _sensor[select],
-                )
-            except (ValueError, KeyError, UnsupportedFeature):
-                _LOGGER.debug(
-                    "Could not update status for %s",
-                    select,
-                )
-            data.update(_sensor)
-        for number in NUMBER_TYPES:
-            _sensor = {}
-            if NUMBER_TYPES[number].is_async_value:
-                continue
-            try:
-                sensor_property = NUMBER_TYPES[number].key
-                # Data can be sent as boolean or as 1/0
-                _sensor[number] = getattr(self._manager, sensor_property)
-                _LOGGER.debug(
-                    "number: %s sensor_property: %s value %s",
-                    number,
-                    sensor_property,
-                    _sensor[number],
-                )
-            except (ValueError, KeyError):
-                _LOGGER.debug(
-                    "Could not update status for %s",
-                    number,
-                )
-            data.update(_sensor)
-        for light in LIGHT_TYPES:
-            _sensor = {}
-            try:
-                sensor_property = LIGHT_TYPES[light].key
-                # Data can be sent as boolean or as 1/0
-                _sensor[light] = getattr(self._manager, sensor_property)
-                _LOGGER.debug(
-                    "light: %s sensor_property: %s value %s",
-                    light,
-                    sensor_property,
-                    _sensor[light],
-                )
-            except (ValueError, KeyError, UnsupportedFeature):
-                _LOGGER.debug(
-                    "Could not update status for %s",
-                    light,
-                )
-            data.update(_sensor)
-        _LOGGER.debug("DEBUG: %s", data)
-        self._data.update(data)
-
-    async def async_parse_sensors(self) -> None:
+    async def async_parse_sensors(self) -> dict:
         """Parse updated sensor data using async."""
         data = {}
-        for select in SELECT_TYPES:
-            _sensor = {}
-            if not SELECT_TYPES[select].is_async_value:
-                continue
-            try:
-                sensor_property = SELECT_TYPES[select].key
-                sensor_value = SELECT_TYPES[select].value
-                # Data can be sent as boolean or as 1/0
-                _sensor[select] = await getattr(self._manager, sensor_value)
-                _LOGGER.debug(
-                    "select: %s sensor_property: %s value %s",
-                    select,
-                    sensor_property,
-                    _sensor[select],
-                )
-            except (ValueError, KeyError, UnsupportedFeature):
-                _LOGGER.debug(
-                    "Could not update status for %s",
-                    select,
-                )
-            data.update(_sensor)
-        for number in NUMBER_TYPES:
-            _sensor = {}
-            if not NUMBER_TYPES[number].is_async_value:
-                continue
-            try:
-                sensor_property = NUMBER_TYPES[number].key
-                sensor_value = NUMBER_TYPES[number].value
-                # Data can be sent as boolean or as 1/0
-                _sensor[number] = await getattr(self._manager, sensor_value)
-                _LOGGER.debug(
-                    "number: %s sensor_property: %s value %s",
-                    number,
-                    sensor_property,
-                    _sensor[number],
-                )
-            except (ValueError, KeyError):
-                _LOGGER.debug(
-                    "Could not update status for %s",
-                    number,
-                )
-            data.update(_sensor)
-        for sensor in SENSOR_TYPES:
-            _sensor = {}
-            if not SENSOR_TYPES[sensor].is_async_value:
-                continue
-            try:
-                sensor_property = SENSOR_TYPES[sensor].key
-                sensor_value = SENSOR_TYPES[sensor].value
-                # Data can be sent as boolean or as 1/0
-                _sensor[sensor] = await getattr(self._manager, sensor_value)
-                _LOGGER.debug(
-                    "number: %s sensor_property: %s value %s",
-                    sensor,
-                    sensor_property,
-                    _sensor[sensor],
-                )
-            except (ValueError, KeyError):
-                _LOGGER.debug(
-                    "Could not update status for %s",
-                    sensor,
-                )
-            data.update(_sensor)
-        _LOGGER.debug("DEBUG: %s", data)
-        self._data.update(data)
+        seen_results = {}
+        data.update(
+            await self._collect_async_values(SELECT_TYPES, "select", seen_results)
+        )
+        data.update(
+            await self._collect_async_values(NUMBER_TYPES, "number", seen_results)
+        )
+        data.update(
+            await self._collect_async_values(SENSOR_TYPES, "sensor", seen_results)
+        )
+        _LOGGER.debug("Parsed async data: %s", data)
+        return data
 
 
 async def send_command(handler, command) -> None:
