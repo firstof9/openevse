@@ -152,8 +152,8 @@ class OpenEVSESelect(CoordinatorEntity, SelectEntity):
                 return [str(item) for item in range(6, 49)]
             raw_min = data.get("min_amps")
             raw_max = data.get("max_amps")
-            amps_min = int(round(float(raw_min))) if raw_min is not None else 6
-            amps_max = int(round(float(raw_max if raw_max is not None else 48))) + 1
+            amps_min = round(float(raw_min)) if raw_min is not None else 6
+            amps_max = round(float(raw_max if raw_max is not None else 48)) + 1
             options = [str(item) for item in range(amps_min, amps_max)]
             _LOGGER.debug("Max Amps: %s", options)
             return options
