@@ -74,8 +74,9 @@ class OpenEVSELight(CoordinatorEntity, LightEntity):
 
         self._attr_name = f"{self._config.data[CONF_NAME]} {self._name}"
         self._attr_unique_id = f"{self._name}_{self._unique_id}"
-        if coordinator.data and self._type in coordinator.data:
-            self._attr_brightness = coordinator.data[self._type]
+        data = coordinator.data
+        if isinstance(data, dict) and self._type in data:
+            self._attr_brightness = data[self._type]
         else:
             self._attr_brightness = None
 
@@ -93,8 +94,9 @@ class OpenEVSELight(CoordinatorEntity, LightEntity):
     @callback
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
-        if self.coordinator.data and self._type in self.coordinator.data:
-            self._attr_brightness = self.coordinator.data[self._type]
+        data = self.coordinator.data
+        if isinstance(data, dict) and self._type in data:
+            self._attr_brightness = data[self._type]
         else:
             self._attr_brightness = None
         self.async_write_ha_state()
