@@ -566,6 +566,7 @@ async def test_coordinator_parse_errors(hass, test_charger, mock_ws_start, caplo
         assert mock_log_error.called
         assert "Error locating configuration" in mock_log_error.call_args[0][0]
 
+    caplog.clear()
     # 4. Test exceptions in parse_sensors for binary sensors, numbers, etc.
     with (
         patch(

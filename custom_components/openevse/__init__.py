@@ -380,6 +380,7 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
         self.hass = hass
         self._manager = manager
         self._data = {}
+        self._update_lock = asyncio.Lock()
         self._manager.callback = self.websocket_update
 
         _LOGGER.debug("Data will be update every %s", self.interval)
@@ -430,7 +431,8 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
                 raise UpdateFailed(error) from error
 
         try:
-            await self._update_data_snapshot()
+            async with self._update_lock:
+                await self._update_data_snapshot()
         except Exception as error:
             _LOGGER.debug("Error parsing sensors [%s]: %s", type(error).__name__, error)
             raise UpdateFailed(error) from error
@@ -443,7 +445,8 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
         """Trigger processing updated websocket data."""
         _LOGGER.debug("Websocket update!")
         try:
-            await self._update_data_snapshot()
+            async with self._update_lock:
+                await self._update_data_snapshot()
         except (ValueError, KeyError, UnsupportedFeature) as error:
             _LOGGER.debug("Error parsing sensors [%s]: %s", type(error).__name__, error)
             return
