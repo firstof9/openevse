@@ -81,7 +81,7 @@ class OpenEVSESelect(CoordinatorEntity, SelectEntity):
     def current_option(self) -> str | None:
         """Return the selected entity option to represent the entity state."""
         data = self.coordinator.data
-        if data is not None and self._type in data:
+        if isinstance(data, dict) and self._type in data:
             state = data[self._type]
             _LOGGER.debug("Select [%s] updated value: %s", self._type, state)
             return None if state is None else str(state)
@@ -144,13 +144,14 @@ class OpenEVSESelect(CoordinatorEntity, SelectEntity):
         """Return a set of selectable options."""
         if self._description.options is not None:
             return self._description.options
+        data = self.coordinator.data
         if self._type == "max_current_soft":
-            if not self.coordinator.data:
+            if not isinstance(data, dict):
                 if self._default_options:
                     return self._default_options
                 return [str(item) for item in range(6, 49)]
-            raw_min = self.coordinator.data.get("min_amps")
-            raw_max = self.coordinator.data.get("max_amps")
+            raw_min = data.get("min_amps")
+            raw_max = data.get("max_amps")
             amps_min = raw_min if raw_min is not None else 6
             amps_max = (raw_max if raw_max is not None else 48) + 1
             options = [str(item) for item in range(amps_min, amps_max)]

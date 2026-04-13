@@ -262,14 +262,26 @@ async def test_setup_entry_state_change_2_bad_post(
 def mock_ws_start():
     """Mock ws_start."""
 
+    def get_ws_state(self):
+        """Dynamic ws_state property."""
+        if hasattr(self, "websocket") and self.websocket:
+            return self.websocket.state
+        return "stopped"
+
     def side_effect(self, *args, **kwargs):
         self.websocket = mock.AsyncMock(state="connected")
 
-    with patch(
-        "custom_components.openevse.OpenEVSE.ws_start",
-        autospec=True,
-        side_effect=side_effect,
-    ) as mock_ws:
+    with (
+        patch(
+            "custom_components.openevse.OpenEVSE.ws_state",
+            new=property(get_ws_state),
+        ),
+        patch(
+            "custom_components.openevse.OpenEVSE.ws_start",
+            autospec=True,
+            side_effect=side_effect,
+        ) as mock_ws,
+    ):
         yield mock_ws
 
 
@@ -367,12 +379,9 @@ async def test_coordinator_websocket_reconnect(hass, test_charger, mock_ws_start
 
     # Replace the manager's websocket object with a Mock.
     # This allows us to set the 'state' attribute freely without AttributeError.
-    with (
-        patch.object(coordinator._manager, "websocket") as mock_ws,
-        patch.object(coordinator._manager, "ws_start") as mock_ws_connect,
-    ):
+    with patch.object(coordinator._manager, "ws_start") as mock_ws_connect:
         # Set the state on the mock websocket to 'disconnected'
-        mock_ws.state = "disconnected"
+        coordinator._manager.websocket.state = "disconnected"
 
         # Trigger a manual refresh which checks the websocket state
         await coordinator.async_refresh()
@@ -422,7 +431,6 @@ async def test_coordinator_update_errors(hass, test_charger, mock_ws_start):
     ):
         await coordinator._async_update_data()
 
-    # 2. Generic Exception during manager.update() should raise UpdateFailed
     with (
         patch.object(coordinator._manager, "update", side_effect=Exception("Critical")),
         pytest.raises(UpdateFailed),
