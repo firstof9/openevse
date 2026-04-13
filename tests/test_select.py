@@ -356,3 +356,38 @@ async def test_select_coverage_gaps(hass, test_charger, mock_ws_start):
     )
     assert "6" in select_no_default.options
     assert "48" in select_no_default.options
+
+
+async def test_select_get_options_edge_cases(hass, test_charger, mock_ws_start):
+    """Test get_options edge cases for malformed data."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA,
+    )
+    entry.add_to_hass(hass)
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
+    select_desc = OpenEVSESelectEntityDescription(
+        key="max_current_soft",
+        name="Charge Rate",
+    )
+    entity = OpenEVSESelect(hass, entry, coordinator, select_desc, test_charger)
+
+    # 1. Malformed min_amps (string)
+    coordinator.data = {"min_amps": "invalid", "max_amps": 40}
+    options = entity.get_options()
+    assert options[0] == "6"
+
+    # 2. Malformed max_amps (string)
+    coordinator.data = {"min_amps": 10, "max_amps": "invalid"}
+    options = entity.get_options()
+    assert options[-1] == "48"
+
+    # 3. Both malformed
+    coordinator.data = {"min_amps": "invalid", "max_amps": "invalid"}
+    options = entity.get_options()
+    assert options[0] == "6"
+    assert options[-1] == "48"

@@ -407,7 +407,7 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
                 "Error updating sensors [%s]: %s", type(error).__name__, error
             )
         except Exception as error:
-            _LOGGER.debug(
+            _LOGGER.warning(
                 "Error updating sensors [%s]: %s", type(error).__name__, error
             )
             raise UpdateFailed(error) from error
@@ -423,7 +423,7 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
             except RuntimeError as err:
                 _LOGGER.debug("Websocket connection issue: %s", err)
             except Exception as error:
-                _LOGGER.debug(
+                _LOGGER.warning(
                     "Error connecting to websocket [%s]: %s",
                     type(error).__name__,
                     error,

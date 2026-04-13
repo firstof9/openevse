@@ -133,8 +133,7 @@ class OpenEVSENumberEntity(CoordinatorEntity, NumberEntity):
 
     async def async_set_native_value(self, value: float) -> None:
         """Set new value."""
-        temp = float(value)
-        if not temp.is_integer():
+        if not value.is_integer():
             raise ValueError("charge rate must be whole amps")
-        _LOGGER.debug("Command: %s Value: %s", self._command, temp)
-        await getattr(self._manager, self._command)(int(temp))
+        _LOGGER.debug("Command: %s Value: %s", self._command, value)
+        await getattr(self._manager, self._command)(int(value))
