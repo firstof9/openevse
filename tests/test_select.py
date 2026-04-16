@@ -1,6 +1,5 @@
 """Test openevse select entities."""
 
-import asyncio
 import logging
 from unittest.mock import AsyncMock, patch
 
@@ -412,8 +411,8 @@ async def test_select_connection_error(
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
 
-    manager = hass.data[DOMAIN][entry.entry_id]["manager"]
-    manager.set_divert_mode = AsyncMock(side_effect=asyncio.TimeoutError)
+    manager = hass.data[DOMAIN][entry.entry_id][MANAGER]
+    manager.set_divert_mode = AsyncMock(side_effect=TimeoutError)
 
     entity_id = "select.openevse_divert_mode"
 

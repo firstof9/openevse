@@ -163,7 +163,7 @@ async def test_number_connection_error(
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
 
-    manager = hass.data[DOMAIN][entry.entry_id]["manager"]
+    manager = hass.data[DOMAIN][entry.entry_id][MANAGER]
     manager.set_current = AsyncMock(side_effect=TimeoutError)
 
     entity_id = "number.openevse_charge_rate"
