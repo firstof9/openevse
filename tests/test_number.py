@@ -1,7 +1,6 @@
 """Test OpenEVSE number platform."""
 
 import logging
-from asyncio import TimeoutError
 from unittest.mock import AsyncMock, patch
 
 import pytest

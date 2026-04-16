@@ -10,15 +10,13 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_NAME
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
+from . import CONNECTION_ERRORS, OpenEVSEManager, OpenEVSEUpdateCoordinator
 from .const import (
     CONNECTION_ERROR,
-    CONNECTION_ERRORS,
     COORDINATOR,
     DOMAIN,
     MANAGER,
     SWITCH_TYPES,
-    OpenEVSEManager,
-    OpenEVSEUpdateCoordinator,
 )
 from .entity import OpenEVSESwitchEntityDescription
 
@@ -107,7 +105,7 @@ class OpenEVSESwitch(CoordinatorEntity, SwitchEntity):
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn the switch on."""
-        if self.is_on:
+        if self.is_on is True:
             return
         try:
             if self.toggle_command == "claim":
@@ -119,7 +117,7 @@ class OpenEVSESwitch(CoordinatorEntity, SwitchEntity):
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn the switch off."""
-        if not self.is_on:
+        if self.is_on is False:
             return
         try:
             if self.toggle_command == "claim":

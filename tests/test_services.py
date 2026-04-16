@@ -891,7 +891,7 @@ async def test_services_connection_errors(
                 SERVICE_LIST_OVERRIDES,
             ]
 
-            await hass.services.async_call(
+            result = await hass.services.async_call(
                 DOMAIN,
                 service_name,
                 payload,
@@ -899,3 +899,5 @@ async def test_services_connection_errors(
                 return_response=return_response,
             )
             assert "Error connecting to device" in caplog.text
+            if return_response:
+                assert result == {}

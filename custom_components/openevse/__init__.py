@@ -294,7 +294,14 @@ async def get_firmware(manager: OpenEVSEManager) -> tuple:
     data = {}
     try:
         await manager.update()
-    except CONNECTION_ERRORS:
+    except CONNECTION_ERRORS as err:
+        _LOGGER.debug(CONNECTION_ERROR, err)
+        return ("", "")
+    except RuntimeError as err:
+        _LOGGER.error("Runtime error updating firmware data: %s", err)
+        return ("", "")
+    except Exception as err:
+        _LOGGER.exception("Unexpected error updating firmware data: %s", err)
         return ("", "")
 
     try:

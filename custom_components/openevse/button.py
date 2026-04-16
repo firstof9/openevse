@@ -7,16 +7,16 @@ import logging
 from homeassistant.components.button import ButtonEntity, ButtonEntityDescription
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
+from . import CONNECTION_ERRORS, OpenEVSEManager
 from .const import (
     BUTTON_TYPES,
     CONF_NAME,
     CONNECTION_ERROR,
-    CONNECTION_ERRORS,
     DOMAIN,
     MANAGER,
-    OpenEVSEManager,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -72,3 +72,7 @@ class OpenEVSEButton(ButtonEntity):
             await getattr(self.manager, self._key)()
         except CONNECTION_ERRORS as err:
             _LOGGER.error(CONNECTION_ERROR, err)
+            raise HomeAssistantError(
+                f"Error connecting to device: {err}, "
+                "please check your network connection."
+            ) from err

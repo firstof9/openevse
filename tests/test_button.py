@@ -6,6 +6,7 @@ from unittest.mock import AsyncMock
 import pytest
 from homeassistant.components.button import DOMAIN as BUTTON_DOMAIN
 from homeassistant.components.button import SERVICE_PRESS
+from homeassistant.exceptions import HomeAssistantError
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.openevse.const import DOMAIN
@@ -94,8 +95,9 @@ async def test_buttons_connection_error(
     manager.restart_wifi = AsyncMock(side_effect=TimeoutError)
 
     entity_id = "button.openevse_restart_wifi"
-    await hass.services.async_call(
-        BUTTON_DOMAIN, SERVICE_PRESS, {"entity_id": entity_id}, blocking=True
-    )
+    with pytest.raises(HomeAssistantError):
+        await hass.services.async_call(
+            BUTTON_DOMAIN, SERVICE_PRESS, {"entity_id": entity_id}, blocking=True
+        )
 
     assert "Error connecting to device" in caplog.text
