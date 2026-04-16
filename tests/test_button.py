@@ -1,6 +1,5 @@
 """Test OpenEVSE button platform."""
 
-from asyncio import TimeoutError
 from unittest.mock import AsyncMock
 
 import pytest

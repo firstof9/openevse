@@ -1,8 +1,8 @@
 """Test openevse services."""
 
+import asyncio
 import json
 import logging
-from asyncio import TimeoutError
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -883,7 +883,7 @@ async def test_services_connection_errors(
         payload.update(data)
 
         # Mock the manager method to raise TimeoutError
-        with patch.object(manager, manager_method, side_effect=TimeoutError):
+        with patch.object(manager, manager_method, side_effect=asyncio.TimeoutError):
             caplog.clear()
             return_response = service_name in [
                 SERVICE_GET_LIMIT,
