@@ -1,7 +1,8 @@
 """Test OpenEVSE number platform."""
 
 import logging
-from unittest.mock import patch
+from asyncio import TimeoutError
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from homeassistant.components.number import DOMAIN as NUMBER_DOMAIN
@@ -143,3 +144,35 @@ async def test_number_coverage_gaps(hass, test_charger, mock_ws_start):
     # Verify available when data is not a dict
     coordinator.data = "not a dict"
     assert entity.available == coordinator.last_update_success
+
+
+async def test_number_connection_error(
+    hass,
+    test_charger,
+    mock_ws_start,
+    mock_aioclient,
+    caplog,
+):
+    """Test number platform with connection error."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA,
+    )
+
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    manager = hass.data[DOMAIN][entry.entry_id]["manager"]
+    manager.set_current = AsyncMock(side_effect=TimeoutError)
+
+    entity_id = "number.openevse_charge_rate"
+
+    await hass.services.async_call(
+        NUMBER_DOMAIN,
+        SERVICE_SET_VALUE,
+        {"entity_id": entity_id, "value": 16},
+        blocking=True,
+    )
+    assert "Error connecting to device" in caplog.text

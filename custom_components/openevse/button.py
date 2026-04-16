@@ -9,8 +9,15 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from . import OpenEVSEManager
-from .const import BUTTON_TYPES, CONF_NAME, DOMAIN, MANAGER
+from .const import (
+    BUTTON_TYPES,
+    CONF_NAME,
+    CONNECTION_ERROR,
+    CONNECTION_ERRORS,
+    DOMAIN,
+    MANAGER,
+    OpenEVSEManager,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -60,5 +67,8 @@ class OpenEVSEButton(ButtonEntity):
         return info
 
     async def async_press(self) -> None:
-        """Press the button."""
-        await getattr(self.manager, self._key)()
+        """Handle the button press."""
+        try:
+            await getattr(self.manager, self._key)()
+        except CONNECTION_ERRORS as err:
+            _LOGGER.error(CONNECTION_ERROR, err)

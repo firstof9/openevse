@@ -11,10 +11,18 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from . import (
+    CONNECTION_ERRORS,
     OpenEVSEManager,
     OpenEVSEUpdateCoordinator,
 )
-from .const import CONF_NAME, COORDINATOR, DOMAIN, MANAGER, NUMBER_TYPES
+from .const import (
+    CONF_NAME,
+    CONNECTION_ERROR,
+    COORDINATOR,
+    DOMAIN,
+    MANAGER,
+    NUMBER_TYPES,
+)
 from .entity import OpenEVSENumberEntityDescription
 
 _LOGGER = logging.getLogger(__name__)
@@ -136,4 +144,7 @@ class OpenEVSENumberEntity(CoordinatorEntity, NumberEntity):
         if not value.is_integer():
             raise ValueError("charge rate must be whole amps")
         _LOGGER.debug("Command: %s Value: %s", self._command, value)
-        await getattr(self._manager, self._command)(int(value))
+        try:
+            await getattr(self._manager, self._command)(int(value))
+        except CONNECTION_ERRORS as err:
+            _LOGGER.error(CONNECTION_ERROR, err)

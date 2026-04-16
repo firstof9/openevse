@@ -1,7 +1,8 @@
 """Test openevse switches."""
 
 import logging
-from unittest.mock import MagicMock, patch
+from asyncio import TimeoutError
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from homeassistant.components.switch import DOMAIN as SWITCH_DOMAIN
@@ -207,3 +208,57 @@ async def test_switch_coverage_gaps(hass, test_charger, mock_ws_start):
     with patch.object(manager, "make_claim") as mock_make:
         await switch_claim.async_turn_off()
         mock_make.assert_not_called()
+
+
+async def test_switch_connection_error(
+    hass,
+    test_charger,
+    mock_ws_start,
+    mock_aioclient,
+    caplog,
+):
+    """Test switch platform with connection error."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA,
+    )
+
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    manager = hass.data[DOMAIN][entry.entry_id]["manager"]
+    manager.toggle_override = AsyncMock(side_effect=TimeoutError)
+
+    entity_id = "switch.openevse_sleep_mode"
+
+    # Force switch to different state to bypass 'if is_on' check
+    coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
+    coordinator.data["state"] = "active"  # switch is OFF
+    coordinator.async_set_updated_data(coordinator.data)
+    await hass.async_block_till_done()
+
+    # Test turn_on error
+    await hass.services.async_call(
+        SWITCH_DOMAIN,
+        "turn_on",
+        {"entity_id": entity_id},
+        blocking=True,
+    )
+    assert "Error connecting to device" in caplog.text
+    caplog.clear()
+
+    # Force switch to ON
+    coordinator.data["state"] = "sleeping"  # switch is ON
+    coordinator.async_set_updated_data(coordinator.data)
+    await hass.async_block_till_done()
+
+    # Test turn_off error
+    await hass.services.async_call(
+        SWITCH_DOMAIN,
+        "turn_off",
+        {"entity_id": entity_id},
+        blocking=True,
+    )
+    assert "Error connecting to device" in caplog.text

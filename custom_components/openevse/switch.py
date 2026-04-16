@@ -10,8 +10,16 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_NAME
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from . import OpenEVSEManager, OpenEVSEUpdateCoordinator
-from .const import COORDINATOR, DOMAIN, MANAGER, SWITCH_TYPES
+from .const import (
+    CONNECTION_ERROR,
+    CONNECTION_ERRORS,
+    COORDINATOR,
+    DOMAIN,
+    MANAGER,
+    SWITCH_TYPES,
+    OpenEVSEManager,
+    OpenEVSEUpdateCoordinator,
+)
 from .entity import OpenEVSESwitchEntityDescription
 
 _LOGGER = logging.getLogger(__name__)
@@ -99,20 +107,24 @@ class OpenEVSESwitch(CoordinatorEntity, SwitchEntity):
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn the switch on."""
-        if not self.is_on:
+        if self.is_on:
+            return
+        try:
             if self.toggle_command == "claim":
                 await self._manager.release_claim()
             else:
                 await getattr(self._manager, self.toggle_command)()
-        else:
-            return
+        except CONNECTION_ERRORS as err:
+            _LOGGER.error(CONNECTION_ERROR, err)
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn the switch off."""
-        if self.is_on:
+        if not self.is_on:
+            return
+        try:
             if self.toggle_command == "claim":
                 await self._manager.make_claim(state="active")
             else:
                 await getattr(self._manager, self.toggle_command)()
-        else:
-            return
+        except CONNECTION_ERRORS as err:
+            _LOGGER.error(CONNECTION_ERROR, err)

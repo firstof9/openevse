@@ -175,7 +175,7 @@ async def test_setup_entry_state_change_timeout(
     await hass.async_block_till_done()
 
     assert (
-        "Timeout error connecting to device: , please check your network connection."
+        "Error connecting to device: , please check your network connection."
         in caplog.text
     )
 
@@ -246,14 +246,14 @@ async def test_setup_entry_state_change_2_bad_post(
     hass.states.async_set(solar_entity, "2317")
     await hass.async_block_till_done()
     assert (
-        "Timeout error connecting to device: , please check your network connection."
+        "Error connecting to device: , please check your network connection."
         in caplog.text
     )
 
     hass.states.async_set(voltage_entity, "113")
     await hass.async_block_till_done()
     assert (
-        "Timeout error connecting to device: , please check your network connection."
+        "Error connecting to device: , please check your network connection."
         in caplog.text
     )
 
@@ -481,10 +481,15 @@ async def test_get_firmware_logic(hass):
     """Test get_firmware edge cases."""
     mock_manager = mock.AsyncMock()
 
-    # 1. Update failed
-    mock_manager.update.side_effect = Exception("Connection Error")
+    # 1. Update failed (caught CONNECTION_ERRORS)
+    mock_manager.update.side_effect = asyncio.TimeoutError
     res = await get_firmware(mock_manager)
     assert res == ("", "")
+
+    # 1a. Generic exception (not caught, should bubble up)
+    mock_manager.update.side_effect = Exception("Critical Failure")
+    with pytest.raises(Exception, match="Critical Failure"):
+        await get_firmware(mock_manager)
 
     # 2. Missing Serial (should return fallback versions)
     mock_manager.update.side_effect = None  # Reset
@@ -703,7 +708,7 @@ async def test_setup_entry_state_change_shaper_timeout(
         await hass.async_block_till_done()
 
     assert (
-        "Timeout error connecting to device: , please check your network connection."
+        "Error connecting to device: , please check your network connection."
         in caplog.text
     )
 

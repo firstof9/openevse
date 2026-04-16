@@ -1,6 +1,7 @@
 """Test openevse select entities."""
 
 import logging
+from asyncio import TimeoutError
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -391,3 +392,35 @@ async def test_select_get_options_edge_cases(hass, test_charger, mock_ws_start):
     options = entity.get_options()
     assert options[0] == "6"
     assert options[-1] == "48"
+
+
+async def test_select_connection_error(
+    hass,
+    test_charger,
+    mock_ws_start,
+    mock_aioclient,
+    caplog,
+):
+    """Test select platform with connection error."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA,
+    )
+
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    manager = hass.data[DOMAIN][entry.entry_id]["manager"]
+    manager.set_divert_mode = AsyncMock(side_effect=TimeoutError)
+
+    entity_id = "select.openevse_divert_mode"
+
+    await hass.services.async_call(
+        SELECT_DOMAIN,
+        SERVICE_SELECT_OPTION,
+        {"entity_id": entity_id, "option": "fast"},
+        blocking=True,
+    )
+    assert "Error connecting to device" in caplog.text

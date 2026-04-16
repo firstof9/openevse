@@ -24,6 +24,8 @@ from .const import (
     ATTR_TIME_LIMIT,
     ATTR_TYPE,
     ATTR_VALUE,
+    CONNECTION_ERROR,
+    CONNECTION_ERRORS,
     DOMAIN,
     MANAGER,
     SERVICE_CLEAR_LIMIT,
@@ -216,15 +218,18 @@ class OpenEVSEServices:
                 time_limit = data.get(ATTR_TIME_LIMIT)
                 auto_release = data.get(ATTR_AUTO_RELEASE)
 
-                response = await manager.set_override(
-                    state=state,
-                    charge_current=charge_current,
-                    max_current=max_current,
-                    energy_limit=energy_limit,
-                    time_limit=time_limit,
-                    auto_release=auto_release,
-                )
-                _LOGGER.debug("Set Override response: %s", response)
+                try:
+                    response = await manager.set_override(
+                        state=state,
+                        charge_current=charge_current,
+                        max_current=max_current,
+                        energy_limit=energy_limit,
+                        time_limit=time_limit,
+                        auto_release=auto_release,
+                    )
+                    _LOGGER.debug("Set Override response: %s", response)
+                except CONNECTION_ERRORS as err:
+                    _LOGGER.error(CONNECTION_ERROR, err)
 
             except KeyError as err:
                 _LOGGER.error("Error locating configuration: %s", err)
@@ -241,8 +246,11 @@ class OpenEVSEServices:
             _LOGGER.debug("Config ID: %s Type: %s", config_id, type(config_id))
             try:
                 manager = self.hass.data[DOMAIN][config_id][MANAGER]
-                await manager.clear_override()
-                _LOGGER.debug("Override clear command sent.")
+                try:
+                    await manager.clear_override()
+                    _LOGGER.debug("Override clear command sent.")
+                except CONNECTION_ERRORS as err:
+                    _LOGGER.error(CONNECTION_ERROR, err)
             except KeyError as err:
                 _LOGGER.error("Error locating configuration: %s", err)
 
@@ -265,12 +273,15 @@ class OpenEVSEServices:
                 else:
                     auto_release = None
 
-                response = await manager.set_limit(
-                    limit_type=limit_type,
-                    value=value,
-                    release=auto_release,
-                )
-                _LOGGER.debug("Set Limit response: %s", response)
+                try:
+                    response = await manager.set_limit(
+                        limit_type=limit_type,
+                        value=value,
+                        release=auto_release,
+                    )
+                    _LOGGER.debug("Set Limit response: %s", response)
+                except CONNECTION_ERRORS as err:
+                    _LOGGER.error(CONNECTION_ERROR, err)
 
             except KeyError as err:
                 _LOGGER.error("Error locating configuration: %s", err)
@@ -287,8 +298,11 @@ class OpenEVSEServices:
             _LOGGER.debug("Config ID: %s Type: %s", config_id, type(config_id))
             try:
                 manager = self.hass.data[DOMAIN][config_id][MANAGER]
-                await manager.clear_limit()
-                _LOGGER.debug("Limit clear command sent.")
+                try:
+                    await manager.clear_limit()
+                    _LOGGER.debug("Limit clear command sent.")
+                except CONNECTION_ERRORS as err:
+                    _LOGGER.error(CONNECTION_ERROR, err)
             except KeyError as err:
                 _LOGGER.error("Error locating configuration: %s", err)
 
@@ -304,9 +318,13 @@ class OpenEVSEServices:
             _LOGGER.debug("Config ID: %s Type: %s", config_id, type(config_id))
             try:
                 manager = self.hass.data[DOMAIN][config_id][MANAGER]
-                response = await manager.get_limit()
-                _LOGGER.debug("Get limit response %s.", response)
-                return response
+                try:
+                    response = await manager.get_limit()
+                    _LOGGER.debug("Get limit response %s.", response)
+                    return response
+                except CONNECTION_ERRORS as err:
+                    _LOGGER.error(CONNECTION_ERROR, err)
+                    return {}
             except KeyError as err:
                 _LOGGER.error("Error locating configuration: %s", err)
                 return {}
@@ -327,13 +345,16 @@ class OpenEVSEServices:
                 max_current = data.get(ATTR_MAX_CURRENT)
                 auto_release = data.get(ATTR_AUTO_RELEASE)
 
-                response = await manager.make_claim(
-                    state=state,
-                    charge_current=charge_current,
-                    max_current=max_current,
-                    auto_release=auto_release,
-                )
-                _LOGGER.debug("Make claim response: %s", response)
+                try:
+                    response = await manager.make_claim(
+                        state=state,
+                        charge_current=charge_current,
+                        max_current=max_current,
+                        auto_release=auto_release,
+                    )
+                    _LOGGER.debug("Make claim response: %s", response)
+                except CONNECTION_ERRORS as err:
+                    _LOGGER.error(CONNECTION_ERROR, err)
             except KeyError as err:
                 _LOGGER.error("Error locating configuration: %s", err)
 
@@ -349,8 +370,11 @@ class OpenEVSEServices:
             _LOGGER.debug("Config ID: %s Type: %s", config_id, type(config_id))
             try:
                 manager = self.hass.data[DOMAIN][config_id][MANAGER]
-                await manager.release_claim()
-                _LOGGER.debug("Release claim command sent.")
+                try:
+                    await manager.release_claim()
+                    _LOGGER.debug("Release claim command sent.")
+                except CONNECTION_ERRORS as err:
+                    _LOGGER.error(CONNECTION_ERROR, err)
             except KeyError as err:
                 _LOGGER.error("Error locating configuration: %s", err)
 
@@ -366,8 +390,12 @@ class OpenEVSEServices:
             _LOGGER.debug("Config ID: %s Type: %s", config_id, type(config_id))
             try:
                 manager = self.hass.data[DOMAIN][config_id][MANAGER]
-                response = await manager.list_claims()
-                _LOGGER.debug("List claims response %s.", response)
+                try:
+                    response = await manager.list_claims()
+                    _LOGGER.debug("List claims response %s.", response)
+                except CONNECTION_ERRORS as err:
+                    _LOGGER.error(CONNECTION_ERROR, err)
+                    return {}
                 claims = {}
                 for x, claim in enumerate(response):
                     claims[x] = claim
@@ -389,9 +417,13 @@ class OpenEVSEServices:
             _LOGGER.debug("Config ID: %s Type: %s", config_id, type(config_id))
             try:
                 manager = self.hass.data[DOMAIN][config_id][MANAGER]
-                response = await manager.get_override()
-                _LOGGER.debug("List overrides response %s.", response)
-                return response
+                try:
+                    response = await manager.get_override()
+                    _LOGGER.debug("List overrides response %s.", response)
+                    return response
+                except CONNECTION_ERRORS as err:
+                    _LOGGER.error(CONNECTION_ERROR, err)
+                    return {}
             except KeyError as err:
                 _LOGGER.error("Error locating configuration: %s", err)
                 return {}

@@ -1,5 +1,6 @@
 """Test OpenEVSE button platform."""
 
+from asyncio import TimeoutError
 from unittest.mock import AsyncMock
 
 import pytest
@@ -69,3 +70,32 @@ async def test_buttons(
 
     assert manager.restart_evse.called
     assert manager.restart_evse.call_count == 1
+
+
+async def test_buttons_connection_error(
+    hass,
+    test_charger,
+    mock_ws_start,
+    mock_aioclient,
+    caplog,
+):
+    """Test button platform with connection error."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA,
+    )
+
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    manager = hass.data[DOMAIN][entry.entry_id]["manager"]
+    manager.restart_wifi = AsyncMock(side_effect=TimeoutError)
+
+    entity_id = "button.openevse_restart_wifi"
+    await hass.services.async_call(
+        BUTTON_DOMAIN, SERVICE_PRESS, {"entity_id": entity_id}, blocking=True
+    )
+
+    assert "Error connecting to device" in caplog.text

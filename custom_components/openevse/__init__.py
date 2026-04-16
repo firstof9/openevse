@@ -37,6 +37,8 @@ from .const import (
     CONF_SHAPER,
     CONF_SOLAR,
     CONF_VOLTAGE,
+    CONNECTION_ERROR,
+    CONNECTION_ERRORS,
     COORDINATOR,
     DOMAIN,
     FW_COORDINATOR,
@@ -48,7 +50,6 @@ from .const import (
     SELECT_TYPES,
     SENSOR_FIELDS,
     SENSOR_TYPES,
-    TIMEOUT_ERROR,
     UNSUB_LISTENERS,
     VERSION,
 )
@@ -93,8 +94,8 @@ async def handle_state_change(
         _LOGGER.debug("Sending sensor data to OpenEVSE: (grid: %s)", grid)
         try:
             await manager.self_production(grid=grid, solar=None, invert=invert)
-        except TimeoutError as err:
-            _LOGGER.exception(TIMEOUT_ERROR, err)
+        except CONNECTION_ERRORS as err:
+            _LOGGER.warning(CONNECTION_ERROR, err)
 
     elif solar_sensor is not None and changed_entity == solar_sensor:
         state = hass.states.get(solar_sensor)
@@ -111,8 +112,8 @@ async def handle_state_change(
         _LOGGER.debug("Sending sensor data to OpenEVSE: (solar: %s)", solar)
         try:
             await manager.self_production(grid=None, solar=solar, invert=False)
-        except TimeoutError as err:
-            _LOGGER.exception(TIMEOUT_ERROR, err)
+        except CONNECTION_ERRORS as err:
+            _LOGGER.warning(CONNECTION_ERROR, err)
 
     if voltage_sensor is not None and changed_entity == voltage_sensor:
         state = hass.states.get(voltage_sensor)
@@ -129,8 +130,8 @@ async def handle_state_change(
         _LOGGER.debug("Sending sensor data to OpenEVSE: (voltage: %s)", voltage)
         try:
             await manager.grid_voltage(voltage=voltage)
-        except TimeoutError as err:
-            _LOGGER.exception(TIMEOUT_ERROR, err)
+        except CONNECTION_ERRORS as err:
+            _LOGGER.warning(CONNECTION_ERROR, err)
 
     if shaper_sensor is not None and changed_entity == shaper_sensor:
         state = hass.states.get(shaper_sensor)
@@ -147,8 +148,8 @@ async def handle_state_change(
         _LOGGER.debug("Sending sensor data to OpenEVSE: (shaper: %s)", power)
         try:
             await manager.set_shaper_live_pwr(power=power)
-        except TimeoutError as err:
-            _LOGGER.exception(TIMEOUT_ERROR, err)
+        except CONNECTION_ERRORS as err:
+            _LOGGER.warning(CONNECTION_ERROR, err)
 
 
 async def homeassistant_started_listener(
@@ -293,9 +294,8 @@ async def get_firmware(manager: OpenEVSEManager) -> tuple:
     data = {}
     try:
         await manager.update()
-    except Exception as error:
-        _LOGGER.exception("Problem retrieving firmware data: %s", error)
-        return "", ""
+    except CONNECTION_ERRORS:
+        return ("", "")
 
     try:
         data = await manager.test_and_get()

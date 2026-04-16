@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import asyncio
 from typing import Final
 
+import aiohttp
 from homeassistant.components.binary_sensor import (
     BinarySensorDeviceClass,
     BinarySensorEntityDescription,
@@ -36,6 +38,9 @@ from .entity import (
     OpenEVSESensorEntityDescription,
     OpenEVSESwitchEntityDescription,
 )
+
+# config flow
+CONNECTION_ERRORS: Final = (asyncio.TimeoutError, aiohttp.ClientError)
 
 # config flow
 CONF_NAME = "name"
@@ -72,8 +77,8 @@ PLATFORMS = [
 USER_AGENT = "Home Assistant"
 MANAGER = "manager"
 
-TIMEOUT_ERROR = (
-    "Timeout error connecting to device: %s, please check your network connection."
+CONNECTION_ERROR = (
+    "Error connecting to device: %s, please check your network connection."
 )
 
 SERVICE_SET_OVERRIDE = "set_override"

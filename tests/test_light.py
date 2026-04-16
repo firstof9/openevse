@@ -1,6 +1,7 @@
 """Provide tests for OpenEVSE light platform."""
 
-from unittest.mock import patch
+from asyncio import TimeoutError
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from homeassistant.components.light import ATTR_BRIGHTNESS
@@ -133,3 +134,46 @@ async def test_light_coverage_gaps(hass, test_charger, mock_ws_start):
     with patch.object(light, "async_write_ha_state"):
         light._handle_coordinator_update()
     assert light._attr_brightness is None
+
+
+async def test_light_connection_error(
+    hass,
+    test_charger,
+    mock_ws_start,
+    mock_aioclient,
+    caplog,
+):
+    """Test light platform with connection error."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA,
+    )
+
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    manager = hass.data[DOMAIN][entry.entry_id]["manager"]
+    manager.set_led_brightness = AsyncMock(side_effect=TimeoutError)
+
+    entity_id = "light.openevse_led_brightness"
+
+    # Test turn_on error
+    await hass.services.async_call(
+        LIGHT_DOMAIN,
+        "turn_on",
+        {"entity_id": entity_id},
+        blocking=True,
+    )
+    assert "Error connecting to device" in caplog.text
+    caplog.clear()
+
+    # Test turn_off error
+    await hass.services.async_call(
+        LIGHT_DOMAIN,
+        "turn_off",
+        {"entity_id": entity_id},
+        blocking=True,
+    )
+    assert "Error connecting to device" in caplog.text
