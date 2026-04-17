@@ -1,7 +1,6 @@
 """Test openevse switches."""
 
 import logging
-from asyncio import TimeoutError
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -229,7 +228,7 @@ async def test_switch_connection_error(
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
 
-    manager = hass.data[DOMAIN][entry.entry_id]["manager"]
+    manager = hass.data[DOMAIN][entry.entry_id][MANAGER]
     manager.toggle_override = AsyncMock(side_effect=TimeoutError)
 
     entity_id = "switch.openevse_sleep_mode"

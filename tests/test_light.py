@@ -1,6 +1,5 @@
 """Provide tests for OpenEVSE light platform."""
 
-from asyncio import TimeoutError
 from unittest.mock import AsyncMock, patch
 
 import pytest
