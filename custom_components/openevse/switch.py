@@ -8,6 +8,7 @@ from typing import Any, cast
 from homeassistant.components.switch import SwitchEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_NAME
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from . import CONNECTION_ERRORS, OpenEVSEManager, OpenEVSEUpdateCoordinator
@@ -114,6 +115,10 @@ class OpenEVSESwitch(CoordinatorEntity, SwitchEntity):
                 await getattr(self._manager, self.toggle_command)()
         except CONNECTION_ERRORS as err:
             _LOGGER.error(CONNECTION_ERROR, err)
+            raise HomeAssistantError(
+                f"Error connecting to device: {err}, "
+                "please check your network connection."
+            ) from err
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn the switch off."""
@@ -126,3 +131,7 @@ class OpenEVSESwitch(CoordinatorEntity, SwitchEntity):
                 await getattr(self._manager, self.toggle_command)()
         except CONNECTION_ERRORS as err:
             _LOGGER.error(CONNECTION_ERROR, err)
+            raise HomeAssistantError(
+                f"Error connecting to device: {err}, "
+                "please check your network connection."
+            ) from err

@@ -6,6 +6,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from homeassistant.components.light import ATTR_BRIGHTNESS
 from homeassistant.components.light import DOMAIN as LIGHT_DOMAIN
+from homeassistant.exceptions import HomeAssistantError
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.openevse.const import COORDINATOR, DOMAIN, LIGHT_TYPES, MANAGER
@@ -154,26 +155,28 @@ async def test_light_connection_error(
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
 
-    manager = hass.data[DOMAIN][entry.entry_id]["manager"]
+    manager = hass.data[DOMAIN][entry.entry_id][MANAGER]
     manager.set_led_brightness = AsyncMock(side_effect=TimeoutError)
 
     entity_id = "light.openevse_led_brightness"
 
     # Test turn_on error
-    await hass.services.async_call(
-        LIGHT_DOMAIN,
-        "turn_on",
-        {"entity_id": entity_id},
-        blocking=True,
-    )
+    with pytest.raises(HomeAssistantError):
+        await hass.services.async_call(
+            LIGHT_DOMAIN,
+            "turn_on",
+            {"entity_id": entity_id},
+            blocking=True,
+        )
     assert "Error connecting to device" in caplog.text
-    caplog.clear()
 
     # Test turn_off error
-    await hass.services.async_call(
-        LIGHT_DOMAIN,
-        "turn_off",
-        {"entity_id": entity_id},
-        blocking=True,
-    )
+    caplog.clear()
+    with pytest.raises(HomeAssistantError):
+        await hass.services.async_call(
+            LIGHT_DOMAIN,
+            "turn_off",
+            {"entity_id": entity_id},
+            blocking=True,
+        )
     assert "Error connecting to device" in caplog.text

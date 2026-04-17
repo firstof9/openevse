@@ -12,6 +12,7 @@ from homeassistant.components.light import (
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
@@ -132,6 +133,10 @@ class OpenEVSELight(CoordinatorEntity, LightEntity):
             await self.manager.set_led_brightness(DEFAULT_ON)
         except CONNECTION_ERRORS as err:
             _LOGGER.error(CONNECTION_ERROR, err)
+            raise HomeAssistantError(
+                f"Error connecting to device: {err}, "
+                "please check your network connection."
+            ) from err
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Instruct the light to turn off."""
@@ -139,3 +144,7 @@ class OpenEVSELight(CoordinatorEntity, LightEntity):
             await self.manager.set_led_brightness(DEFAULT_OFF)
         except CONNECTION_ERRORS as err:
             _LOGGER.error(CONNECTION_ERROR, err)
+            raise HomeAssistantError(
+                f"Error connecting to device: {err}, "
+                "please check your network connection."
+            ) from err

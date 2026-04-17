@@ -7,6 +7,7 @@ import logging
 from homeassistant.components.number import NumberEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
@@ -148,3 +149,7 @@ class OpenEVSENumberEntity(CoordinatorEntity, NumberEntity):
             await getattr(self._manager, self._command)(int(value))
         except CONNECTION_ERRORS as err:
             _LOGGER.error(CONNECTION_ERROR, err)
+            raise HomeAssistantError(
+                f"Error connecting to device: {err}, "
+                "please check your network connection."
+            ) from err

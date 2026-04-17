@@ -6,6 +6,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from homeassistant.components.switch import DOMAIN as SWITCH_DOMAIN
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
@@ -240,12 +241,13 @@ async def test_switch_connection_error(
     await hass.async_block_till_done()
 
     # Test turn_on error
-    await hass.services.async_call(
-        SWITCH_DOMAIN,
-        "turn_on",
-        {"entity_id": entity_id},
-        blocking=True,
-    )
+    with pytest.raises(HomeAssistantError):
+        await hass.services.async_call(
+            SWITCH_DOMAIN,
+            "turn_on",
+            {"entity_id": entity_id},
+            blocking=True,
+        )
     assert "Error connecting to device" in caplog.text
     caplog.clear()
 
@@ -255,10 +257,11 @@ async def test_switch_connection_error(
     await hass.async_block_till_done()
 
     # Test turn_off error
-    await hass.services.async_call(
-        SWITCH_DOMAIN,
-        "turn_off",
-        {"entity_id": entity_id},
-        blocking=True,
-    )
+    with pytest.raises(HomeAssistantError):
+        await hass.services.async_call(
+            SWITCH_DOMAIN,
+            "turn_off",
+            {"entity_id": entity_id},
+            blocking=True,
+        )
     assert "Error connecting to device" in caplog.text

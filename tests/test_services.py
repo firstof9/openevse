@@ -21,6 +21,7 @@ from custom_components.openevse.const import (
     ATTR_TYPE,
     ATTR_VALUE,
     DOMAIN,
+    MANAGER,
     SERVICE_CLEAR_LIMIT,
     SERVICE_CLEAR_OVERRIDE,
     SERVICE_GET_LIMIT,
@@ -864,7 +865,7 @@ async def test_services_connection_errors(
     await hass.async_block_till_done()
 
     entry_entity = entity_registry.async_get("sensor.openevse_station_status")
-    manager = hass.data[DOMAIN][entry.entry_id]["manager"]
+    manager = hass.data[DOMAIN][entry.entry_id][MANAGER]
 
     services_to_test = [
         (SERVICE_SET_OVERRIDE, {ATTR_STATE: "active"}, "set_override"),

@@ -8,6 +8,7 @@ from typing import Any
 from homeassistant.components.select import SelectEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_NAME
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from . import (
@@ -111,7 +112,10 @@ class OpenEVSESelect(CoordinatorEntity, SelectEntity):
                 await getattr(self._manager, self._command)(option)
         except CONNECTION_ERRORS as err:
             _LOGGER.error(CONNECTION_ERROR, err)
-            return None
+            raise HomeAssistantError(
+                f"Error connecting to device: {err}, "
+                "please check your network connection."
+            ) from err
         except (ValueError, KeyError) as err:
             _LOGGER.warning(
                 "Could not set status for %s error: %s", self._attr_name, err

@@ -6,6 +6,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from homeassistant.components.number import DOMAIN as NUMBER_DOMAIN
 from homeassistant.components.number import SERVICE_SET_VALUE
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
@@ -168,10 +169,11 @@ async def test_number_connection_error(
 
     entity_id = "number.openevse_charge_rate"
 
-    await hass.services.async_call(
-        NUMBER_DOMAIN,
-        SERVICE_SET_VALUE,
-        {"entity_id": entity_id, "value": 16},
-        blocking=True,
-    )
+    with pytest.raises(HomeAssistantError):
+        await hass.services.async_call(
+            NUMBER_DOMAIN,
+            SERVICE_SET_VALUE,
+            {"entity_id": entity_id, "value": 16},
+            blocking=True,
+        )
     assert "Error connecting to device" in caplog.text

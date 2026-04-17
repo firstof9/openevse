@@ -6,6 +6,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from homeassistant.components.select import DOMAIN as SELECT_DOMAIN
 from homeassistant.components.select import SERVICE_SELECT_OPTION
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
@@ -415,11 +416,11 @@ async def test_select_connection_error(
     manager.set_divert_mode = AsyncMock(side_effect=TimeoutError)
 
     entity_id = "select.openevse_divert_mode"
-
-    await hass.services.async_call(
-        SELECT_DOMAIN,
-        SERVICE_SELECT_OPTION,
-        {"entity_id": entity_id, "option": "fast"},
-        blocking=True,
-    )
+    with pytest.raises(HomeAssistantError):
+        await hass.services.async_call(
+            SELECT_DOMAIN,
+            SERVICE_SELECT_OPTION,
+            {"entity_id": entity_id, "option": "fast"},
+            blocking=True,
+        )
     assert "Error connecting to device" in caplog.text
