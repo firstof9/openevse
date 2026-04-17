@@ -1,5 +1,6 @@
 """Test openevse services."""
 
+import asyncio
 import json
 import logging
 from unittest.mock import MagicMock, patch
@@ -20,6 +21,7 @@ from custom_components.openevse.const import (
     ATTR_TYPE,
     ATTR_VALUE,
     DOMAIN,
+    MANAGER,
     SERVICE_CLEAR_LIMIT,
     SERVICE_CLEAR_OVERRIDE,
     SERVICE_GET_LIMIT,
@@ -841,3 +843,62 @@ async def test_services_coverage_gaps(hass, test_charger, mock_ws_start, caplog)
             {"device_id": device_no_conn.id, "state": "active"},
             blocking=True,
         )
+
+
+async def test_services_connection_errors(
+    hass,
+    test_charger_services,
+    mock_aioclient,
+    mock_ws_start,
+    entity_registry: er.EntityRegistry,
+    caplog,
+):
+    """Test connection errors in all services."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA,
+    )
+    mock_aioclient.get(TEST_URL_OVERRIDE, status=200, body="{}", repeat=True)
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    entry_entity = entity_registry.async_get("sensor.openevse_station_status")
+    manager = hass.data[DOMAIN][entry.entry_id][MANAGER]
+
+    services_to_test = [
+        (SERVICE_SET_OVERRIDE, {ATTR_STATE: "active"}, "set_override"),
+        (SERVICE_CLEAR_OVERRIDE, {}, "clear_override"),
+        (SERVICE_SET_LIMIT, {ATTR_TYPE: "time", ATTR_VALUE: 60}, "set_limit"),
+        (SERVICE_CLEAR_LIMIT, {}, "clear_limit"),
+        (SERVICE_GET_LIMIT, {}, "get_limit"),
+        (SERVICE_MAKE_CLAIM, {ATTR_STATE: "active"}, "make_claim"),
+        (SERVICE_RELEASE_CLAIM, {}, "release_claim"),
+        (SERVICE_LIST_CLAIMS, {}, "list_claims"),
+        (SERVICE_LIST_OVERRIDES, {}, "get_override"),
+    ]
+
+    for service_name, data, manager_method in services_to_test:
+        payload = {ATTR_DEVICE_ID: entry_entity.device_id}
+        payload.update(data)
+
+        # Mock the manager method to raise TimeoutError
+        with patch.object(manager, manager_method, side_effect=asyncio.TimeoutError):
+            caplog.clear()
+            return_response = service_name in [
+                SERVICE_GET_LIMIT,
+                SERVICE_LIST_CLAIMS,
+                SERVICE_LIST_OVERRIDES,
+            ]
+
+            result = await hass.services.async_call(
+                DOMAIN,
+                service_name,
+                payload,
+                blocking=True,
+                return_response=return_response,
+            )
+            assert "Error connecting to device" in caplog.text
+            if return_response:
+                assert result == {}

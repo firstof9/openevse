@@ -1,11 +1,12 @@
 """Test openevse select entities."""
 
 import logging
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from homeassistant.components.select import DOMAIN as SELECT_DOMAIN
 from homeassistant.components.select import SERVICE_SELECT_OPTION
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
@@ -391,3 +392,57 @@ async def test_select_get_options_edge_cases(hass, test_charger, mock_ws_start):
     options = entity.get_options()
     assert options[0] == "6"
     assert options[-1] == "48"
+
+
+async def test_select_connection_error(
+    hass,
+    test_charger,
+    mock_ws_start,
+    mock_aioclient,
+    caplog,
+):
+    """Test select platform with connection error."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA,
+    )
+
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    manager = hass.data[DOMAIN][entry.entry_id][MANAGER]
+    manager.version_check = MagicMock(return_value=True)
+    manager.get_override_state = AsyncMock(return_value="auto")
+    await hass.async_block_till_done()
+
+    manager.set_divert_mode = AsyncMock(side_effect=TimeoutError)
+
+    entity_id = "select.openevse_divert_mode"
+    with pytest.raises(HomeAssistantError):
+        await hass.services.async_call(
+            SELECT_DOMAIN,
+            SERVICE_SELECT_OPTION,
+            {"entity_id": entity_id, "option": "fast"},
+            blocking=True,
+        )
+    assert "Error connecting to device" in caplog.text
+
+    # 2. Test Override State error
+    manager.set_override = AsyncMock(side_effect=TimeoutError)
+    entity_id = "select.openevse_override_state"
+
+    state = hass.states.get(entity_id)
+    assert state is not None
+    assert state.state != "unavailable"
+
+    caplog.clear()
+    with pytest.raises(HomeAssistantError):
+        await hass.services.async_call(
+            SELECT_DOMAIN,
+            SERVICE_SELECT_OPTION,
+            {"entity_id": entity_id, "option": "active"},
+            blocking=True,
+        )
+    assert "Error connecting to device" in caplog.text

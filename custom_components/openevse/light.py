@@ -12,14 +12,23 @@ from homeassistant.components.light import (
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from . import (
+    CONNECTION_ERRORS,
     OpenEVSEManager,
     OpenEVSEUpdateCoordinator,
 )
-from .const import CONF_NAME, COORDINATOR, DOMAIN, LIGHT_TYPES, MANAGER
+from .const import (
+    CONF_NAME,
+    CONNECTION_ERROR,
+    COORDINATOR,
+    DOMAIN,
+    LIGHT_TYPES,
+    MANAGER,
+)
 from .entity import OpenEVSELightEntityDescription
 
 _LOGGER = logging.getLogger(__name__)
@@ -117,11 +126,25 @@ class OpenEVSELight(CoordinatorEntity, LightEntity):
         """Instruct the light to turn on."""
         brightness = kwargs.get(ATTR_BRIGHTNESS, self.brightness)
 
-        if ATTR_BRIGHTNESS in kwargs:
-            await self.manager.set_led_brightness(brightness)
-            return
-        await self.manager.set_led_brightness(DEFAULT_ON)
+        try:
+            if ATTR_BRIGHTNESS in kwargs:
+                await self.manager.set_led_brightness(brightness)
+                return
+            await self.manager.set_led_brightness(DEFAULT_ON)
+        except CONNECTION_ERRORS as err:
+            _LOGGER.error(CONNECTION_ERROR, err)
+            raise HomeAssistantError(
+                f"Error connecting to device: {err}, "
+                "please check your network connection."
+            ) from err
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Instruct the light to turn off."""
-        await self.manager.set_led_brightness(DEFAULT_OFF)
+        try:
+            await self.manager.set_led_brightness(DEFAULT_OFF)
+        except CONNECTION_ERRORS as err:
+            _LOGGER.error(CONNECTION_ERROR, err)
+            raise HomeAssistantError(
+                f"Error connecting to device: {err}, "
+                "please check your network connection."
+            ) from err

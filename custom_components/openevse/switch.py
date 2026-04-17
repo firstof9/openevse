@@ -8,10 +8,17 @@ from typing import Any, cast
 from homeassistant.components.switch import SwitchEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_NAME
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from . import OpenEVSEManager, OpenEVSEUpdateCoordinator
-from .const import COORDINATOR, DOMAIN, MANAGER, SWITCH_TYPES
+from . import CONNECTION_ERRORS, OpenEVSEManager, OpenEVSEUpdateCoordinator
+from .const import (
+    CONNECTION_ERROR,
+    COORDINATOR,
+    DOMAIN,
+    MANAGER,
+    SWITCH_TYPES,
+)
 from .entity import OpenEVSESwitchEntityDescription
 
 _LOGGER = logging.getLogger(__name__)
@@ -99,20 +106,32 @@ class OpenEVSESwitch(CoordinatorEntity, SwitchEntity):
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn the switch on."""
-        if not self.is_on:
+        if self.is_on is True:
+            return
+        try:
             if self.toggle_command == "claim":
                 await self._manager.release_claim()
             else:
                 await getattr(self._manager, self.toggle_command)()
-        else:
-            return
+        except CONNECTION_ERRORS as err:
+            _LOGGER.error(CONNECTION_ERROR, err)
+            raise HomeAssistantError(
+                f"Error connecting to device: {err}, "
+                "please check your network connection."
+            ) from err
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn the switch off."""
-        if self.is_on:
+        if self.is_on is False:
+            return
+        try:
             if self.toggle_command == "claim":
                 await self._manager.make_claim(state="active")
             else:
                 await getattr(self._manager, self.toggle_command)()
-        else:
-            return
+        except CONNECTION_ERRORS as err:
+            _LOGGER.error(CONNECTION_ERROR, err)
+            raise HomeAssistantError(
+                f"Error connecting to device: {err}, "
+                "please check your network connection."
+            ) from err

@@ -8,16 +8,18 @@ from typing import Any
 from homeassistant.components.select import SelectEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_NAME
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from . import (
+    CONNECTION_ERRORS,
     CommandFailedError,
     InvalidValueError,
     OpenEVSEManager,
     OpenEVSEUpdateCoordinator,
     send_command,
 )
-from .const import COORDINATOR, DOMAIN, MANAGER, SELECT_TYPES
+from .const import CONNECTION_ERROR, COORDINATOR, DOMAIN, MANAGER, SELECT_TYPES
 from .entity import OpenEVSESelectEntityDescription
 
 _LOGGER = logging.getLogger(__name__)
@@ -91,16 +93,16 @@ class OpenEVSESelect(CoordinatorEntity, SelectEntity):
         """Change the selected option."""
         charger = self._manager
 
-        if self._type == "override_state":
-            if option != "auto":
-                response = await charger.set_override(state=option.lower())
-                _LOGGER.debug("Select response: %s", response)
-            else:
-                response = await charger.clear_override()
-                _LOGGER.debug("Select Auto response: %s", response)
-            return None
-
         try:
+            if self._type == "override_state":
+                if option != "auto":
+                    response = await charger.set_override(state=option.lower())
+                    _LOGGER.debug("Select response: %s", response)
+                else:
+                    response = await charger.clear_override()
+                    _LOGGER.debug("Select Auto response: %s", response)
+                return None
+
             if self._command.startswith("$"):
                 command = f"{self._command} {option}"
                 _LOGGER.debug("Command: %s", command)
@@ -108,6 +110,12 @@ class OpenEVSESelect(CoordinatorEntity, SelectEntity):
             else:
                 _LOGGER.debug("Command: %s Option: %s", self._command, option)
                 await getattr(self._manager, self._command)(option)
+        except CONNECTION_ERRORS as err:
+            _LOGGER.error(CONNECTION_ERROR, err)
+            raise HomeAssistantError(
+                f"Error connecting to device: {err}, "
+                "please check your network connection."
+            ) from err
         except (ValueError, KeyError) as err:
             _LOGGER.warning(
                 "Could not set status for %s error: %s", self._attr_name, err
