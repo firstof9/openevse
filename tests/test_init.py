@@ -1048,6 +1048,7 @@ async def test_websocket_connection_error(
     with patch.object(
         coordinator, "_update_data_snapshot", side_effect=asyncio.TimeoutError
     ):
+        caplog.clear()
         await coordinator.websocket_update()
 
     assert "Connection error updating data from websocket" in caplog.text
@@ -1075,6 +1076,7 @@ async def test_websocket_unexpected_error(
     with patch.object(
         coordinator, "_update_data_snapshot", side_effect=Exception("Boom")
     ):
+        caplog.clear()
         await coordinator.websocket_update()
 
     assert "Unexpected error parsing sensors" in caplog.text
