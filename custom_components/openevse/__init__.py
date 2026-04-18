@@ -454,6 +454,13 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
         try:
             async with self._update_lock:
                 await self._update_data_snapshot()
+        except CONNECTION_ERRORS as error:
+            _LOGGER.warning(
+                "Connection error updating data from websocket [%s]: %s",
+                type(error).__name__,
+                error,
+            )
+            return
         except (ValueError, KeyError, UnsupportedFeature) as error:
             _LOGGER.debug("Error parsing sensors [%s]: %s", type(error).__name__, error)
             return

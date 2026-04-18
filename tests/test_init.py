@@ -1026,3 +1026,57 @@ async def test_collect_async_values_seen_results(hass, test_charger, mock_ws_sta
 
     await hass.config_entries.async_unload(entry.entry_id)
     await hass.async_block_till_done()
+
+
+async def test_websocket_connection_error(
+    hass, test_charger, mock_ws_start, mock_aioclient, caplog
+):
+    """Test websocket update with connection error."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA,
+    )
+
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
+
+    # Mock _update_data_snapshot to raise TimeoutError
+    with patch.object(
+        coordinator, "_update_data_snapshot", side_effect=asyncio.TimeoutError
+    ):
+        await coordinator.websocket_update()
+
+    assert "Connection error updating data from websocket" in caplog.text
+    # Verify no traceback (exc_info=True would log the traceback)
+    assert "Traceback" not in caplog.text
+
+
+async def test_websocket_unexpected_error(
+    hass, test_charger, mock_ws_start, mock_aioclient, caplog
+):
+    """Test websocket update with unexpected error."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA,
+    )
+
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
+
+    # Mock _update_data_snapshot to raise an unexpected Exception
+    with patch.object(
+        coordinator, "_update_data_snapshot", side_effect=Exception("Boom")
+    ):
+        await coordinator.websocket_update()
+
+    assert "Unexpected error parsing sensors" in caplog.text
+    # Verify traceback IS present for unexpected exceptions
+    assert "Traceback" in caplog.text
