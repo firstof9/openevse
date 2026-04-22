@@ -8,4 +8,4 @@ pytest<10
 aiohttp_cors
 zeroconf
 pre-commit==4.6.0
-pycares>=4.11.0,<6.0.0  # Pin <5.0.0 for aiodns compatibility, >=4.11.0 for py3.13
+pycares>=5.0.1,<6.0.0  # Pin <5.0.0 for aiodns compatibility, >=4.11.0 for py3.13
