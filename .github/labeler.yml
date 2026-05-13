@@ -1,0 +1,12 @@
+backend:
+  - custom_components/openevse/**/*.py
+tests:
+  - tests/**/*
+translations:
+  - custom_components/openevse/translations/**/*
+docs:
+  - README.md
+  - CONTRIBUTING.md
+  - LICENSE
+github:
+  - .github/**/*
