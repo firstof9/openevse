@@ -36,7 +36,7 @@ jobs:
           python-version: "3.13"
           cache: "pip"
       - name: 📦 Install prek
-        run: pip install prek
+        run: pip install prek==0.3.13
       - name: 🎨 Run prek
         run: prek run --all-files --show-diff-on-failure
 
