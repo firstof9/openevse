@@ -5,7 +5,7 @@ on:
     types:
       - opened
       - edited
-      - synchronized
+      - synchronize
 
 jobs:
   main:
