@@ -1,12 +1,41 @@
 backend:
-  - custom_components/openevse/**/*.py
+  - changed-files:
+      - any-glob-to-any-file: custom_components/openevse/**/*.py
 tests:
-  - tests/**/*
+  - changed-files:
+      - any-glob-to-any-file: tests/**/*
 translations:
-  - custom_components/openevse/translations/**/*
+  - changed-files:
+      - any-glob-to-any-file: custom_components/openevse/translations/**/*
 docs:
-  - README.md
-  - CONTRIBUTING.md
-  - LICENSE
+  - changed-files:
+      - any-glob-to-any-file:
+          - README.md
+          - CONTRIBUTING.md
+          - LICENSE
 github:
-  - .github/**/*
+  - changed-files:
+      - any-glob-to-any-file: .github/**/*
+
+chore:
+  - head-branch: ['^chore/.*']
+  - any:
+      - title: ['^chore:.*']
+bugfix:
+  - head-branch: ['^fix/.*', '^bugfix/.*']
+  - any:
+      - title: ['^fix:.*']
+feature:
+  - head-branch: ['^feature/.*', '^feat/.*']
+  - any:
+      - title: ['^feat:.*']
+enhancement:
+  - head-branch: ['^refactor/.*']
+  - any:
+      - title: ['^refactor:.*']
+code-quality:
+  - any:
+      - title: ['^tests:.*']
+dependencies:
+  - any:
+      - title: ['^build\(deps\):.*']
