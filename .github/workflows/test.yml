@@ -10,40 +10,40 @@ jobs:
   validate:
     runs-on: "ubuntu-latest"
     name: Validate
-    needs: pre-commit
+    needs: prek
     steps:
       - name: 📥 Checkout the repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: HACS validation
-        uses: "hacs/action@main"
+        uses: hacs/action@dcb30e72781db3f207d5236b861172774ab0b485 # main
         with:
           category: "integration"
           ignore: brands
 
       - name: Hassfest validation
-        uses: "home-assistant/actions/hassfest@master"
+        uses: home-assistant/actions/hassfest@f6f29a7ee3fa0eccadf3620a7b9ee00ab54ec03b # master
 
-  pre-commit:
+  prek:
     runs-on: ubuntu-latest
-    name: Pre-commit checks
+    name: Prek checks
     steps:
       - name: 📥 Checkout the repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - name: 🛠️ Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
         with:
           python-version: "3.13"
           cache: "pip"
-      - name: 📦 Install pre-commit
-        run: pip install pre-commit
-      - name: 🎨 Run pre-commit
-        run: pre-commit run --all-files --show-diff-on-failure
+      - name: 📦 Install prek
+        run: pip install prek==0.3.13
+      - name: 🎨 Run prek
+        run: prek run --all-files --show-diff-on-failure
 
   tests:
     runs-on: "ubuntu-latest"
     name: Run tests
-    needs: [validate, pre-commit]
+    needs: [validate, prek]
     strategy:
       matrix:
         python-version:
@@ -52,13 +52,13 @@ jobs:
 
     steps:
       - name: 📥 Checkout the repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - name: Install uv
-        uses: astral-sh/setup-uv@v7
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
         with:
           enable-cache: true
       - name: 🛠️ Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
         with:
           python-version: ${{ matrix.python-version }}
       - name: 📦 Install requirements
@@ -68,7 +68,7 @@ jobs:
         run: tox
       - name: 📤 Upload coverage data
         if: matrix.python-version == '3.14'
-        uses: "actions/upload-artifact@v4"
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: coverage-data
           path: "coverage.xml"
@@ -78,14 +78,14 @@ jobs:
     needs: tests
     steps:
       - name: 📥 Checkout the repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
       - name: 📥 Download coverage data
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: coverage-data
       - name: 📤 Upload coverage report
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@57e3a136b779b570ffcdbf80b3bdc90e7fab3de2 # v6.0.0
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
