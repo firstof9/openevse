@@ -1,1 +1,1 @@
-python-openevse-http==0.3.1
+python-openevse-http==0.3.2

@@ -143,7 +143,7 @@ async def test_switches(
     mock_aioclient.post(
         TEST_URL_SHAPER,
         status=200,
-        body='{"msg": "OK"}',
+        body='{"msg": "Current Shaper state changed"}',
     )
 
     # Action: Turn On
