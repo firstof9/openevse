@@ -12,7 +12,7 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 from custom_components.openevse.const import COORDINATOR, DOMAIN, MANAGER
 from custom_components.openevse.switch import OpenEVSESwitch
 
-from .conftest import TEST_URL_CONFIG
+from .conftest import TEST_URL_CONFIG, TEST_URL_STATUS
 from .const import CONFIG_DATA
 
 pytestmark = pytest.mark.asyncio
@@ -39,7 +39,7 @@ async def test_switches(
     await hass.async_block_till_done()
 
     # Ensure all switches are created
-    assert len(hass.states.async_entity_ids(SWITCH_DOMAIN)) == 4
+    assert len(hass.states.async_entity_ids(SWITCH_DOMAIN)) == 5
 
     # Get the coordinator to simulate data updates
     coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
@@ -131,6 +131,34 @@ async def test_switches(
     state = hass.states.get(entity_id)
     assert state.state == "on"
 
+    # -------------------------------------------------------------------------
+    # 4. Test Current Shaper Switch
+    # -------------------------------------------------------------------------
+    # Initial State: In CHARGER_DATA, "shaper_active" is False, so switch is OFF.
+    entity_id = "switch.openevse_current_shaper"
+    state = hass.states.get(entity_id)
+    assert state.state == "off"
+
+    mock_aioclient.post(
+        TEST_URL_STATUS,
+        status=200,
+        body='{"msg": "OK"}',
+    )
+
+    # Action: Turn On
+    await hass.services.async_call(
+        SWITCH_DOMAIN, "turn_on", {"entity_id": entity_id}, blocking=True
+    )
+
+    # Simulate update
+    coordinator._data["shaper_active"] = True
+    coordinator.async_set_updated_data(coordinator._data)
+    await hass.async_block_till_done()
+
+    # Assert: Entity should now be ON
+    state = hass.states.get(entity_id)
+    assert state.state == "on"
+
 
 async def test_switches_v2(
     hass,
@@ -151,7 +179,7 @@ async def test_switches_v2(
         assert await hass.config_entries.async_setup(entry.entry_id)
         await hass.async_block_till_done()
 
-        assert len(hass.states.async_entity_ids(SWITCH_DOMAIN)) == 4
+        assert len(hass.states.async_entity_ids(SWITCH_DOMAIN)) == 5
         entries = hass.config_entries.async_entries(DOMAIN)
         assert len(entries) == 1
 
