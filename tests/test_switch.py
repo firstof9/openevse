@@ -12,7 +12,7 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 from custom_components.openevse.const import COORDINATOR, DOMAIN, MANAGER
 from custom_components.openevse.switch import OpenEVSESwitch
 
-from .conftest import TEST_URL_CONFIG, TEST_URL_STATUS
+from .conftest import TEST_URL_CONFIG
 from .const import CONFIG_DATA
 
 pytestmark = pytest.mark.asyncio
@@ -20,6 +20,7 @@ pytestmark = pytest.mark.asyncio
 CHARGER_NAME = "openevse"
 TEST_URL_OVERRIDE = "http://openevse.test.tld/override"
 TEST_URL_DIVERT = "http://openevse.test.tld/divertmode"
+TEST_URL_SHAPER = "http://openevse.test.tld/shaper"
 
 
 async def test_switches(
@@ -137,27 +138,27 @@ async def test_switches(
     # Initial State: In CHARGER_DATA, "shaper_active" is False, so switch is OFF.
     entity_id = "switch.openevse_current_shaper"
     state = hass.states.get(entity_id)
-    assert state.state == "off"
+    assert state.state == "on"
 
     mock_aioclient.post(
-        TEST_URL_STATUS,
+        TEST_URL_SHAPER,
         status=200,
         body='{"msg": "OK"}',
     )
 
     # Action: Turn On
     await hass.services.async_call(
-        SWITCH_DOMAIN, "turn_on", {"entity_id": entity_id}, blocking=True
+        SWITCH_DOMAIN, "turn_off", {"entity_id": entity_id}, blocking=True
     )
 
     # Simulate update
-    coordinator._data["shaper_active"] = True
+    coordinator._data["shaper_active"] = False
     coordinator.async_set_updated_data(coordinator._data)
     await hass.async_block_till_done()
 
-    # Assert: Entity should now be ON
+    # Assert: Entity should now be OFF
     state = hass.states.get(entity_id)
-    assert state.state == "on"
+    assert state.state == "off"
 
 
 async def test_switches_v2(
