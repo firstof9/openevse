@@ -234,7 +234,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
         manufacturer="OpenEVSE",
         model=model_info,
         sw_version=sw_version,
-        configuration_url=manager.url,
+        configuration_url=getattr(manager, "url", None),
     )
 
     await hass.config_entries.async_forward_entry_setups(config_entry, PLATFORMS)
@@ -633,7 +633,8 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
 async def send_command(handler, command) -> None:
     """Send command to OpenEVSE device via RAPI."""
     cmd, response = await handler.send_command(command)
-    _LOGGER.debug("[%s] send_command: %s, %s", handler.url, cmd, response)
+    context = getattr(handler, "url", "unknown-handler")
+    _LOGGER.debug("[%s] send_command: %s, %s", context, cmd, response)
     if cmd == command:
         if response == "$NK^21":
             raise InvalidValueError

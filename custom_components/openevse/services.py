@@ -195,11 +195,23 @@ class OpenEVSEServices:
             supports_response=SupportsResponse.ONLY,
         )
 
+    def _get_logger(self, device_id: str | None = None) -> OpenEVSELoggerAdapter:
+        """Get a contextual logger for a specific device ID."""
+        if device_id is not None:
+            dev_reg = dr.async_get(self.hass)
+            device_entry = dev_reg.async_get(device_id)
+            if device_entry:
+                return OpenEVSELoggerAdapter(
+                    _LOGGER, {"device_name": device_entry.name}
+                )
+        return self.logger
+
     def _resolve_device_config(self, device_id: str) -> str:
         """Resolve a device ID to a configuration ID."""
         dev_reg = dr.async_get(self.hass)
         device_entry = dev_reg.async_get(device_id)
-        self.logger.debug("Device_entry: %s", device_entry)
+        logger = self._get_logger(device_id)
+        logger.debug("Device_entry: %s", device_entry)
 
         if not device_entry:
             raise ValueError(f"Device ID {device_id} is not valid")
@@ -216,10 +228,11 @@ class OpenEVSEServices:
         data = service.data
         for device in data[ATTR_DEVICE_ID]:
             device_id = device
-            self.logger.debug("Device ID: %s", device_id)
+            logger = self._get_logger(device_id)
+            logger.debug("Device ID: %s", device_id)
 
             config_id = self._resolve_device_config(device_id)
-            self.logger.debug("Config ID: %s", config_id)
+            logger.debug("Config ID: %s", config_id)
             try:
                 manager = self.hass.data[DOMAIN][config_id][MANAGER]
                 state = data.get(ATTR_STATE)
@@ -238,12 +251,12 @@ class OpenEVSEServices:
                         time_limit=time_limit,
                         auto_release=auto_release,
                     )
-                    self.logger.debug("Set Override response: %s", response)
+                    logger.debug("Set Override response: %s", response)
                 except CONNECTION_ERRORS as err:
-                    self.logger.error(CONNECTION_ERROR, err)
+                    logger.error(CONNECTION_ERROR, err)
 
             except KeyError as err:
-                self.logger.error("Error locating configuration: %s", err)
+                logger.error("Error locating configuration: %s", err)
 
     async def _clear_override(self, service: ServiceCall) -> None:
         """Clear the manual override."""
@@ -251,29 +264,31 @@ class OpenEVSEServices:
         self.logger.debug("Data: %s", data)
         for device in data[ATTR_DEVICE_ID]:
             device_id = device
-            self.logger.debug("Device ID: %s", device_id)
+            logger = self._get_logger(device_id)
+            logger.debug("Device ID: %s", device_id)
 
             config_id = self._resolve_device_config(device_id)
-            self.logger.debug("Config ID: %s Type: %s", config_id, type(config_id))
+            logger.debug("Config ID: %s Type: %s", config_id, type(config_id))
             try:
                 manager = self.hass.data[DOMAIN][config_id][MANAGER]
                 try:
                     await manager.clear_override()
-                    self.logger.debug("Override clear command sent.")
+                    logger.debug("Override clear command sent.")
                 except CONNECTION_ERRORS as err:
-                    self.logger.error(CONNECTION_ERROR, err)
+                    logger.error(CONNECTION_ERROR, err)
             except KeyError as err:
-                self.logger.error("Error locating configuration: %s", err)
+                logger.error("Error locating configuration: %s", err)
 
     async def _set_limit(self, service: ServiceCall) -> None:
         """Set the limit."""
         data = service.data
         for device in data[ATTR_DEVICE_ID]:
             device_id = device
-            self.logger.debug("Device ID: %s", device_id)
+            logger = self._get_logger(device_id)
+            logger.debug("Device ID: %s", device_id)
 
             config_id = self._resolve_device_config(device_id)
-            self.logger.debug("Config ID: %s", config_id)
+            logger.debug("Config ID: %s", config_id)
             try:
                 manager = self.hass.data[DOMAIN][config_id][MANAGER]
                 limit_type = data[ATTR_TYPE]
@@ -290,12 +305,12 @@ class OpenEVSEServices:
                         value=value,
                         release=auto_release,
                     )
-                    self.logger.debug("Set Limit response: %s", response)
+                    logger.debug("Set Limit response: %s", response)
                 except CONNECTION_ERRORS as err:
-                    self.logger.error(CONNECTION_ERROR, err)
+                    logger.error(CONNECTION_ERROR, err)
 
             except KeyError as err:
-                self.logger.error("Error locating configuration: %s", err)
+                logger.error("Error locating configuration: %s", err)
 
     async def _clear_limit(self, service: ServiceCall) -> None:
         """Clear the limit."""
@@ -303,19 +318,20 @@ class OpenEVSEServices:
         self.logger.debug("Data: %s", data)
         for device in data[ATTR_DEVICE_ID]:
             device_id = device
-            self.logger.debug("Device ID: %s", device_id)
+            logger = self._get_logger(device_id)
+            logger.debug("Device ID: %s", device_id)
 
             config_id = self._resolve_device_config(device_id)
-            self.logger.debug("Config ID: %s Type: %s", config_id, type(config_id))
+            logger.debug("Config ID: %s Type: %s", config_id, type(config_id))
             try:
                 manager = self.hass.data[DOMAIN][config_id][MANAGER]
                 try:
                     await manager.clear_limit()
-                    self.logger.debug("Limit clear command sent.")
+                    logger.debug("Limit clear command sent.")
                 except CONNECTION_ERRORS as err:
-                    self.logger.error(CONNECTION_ERROR, err)
+                    logger.error(CONNECTION_ERROR, err)
             except KeyError as err:
-                self.logger.error("Error locating configuration: %s", err)
+                logger.error("Error locating configuration: %s", err)
 
     async def _get_limit(self, service: ServiceCall) -> ServiceResponse:
         """Get the limit."""
@@ -323,21 +339,22 @@ class OpenEVSEServices:
         self.logger.debug("Data: %s", data)
         for device in data[ATTR_DEVICE_ID]:
             device_id = device
-            self.logger.debug("Device ID: %s", device_id)
+            logger = self._get_logger(device_id)
+            logger.debug("Device ID: %s", device_id)
 
             config_id = self._resolve_device_config(device_id)
-            self.logger.debug("Config ID: %s Type: %s", config_id, type(config_id))
+            logger.debug("Config ID: %s Type: %s", config_id, type(config_id))
             try:
                 manager = self.hass.data[DOMAIN][config_id][MANAGER]
                 try:
                     response = await manager.get_limit()
-                    self.logger.debug("Get limit response %s.", response)
+                    logger.debug("Get limit response %s.", response)
                     return response
                 except CONNECTION_ERRORS as err:
-                    self.logger.error(CONNECTION_ERROR, err)
+                    logger.error(CONNECTION_ERROR, err)
                     return {}
             except KeyError as err:
-                self.logger.error("Error locating configuration: %s", err)
+                logger.error("Error locating configuration: %s", err)
                 return {}
 
     async def _make_claim(self, service: ServiceCall) -> None:
@@ -345,10 +362,11 @@ class OpenEVSEServices:
         data = service.data
         for device in data[ATTR_DEVICE_ID]:
             device_id = device
-            self.logger.debug("Device ID: %s", device_id)
+            logger = self._get_logger(device_id)
+            logger.debug("Device ID: %s", device_id)
 
             config_id = self._resolve_device_config(device_id)
-            self.logger.debug("Config ID: %s", config_id)
+            logger.debug("Config ID: %s", config_id)
             try:
                 manager = self.hass.data[DOMAIN][config_id][MANAGER]
                 state = data.get(ATTR_STATE)
@@ -363,11 +381,11 @@ class OpenEVSEServices:
                         max_current=max_current,
                         auto_release=auto_release,
                     )
-                    self.logger.debug("Make claim response: %s", response)
+                    logger.debug("Make claim response: %s", response)
                 except CONNECTION_ERRORS as err:
-                    self.logger.error(CONNECTION_ERROR, err)
+                    logger.error(CONNECTION_ERROR, err)
             except KeyError as err:
-                self.logger.error("Error locating configuration: %s", err)
+                logger.error("Error locating configuration: %s", err)
 
     async def _release_claim(self, service: ServiceCall) -> None:
         """Release a claim."""
@@ -375,19 +393,20 @@ class OpenEVSEServices:
         self.logger.debug("Data: %s", data)
         for device in data[ATTR_DEVICE_ID]:
             device_id = device
-            self.logger.debug("Device ID: %s", device_id)
+            logger = self._get_logger(device_id)
+            logger.debug("Device ID: %s", device_id)
 
             config_id = self._resolve_device_config(device_id)
-            self.logger.debug("Config ID: %s Type: %s", config_id, type(config_id))
+            logger.debug("Config ID: %s Type: %s", config_id, type(config_id))
             try:
                 manager = self.hass.data[DOMAIN][config_id][MANAGER]
                 try:
                     await manager.release_claim()
-                    self.logger.debug("Release claim command sent.")
+                    logger.debug("Release claim command sent.")
                 except CONNECTION_ERRORS as err:
-                    self.logger.error(CONNECTION_ERROR, err)
+                    logger.error(CONNECTION_ERROR, err)
             except KeyError as err:
-                self.logger.error("Error locating configuration: %s", err)
+                logger.error("Error locating configuration: %s", err)
 
     async def _list_claims(self, service: ServiceCall) -> ServiceResponse:
         """Get the claims."""
@@ -395,25 +414,26 @@ class OpenEVSEServices:
         self.logger.debug("Data: %s", data)
         for device in data[ATTR_DEVICE_ID]:
             device_id = device
-            self.logger.debug("Device ID: %s", device_id)
+            logger = self._get_logger(device_id)
+            logger.debug("Device ID: %s", device_id)
 
             config_id = self._resolve_device_config(device_id)
-            self.logger.debug("Config ID: %s Type: %s", config_id, type(config_id))
+            logger.debug("Config ID: %s Type: %s", config_id, type(config_id))
             try:
                 manager = self.hass.data[DOMAIN][config_id][MANAGER]
                 try:
                     response = await manager.list_claims()
-                    self.logger.debug("List claims response %s.", response)
+                    logger.debug("List claims response %s.", response)
                 except CONNECTION_ERRORS as err:
-                    self.logger.error(CONNECTION_ERROR, err)
+                    logger.error(CONNECTION_ERROR, err)
                     return {}
                 claims = {}
                 for x, claim in enumerate(response):
                     claims[x] = claim
-                self.logger.debug("Processed response %s.", claims)
+                logger.debug("Processed response %s.", claims)
                 return claims
             except KeyError as err:
-                self.logger.error("Error locating configuration: %s", err)
+                logger.error("Error locating configuration: %s", err)
                 return {}
 
     async def _list_overrides(self, service: ServiceCall) -> ServiceResponse:
@@ -422,19 +442,20 @@ class OpenEVSEServices:
         self.logger.debug("Data: %s", data)
         for device in data[ATTR_DEVICE_ID]:
             device_id = device
-            self.logger.debug("Device ID: %s", device_id)
+            logger = self._get_logger(device_id)
+            logger.debug("Device ID: %s", device_id)
 
             config_id = self._resolve_device_config(device_id)
-            self.logger.debug("Config ID: %s Type: %s", config_id, type(config_id))
+            logger.debug("Config ID: %s Type: %s", config_id, type(config_id))
             try:
                 manager = self.hass.data[DOMAIN][config_id][MANAGER]
                 try:
                     response = await manager.get_override()
-                    self.logger.debug("List overrides response %s.", response)
+                    logger.debug("List overrides response %s.", response)
                     return response
                 except CONNECTION_ERRORS as err:
-                    self.logger.error(CONNECTION_ERROR, err)
+                    logger.error(CONNECTION_ERROR, err)
                     return {}
             except KeyError as err:
-                self.logger.error("Error locating configuration: %s", err)
+                logger.error("Error locating configuration: %s", err)
                 return {}
