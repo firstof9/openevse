@@ -19,17 +19,13 @@ documentation:
           - LICENSE
           - docs/**/*
 
-tests:
+has-tests:
   - changed-files:
       - any-glob-to-any-file: tests/**/*
 
 translations:
   - changed-files:
       - any-glob-to-any-file: custom_components/openevse/translations/**/*
-
-github:
-  - changed-files:
-      - any-glob-to-any-file: .github/**/*
 
 dependencies:
   - head-branch: ['^deps[/|-].*', '^dependabot/.*']
