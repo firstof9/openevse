@@ -53,17 +53,16 @@ from .const import (
     UNSUB_LISTENERS,
     VERSION,
 )
+from .logger import OpenEVSELoggerAdapter
 from .services import OpenEVSEServices
 
 _LOGGER = logging.getLogger(__name__)
 
-
-class OpenEVSELoggerAdapter(logging.LoggerAdapter):
-    """Prepend device name to all log messages."""
-
-    def process(self, msg: str, kwargs: dict) -> tuple[str, dict]:
-        """Prepend the device name."""
-        return f"[{self.extra['device_name']}] {msg}", kwargs
+# NOTE FOR DEVELOPERS:
+# Always use the custom OpenEVSELoggerAdapter (e.g., self.logger or
+# self.coordinator.logger) instead of the raw _LOGGER. The adapter
+# automatically prepends the user's friendly device name, making it
+# possible to identify specific devices in multi-charger setups.
 
 
 divert_mode = {

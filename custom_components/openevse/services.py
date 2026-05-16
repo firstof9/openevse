@@ -43,6 +43,11 @@ from .logger import OpenEVSELoggerAdapter
 
 _LOGGER = logging.getLogger(__name__)
 
+# NOTE FOR DEVELOPERS:
+# Do not use the global _LOGGER directly in this file. Always use self.logger,
+# which is an instance of OpenEVSELoggerAdapter, to ensure that the friendly
+# device name context [device_name] is prepended to all logged statements.
+
 
 class OpenEVSEServices:
     """Class that holds our services."""
