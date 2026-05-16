@@ -453,7 +453,7 @@ SWITCH_TYPES: Final[dict[str, OpenEVSESwitchEntityDescription]] = {
     "shaper": OpenEVSESwitchEntityDescription(
         name="Current Shaper",
         key="shaper_active",
-        toggle_command="toggle_shaper",
+        toggle_command="set_shaper",
         device_class=SwitchDeviceClass.SWITCH,
         min_version="4.1.0",
     ),

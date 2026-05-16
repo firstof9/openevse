@@ -144,9 +144,10 @@ async def test_switches(
         TEST_URL_SHAPER,
         status=200,
         body='{"msg": "Current Shaper state changed"}',
+        repeat=True,
     )
 
-    # Action: Turn On
+    # Action: Turn Off
     await hass.services.async_call(
         SWITCH_DOMAIN, "turn_off", {"entity_id": entity_id}, blocking=True
     )
@@ -159,6 +160,20 @@ async def test_switches(
     # Assert: Entity should now be OFF
     state = hass.states.get(entity_id)
     assert state.state == "off"
+
+    # Action: Turn On
+    await hass.services.async_call(
+        SWITCH_DOMAIN, "turn_on", {"entity_id": entity_id}, blocking=True
+    )
+
+    # Simulate update
+    coordinator._data["shaper_active"] = True
+    coordinator.async_set_updated_data(coordinator._data)
+    await hass.async_block_till_done()
+
+    # Assert: Entity should now be ON
+    state = hass.states.get(entity_id)
+    assert state.state == "on"
 
 
 async def test_switches_v2(
