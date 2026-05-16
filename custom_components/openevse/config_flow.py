@@ -52,7 +52,10 @@ class OpenEVSEFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
         """Confirm discovery."""
-        _LOGGER.debug("config_flow async_step_discovery_confirm")
+        _LOGGER.debug(
+            "[%s] config_flow async_step_discovery_confirm",
+            self.discovery_info.get(CONF_HOST),
+        )
         if user_input is None:
             return self.async_show_form(
                 step_id="discovery_confirm",
@@ -68,7 +71,7 @@ class OpenEVSEFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
     @staticmethod
     async def _async_try_connect_and_fetch(ip_address: str) -> dict[str, Any]:
         """Try to connect."""
-        _LOGGER.debug("config_flow _async_try_connect_and_fetch")
+        _LOGGER.debug("[%s] config_flow _async_try_connect_and_fetch", ip_address)
 
         # Make connection with device
         # This is to test the connection and to get info for unique_id
@@ -79,7 +82,7 @@ class OpenEVSEFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
         except Exception as ex:
             _LOGGER.exception(
-                "Error connecting with OpenEVSE at %s",
+                "[%s] Error connecting with OpenEVSE",
                 ip_address,
             )
             raise AbortFlow("unknown_error") from ex
@@ -90,7 +93,7 @@ class OpenEVSEFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         self, discovery_info: zeroconf.ZeroconfServiceInfo
     ) -> FlowResult:
         """Handle zeroconf discovery."""
-        _LOGGER.debug("config_flow async_step_zeroconf")
+        _LOGGER.debug("[%s] config_flow async_step_zeroconf", discovery_info.host)
 
         # Avoid probing devices that already have an entry
         self._async_abort_entries_match({CONF_HOST: discovery_info.host})
@@ -146,7 +149,7 @@ class OpenEVSEFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                 await charger.ws_disconnect()
             except Exception as ex:
                 _LOGGER.exception(
-                    "Error connecting with OpenEVSE at %s: %s",
+                    "[%s] Error connecting with OpenEVSE: %s",
                     user_input[CONF_HOST],
                     ex,
                 )
@@ -188,7 +191,7 @@ class OpenEVSEFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                 await charger.ws_disconnect()
             except Exception as ex:
                 _LOGGER.exception(
-                    "Error connecting with OpenEVSE at %s: %s",
+                    "[%s] Error connecting with OpenEVSE: %s",
                     user_input[CONF_HOST],
                     ex,
                 )
@@ -199,7 +202,9 @@ class OpenEVSEFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                     self._entry, data=self._data
                 )
                 await self.hass.config_entries.async_reload(self._entry.entry_id)
-                _LOGGER.debug("%s reconfigured.", DOMAIN)
+                _LOGGER.debug(
+                    "[%s] %s reconfigured.", self._data.get(CONF_HOST), DOMAIN
+                )
                 return self.async_abort(reason="reconfigure_successful")
 
         return await self._show_reconfig_form(user_input)

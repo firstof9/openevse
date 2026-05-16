@@ -57,6 +57,15 @@ from .services import OpenEVSEServices
 
 _LOGGER = logging.getLogger(__name__)
 
+
+class OpenEVSELoggerAdapter(logging.LoggerAdapter):
+    """Prepend device name to all log messages."""
+
+    def process(self, msg: str, kwargs: dict) -> tuple[str, dict]:
+        """Prepend the device name."""
+        return f"[{self.extra['device_name']}] {msg}", kwargs
+
+
 divert_mode = {
     0: "eco",
     1: "fast",
@@ -70,6 +79,9 @@ async def handle_state_change(
     event: Event[EventStateChangedData] | None = None,
 ) -> None:
     """Track state changes to sensor entities."""
+    logger = OpenEVSELoggerAdapter(
+        _LOGGER, {"device_name": config_entry.data.get(CONF_NAME, "OpenEVSE")}
+    )
     manager = hass.data[DOMAIN][config_entry.entry_id][MANAGER]
     options = config_entry.options
     invert = options.get(CONF_INVERT)
@@ -88,14 +100,14 @@ async def handle_state_change(
             try:
                 grid = round(float(grid))
             except (ValueError, TypeError):
-                _LOGGER.warning("Non-numeric state for grid sensor: %s", grid)
+                logger.warning("Non-numeric state for grid sensor: %s", grid)
                 grid = None
 
-        _LOGGER.debug("Sending sensor data to OpenEVSE: (grid: %s)", grid)
+        logger.debug("Sending sensor data to OpenEVSE: (grid: %s)", grid)
         try:
             await manager.self_production(grid=grid, solar=None, invert=invert)
         except CONNECTION_ERRORS as err:
-            _LOGGER.warning(CONNECTION_ERROR, err)
+            logger.warning(CONNECTION_ERROR, err)
 
     elif solar_sensor is not None and changed_entity == solar_sensor:
         state = hass.states.get(solar_sensor)
@@ -106,14 +118,14 @@ async def handle_state_change(
             try:
                 solar = round(float(solar))
             except (ValueError, TypeError):
-                _LOGGER.warning("Non-numeric state for solar sensor: %s", solar)
+                logger.warning("Non-numeric state for solar sensor: %s", solar)
                 solar = None
 
-        _LOGGER.debug("Sending sensor data to OpenEVSE: (solar: %s)", solar)
+        logger.debug("Sending sensor data to OpenEVSE: (solar: %s)", solar)
         try:
             await manager.self_production(grid=None, solar=solar, invert=False)
         except CONNECTION_ERRORS as err:
-            _LOGGER.warning(CONNECTION_ERROR, err)
+            logger.warning(CONNECTION_ERROR, err)
 
     if voltage_sensor is not None and changed_entity == voltage_sensor:
         state = hass.states.get(voltage_sensor)
@@ -124,14 +136,14 @@ async def handle_state_change(
             try:
                 voltage = round(float(voltage))
             except (ValueError, TypeError):
-                _LOGGER.warning("Non-numeric state for voltage sensor: %s", voltage)
+                logger.warning("Non-numeric state for voltage sensor: %s", voltage)
                 voltage = None
 
-        _LOGGER.debug("Sending sensor data to OpenEVSE: (voltage: %s)", voltage)
+        logger.debug("Sending sensor data to OpenEVSE: (voltage: %s)", voltage)
         try:
             await manager.grid_voltage(voltage=voltage)
         except CONNECTION_ERRORS as err:
-            _LOGGER.warning(CONNECTION_ERROR, err)
+            logger.warning(CONNECTION_ERROR, err)
 
     if shaper_sensor is not None and changed_entity == shaper_sensor:
         state = hass.states.get(shaper_sensor)
@@ -142,14 +154,14 @@ async def handle_state_change(
             try:
                 power = round(float(power))
             except (ValueError, TypeError):
-                _LOGGER.warning("Non-numeric state for shaper sensor: %s", power)
+                logger.warning("Non-numeric state for shaper sensor: %s", power)
                 power = None
 
-        _LOGGER.debug("Sending sensor data to OpenEVSE: (shaper: %s)", power)
+        logger.debug("Sending sensor data to OpenEVSE: (shaper: %s)", power)
         try:
             await manager.set_shaper_live_pwr(power=power)
         except CONNECTION_ERRORS as err:
-            _LOGGER.warning(CONNECTION_ERROR, err)
+            logger.warning(CONNECTION_ERROR, err)
 
 
 async def homeassistant_started_listener(
@@ -177,7 +189,10 @@ async def async_setup(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:
 async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:
     """Set up is called when Home Assistant is loading our component."""
     hass.data.setdefault(DOMAIN, {})
-    _LOGGER.info(
+    logger = OpenEVSELoggerAdapter(
+        _LOGGER, {"device_name": config_entry.data.get(CONF_NAME, "OpenEVSE")}
+    )
+    logger.info(
         "Version %s is starting, if you have any issues please report them here: %s",
         VERSION,
         ISSUE_URL,
@@ -202,13 +217,13 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
     if not coordinator.last_update_success:
         raise ConfigEntryNotReady
 
-    model_info, sw_version = await get_firmware(manager)
+    model_info, sw_version = await get_firmware(manager, logger)
 
     try:
         data = await manager.test_and_get()
         serial = data["serial"]
     except MissingSerial:
-        _LOGGER.info("Unable to find serial number.")
+        logger.info("Unable to find serial number.")
         serial = config_entry.entry_id
 
     device_registry = dr.async_get(hass)
@@ -264,7 +279,10 @@ async def update_listener(hass: HomeAssistant, config_entry: ConfigEntry) -> Non
 
 async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:
     """Migrate config entry from version 1 to version 2."""
-    _LOGGER.debug(
+    logger = OpenEVSELoggerAdapter(
+        _LOGGER, {"device_name": config_entry.data.get(CONF_NAME, "OpenEVSE")}
+    )
+    logger.debug(
         "Migrating config entry from version %s to version 2",
         config_entry.version,
     )
@@ -281,33 +299,36 @@ async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry) ->
         hass.config_entries.async_update_entry(
             config_entry, data=new_data, options=new_options, version=2
         )
-        _LOGGER.info(
+        logger.info(
             "Migration to version 2 successful: sensor options moved to options flow"
         )
 
     return True
 
 
-async def get_firmware(manager: OpenEVSEManager) -> tuple:
+async def get_firmware(
+    manager: OpenEVSEManager,
+    logger: logging.Logger | logging.LoggerAdapter = _LOGGER,
+) -> tuple:
     """Get firmware version."""
-    _LOGGER.debug("Getting firmware versions...")
+    logger.debug("Getting firmware versions...")
     data = {}
     try:
         await manager.update()
     except CONNECTION_ERRORS as err:
-        _LOGGER.debug(CONNECTION_ERROR, err)
+        logger.debug(CONNECTION_ERROR, err)
         return ("", "")
     except RuntimeError as err:
-        _LOGGER.error("Runtime error updating firmware data: %s", err)
+        logger.error("Runtime error updating firmware data: %s", err)
         return ("", "")
     except Exception as err:
-        _LOGGER.exception("Unexpected error updating firmware data: %s", err)
+        logger.exception("Unexpected error updating firmware data: %s", err)
         return ("", "")
 
     try:
         data = await manager.test_and_get()
     except MissingSerial:
-        _LOGGER.info("Missing serial number data, skipping...")
+        logger.info("Missing serial number data, skipping...")
 
     if data and data.get("model") and data.get("model") != "unknown":
         return data["model"], manager.wifi_firmware
@@ -317,7 +338,10 @@ async def get_firmware(manager: OpenEVSEManager) -> tuple:
 
 async def async_unload_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:
     """Handle removal of an entry."""
-    _LOGGER.debug("Attempting to unload entities from the %s integration", DOMAIN)
+    logger = OpenEVSELoggerAdapter(
+        _LOGGER, {"device_name": config_entry.data.get(CONF_NAME, "OpenEVSE")}
+    )
+    logger.debug("Attempting to unload entities from the %s integration", DOMAIN)
 
     unload_ok = all(
         await asyncio.gather(
@@ -328,10 +352,10 @@ async def async_unload_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> 
         )
     )
 
-    _LOGGER.debug("Checking websocket...")
+    logger.debug("Checking websocket...")
     manager = hass.data[DOMAIN][config_entry.entry_id][MANAGER]
     if manager.ws_state != "stopped":
-        _LOGGER.debug("Closing websocket")
+        logger.debug("Closing websocket")
         await manager.ws_disconnect()
 
     if unload_ok:
@@ -341,7 +365,7 @@ async def async_unload_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> 
         ):
             unsub_listener()
         hass.data[DOMAIN][config_entry.entry_id].get(UNSUB_LISTENERS, []).clear()
-        _LOGGER.debug("Successfully removed entities from the %s integration", DOMAIN)
+        logger.debug("Successfully removed entities from the %s integration", DOMAIN)
         hass.data[DOMAIN].pop(config_entry.entry_id)
 
     return unload_ok
@@ -359,11 +383,15 @@ class OpenEVSEFirmwareCheck(DataUpdateCoordinator):
         self._manager = manager
         self._data = {}
 
-        _LOGGER.debug("Firmware data will be update every %s", self.interval)
+        self.logger = OpenEVSELoggerAdapter(
+            _LOGGER, {"device_name": config.data.get(CONF_NAME, "OpenEVSE")}
+        )
+
+        self.logger.debug("Firmware data will be update every %s", self.interval)
 
         super().__init__(
             hass,
-            _LOGGER,
+            self.logger,
             config_entry=config,
             name=self.name,
             update_interval=self.interval,
@@ -372,7 +400,7 @@ class OpenEVSEFirmwareCheck(DataUpdateCoordinator):
     async def _async_update_data(self):
         """Return data."""
         self._data = await self._manager.firmware_check()
-        _LOGGER.debug("FW Update: %s", self._data)
+        self.logger.debug("FW Update: %s", self._data)
         return self._data
 
 
@@ -390,11 +418,15 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
         self._update_lock = asyncio.Lock()
         self._manager.callback = self.websocket_update
 
-        _LOGGER.debug("Data will be update every %s", self.interval)
+        self.logger = OpenEVSELoggerAdapter(
+            _LOGGER, {"device_name": config.data.get(CONF_NAME, "OpenEVSE")}
+        )
+
+        self.logger.debug("Data will be update every %s", self.interval)
 
         super().__init__(
             hass,
-            _LOGGER,
+            self.logger,
             config_entry=config,
             name=self.name,
             update_interval=self.interval,
@@ -410,11 +442,11 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
         try:
             await self._manager.update()
         except RuntimeError as error:
-            _LOGGER.debug(
+            self.logger.debug(
                 "Error updating sensors [%s]: %s", type(error).__name__, error
             )
         except Exception as error:
-            _LOGGER.warning(
+            self.logger.warning(
                 "Error updating sensors [%s]: %s", type(error).__name__, error
             )
             raise UpdateFailed(error) from error
@@ -424,13 +456,13 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
             ws_state == "disconnected"
             and not getattr(self._manager, "_ws_listening", False)
         ):
-            _LOGGER.debug("Connecting to websocket...")
+            self.logger.debug("Connecting to websocket...")
             try:
                 self._manager.ws_start()
             except RuntimeError as err:
-                _LOGGER.debug("Websocket connection issue: %s", err)
+                self.logger.debug("Websocket connection issue: %s", err)
             except Exception as error:
-                _LOGGER.warning(
+                self.logger.warning(
                     "Error connecting to websocket [%s]: %s",
                     type(error).__name__,
                     error,
@@ -441,32 +473,36 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
             async with self._update_lock:
                 await self._update_data_snapshot()
         except Exception as error:
-            _LOGGER.debug("Error parsing sensors [%s]: %s", type(error).__name__, error)
+            self.logger.debug(
+                "Error parsing sensors [%s]: %s", type(error).__name__, error
+            )
             raise UpdateFailed(error) from error
 
-        _LOGGER.debug("Coordinator data: %s", self._data)
+        self.logger.debug("Coordinator data: %s", self._data)
         return self._data
 
     @callback
     async def websocket_update(self):
         """Trigger processing updated websocket data."""
-        _LOGGER.debug("Websocket update!")
+        self.logger.debug("Websocket update!")
         try:
             async with self._update_lock:
                 await self._update_data_snapshot()
         except CONNECTION_ERRORS as error:
-            _LOGGER.warning(
+            self.logger.warning(
                 "Connection error updating data from websocket [%s]: %s",
                 type(error).__name__,
                 error,
             )
             return
         except (ValueError, KeyError, UnsupportedFeature) as error:
-            _LOGGER.debug("Error parsing sensors [%s]: %s", type(error).__name__, error)
+            self.logger.debug(
+                "Error parsing sensors [%s]: %s", type(error).__name__, error
+            )
             return
         # Prevent callback failure from stopping future sensor updates; log and continue
         except Exception as error:
-            _LOGGER.warning(
+            self.logger.warning(
                 "Unexpected error parsing sensors [%s]: %s",
                 type(error).__name__,
                 error,
@@ -477,7 +513,7 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
             coordinator = self.hass.data[DOMAIN][self.config.entry_id][COORDINATOR]
             coordinator.async_set_updated_data(self._data)
         except KeyError as err:
-            _LOGGER.error("Error locating configuration: %s", err)
+            self.logger.error("Error locating configuration: %s", err)
 
     async def _update_data_snapshot(self) -> None:
         """Update the data snapshot."""
@@ -496,14 +532,14 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
                 continue
             sensor_property = descriptor.key
             if sensor_property not in manager_dir:
-                _LOGGER.debug("Could not update status for %s", key)
+                self.logger.debug("Could not update status for %s", key)
                 continue
 
             try:
                 value = getattr(self._manager, sensor_property)
                 if value_cast:
                     value = value_cast(value)
-                _LOGGER.debug(
+                self.logger.debug(
                     "%s: %s sensor_property: %s value: %s",
                     label,
                     key,
@@ -512,7 +548,7 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
                 )
                 data[key] = value
             except (ValueError, KeyError, UnsupportedFeature):
-                _LOGGER.debug("Could not update status for %s", key)
+                self.logger.debug("Could not update status for %s", key)
                 continue
         return data
 
@@ -530,12 +566,12 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
             sensor_property = descriptor.key
             sensor_value = getattr(descriptor, "value", None)
             if sensor_value not in manager_dir:
-                _LOGGER.debug("Could not update status for %s", key)
+                self.logger.debug("Could not update status for %s", key)
                 continue
 
             if sensor_value in seen_results:
                 data[key] = seen_results[sensor_value]
-                _LOGGER.debug(
+                self.logger.debug(
                     "%s: %s sensor_property: %s value %s",
                     label,
                     key,
@@ -555,7 +591,7 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
 
                 seen_results[sensor_value] = val
                 data[key] = val
-                _LOGGER.debug(
+                self.logger.debug(
                     "%s: %s sensor_property: %s value %s",
                     label,
                     key,
@@ -563,7 +599,7 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
                     data[key],
                 )
             except (ValueError, KeyError, UnsupportedFeature):
-                _LOGGER.debug("Could not update status for %s", key)
+                self.logger.debug("Could not update status for %s", key)
                 continue
         return data
 
@@ -575,7 +611,7 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
         data.update(self._collect_values(SELECT_TYPES, "select"))
         data.update(self._collect_values(NUMBER_TYPES, "number"))
         data.update(self._collect_values(LIGHT_TYPES, "light"))
-        _LOGGER.debug("Parsed data: %s", data)
+        self.logger.debug("Parsed data: %s", data)
         return data
 
     async def async_parse_sensors(self) -> dict:
@@ -591,14 +627,14 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
         data.update(
             await self._collect_async_values(SENSOR_TYPES, "sensor", seen_results)
         )
-        _LOGGER.debug("Parsed async data: %s", data)
+        self.logger.debug("Parsed async data: %s", data)
         return data
 
 
 async def send_command(handler, command) -> None:
     """Send command to OpenEVSE device via RAPI."""
     cmd, response = await handler.send_command(command)
-    _LOGGER.debug("send_command: %s, %s", cmd, response)
+    _LOGGER.debug("[%s] send_command: %s, %s", handler.url, cmd, response)
     if cmd == command:
         if response == "$NK^21":
             raise InvalidValueError

@@ -91,9 +91,11 @@ class OpenEVSESwitch(CoordinatorEntity, SwitchEntity):
         """Return True if switch is on."""
         data = self.coordinator.data
         if self._type not in data:
-            _LOGGER.warning("switch [%s] not supported.", self._type)
+            self.coordinator.logger.warning("switch [%s] not supported.", self._type)
             return None
-        _LOGGER.debug("switch [%s]: %s", self._attr_name, data[self._type])
+        self.coordinator.logger.debug(
+            "switch [%s]: %s", self._attr_name, data[self._type]
+        )
         if self._type == ATTR_STATE:
             return data[self._type] == SLEEP_STATE
         return cast(bool, data[self._type] == 1)
@@ -116,7 +118,7 @@ class OpenEVSESwitch(CoordinatorEntity, SwitchEntity):
             else:
                 await getattr(self._manager, self.toggle_command)()
         except CONNECTION_ERRORS as err:
-            _LOGGER.error(CONNECTION_ERROR, err)
+            self.coordinator.logger.error(CONNECTION_ERROR, err)
             raise HomeAssistantError(
                 f"Error connecting to device: {err}, "
                 "please check your network connection."
@@ -134,7 +136,7 @@ class OpenEVSESwitch(CoordinatorEntity, SwitchEntity):
             else:
                 await getattr(self._manager, self.toggle_command)()
         except CONNECTION_ERRORS as err:
-            _LOGGER.error(CONNECTION_ERROR, err)
+            self.coordinator.logger.error(CONNECTION_ERROR, err)
             raise HomeAssistantError(
                 f"Error connecting to device: {err}, "
                 "please check your network connection."
