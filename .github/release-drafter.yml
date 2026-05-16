@@ -4,23 +4,43 @@ change-template: "- $TITLE @$AUTHOR (#$NUMBER)"
 sort-direction: ascending
 autolabeler:
   - label: "chore"
+    branch:
+      - "chore-*"
+      - "docs-*"
     title:
-      - "/chore:/i"
+      - "/^chore(\\s*\\(.*\\))?:/i"
+      - "/^docs(\\s*\\(.*\\))?:/i"
+  - label: "documentation"
+    branch:
+      - "docs-*"
+    title:
+      - "/^docs(\\s*\\(.*\\))?:/i"
   - label: "bugfix"
+    branch:
+      - "fix-*"
     title:
-      - "/fix:/i"
+      - "/^fix(\\s*\\(.*\\))?:/i"
   - label: "feature"
+    branch:
+      - "feat-*"
     title:
-      - "/feat:/i"
+      - "/^feat(\\s*\\(.*\\))?:/i"
   - label: "enhancement"
+    branch:
+      - "refactor-*"
     title:
-      - "/refactor:/i"
+      - "/^refactor(\\s*\\(.*\\))?:/i"
   - label: "code-quality"
+    branch:
+      - "test-*"
     title:
-      - "/tests:/i"
+      - "/^test(s)?(\\s*\\(.*\\))?:/i"
   - label: "dependencies"
+    branch:
+      - "deps-*"
     title:
-      - "/build(deps):/i"
+      - "/^build\\(deps\\):/i"
+      - "/^chore\\(deps\\):/i"
 categories:
   - title: "💥 Breaking Change 💥"
     labels:
@@ -39,13 +59,16 @@ categories:
   - title: "🔧 Maintenance 🔧"
     labels:
       - "chore"
+      - "docs"
+      - "documentation"
+    collapse-after: 3
   - title: "🎓 Code Quality 🎓"
     labels:
       - "code-quality"
   - title: "🔩 Dependency 🔩"
     labels:
       - "dependencies"
-    collapse-after: 1
+    collapse-after: 3
 
 template: |
   [![Downloads for this release](https://img.shields.io/github/downloads/firstof9/openevse/$RESOLVED_VERSION/total.svg)](https://github.com/firstof9/openevse/releases/$RESOLVED_VERSION)
