@@ -31,6 +31,7 @@ categories:
       - "build"
       - "revert"
       - "translations"
+    collapse-after: 1
   - title: "🎓 Code Quality 🎓"
     labels:
       - "code-quality"
