@@ -100,7 +100,7 @@ class OpenEVSENumberEntity(CoordinatorEntity, NumberEntity):
             and data["divert_active"]
             and data["divertmode"] == "eco"
         ):
-            _LOGGER.debug(
+            self.coordinator.logger.debug(
                 "Disabling %s due to PV Divert being active.", self._attr_name
             )
             return False
@@ -131,7 +131,9 @@ class OpenEVSENumberEntity(CoordinatorEntity, NumberEntity):
         value = None
         if isinstance(data, dict) and self._type in data:
             value = data[self._type]
-        _LOGGER.debug("Number [%s] updated value: %s", self._type, value)
+        self.coordinator.logger.debug(
+            "Number [%s] updated value: %s", self._type, value
+        )
         return None if value is None else float(value)
 
     @property
@@ -144,11 +146,11 @@ class OpenEVSENumberEntity(CoordinatorEntity, NumberEntity):
         """Set new value."""
         if not value.is_integer():
             raise ValueError("charge rate must be whole amps")
-        _LOGGER.debug("Command: %s Value: %s", self._command, value)
+        self.coordinator.logger.debug("Command: %s Value: %s", self._command, value)
         try:
             await getattr(self._manager, self._command)(int(value))
         except CONNECTION_ERRORS as err:
-            _LOGGER.error(CONNECTION_ERROR, err)
+            self.coordinator.logger.error(CONNECTION_ERROR, err)
             raise HomeAssistantError(
                 f"Error connecting to device: {err}, "
                 "please check your network connection."

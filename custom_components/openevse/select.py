@@ -85,7 +85,9 @@ class OpenEVSESelect(CoordinatorEntity, SelectEntity):
         data = self.coordinator.data
         if isinstance(data, dict) and self._type in data:
             state = data[self._type]
-            _LOGGER.debug("Select [%s] updated value: %s", self._type, state)
+            self.coordinator.logger.debug(
+                "Select [%s] updated value: %s", self._type, state
+            )
             return None if state is None else str(state)
         return None
 
@@ -97,33 +99,37 @@ class OpenEVSESelect(CoordinatorEntity, SelectEntity):
             if self._type == "override_state":
                 if option != "auto":
                     response = await charger.set_override(state=option.lower())
-                    _LOGGER.debug("Select response: %s", response)
+                    self.coordinator.logger.debug("Select response: %s", response)
                 else:
                     response = await charger.clear_override()
-                    _LOGGER.debug("Select Auto response: %s", response)
+                    self.coordinator.logger.debug("Select Auto response: %s", response)
                 return None
 
             if self._command.startswith("$"):
                 command = f"{self._command} {option}"
-                _LOGGER.debug("Command: %s", command)
+                self.coordinator.logger.debug("Command: %s", command)
                 await send_command(charger, command)
             else:
-                _LOGGER.debug("Command: %s Option: %s", self._command, option)
+                self.coordinator.logger.debug(
+                    "Command: %s Option: %s", self._command, option
+                )
                 await getattr(self._manager, self._command)(option)
         except CONNECTION_ERRORS as err:
-            _LOGGER.error(CONNECTION_ERROR, err)
+            self.coordinator.logger.error(CONNECTION_ERROR, err)
             raise HomeAssistantError(
                 f"Error connecting to device: {err}, "
                 "please check your network connection."
             ) from err
         except (ValueError, KeyError) as err:
-            _LOGGER.warning(
+            self.coordinator.logger.warning(
                 "Could not set status for %s error: %s", self._attr_name, err
             )
         except InvalidValueError:
-            _LOGGER.error("Value %s invalid for command %s.", option, self._command)
+            self.coordinator.logger.error(
+                "Value %s invalid for command %s.", option, self._command
+            )
         except CommandFailedError:
-            _LOGGER.error("Command %s failed.", self._command)
+            self.coordinator.logger.error("Command %s failed.", self._command)
 
     @property
     def available(self) -> bool:
@@ -140,7 +146,7 @@ class OpenEVSESelect(CoordinatorEntity, SelectEntity):
             and data["divert_active"]
             and data["divertmode"] == "eco"
         ):
-            _LOGGER.debug(
+            self.coordinator.logger.debug(
                 "Disabling %s due to PV Divert being active.", self._attr_name
             )
             return False
@@ -170,6 +176,6 @@ class OpenEVSESelect(CoordinatorEntity, SelectEntity):
                 amps_max = 48
             amps_max += 1
             options = [str(item) for item in range(amps_min, amps_max)]
-            _LOGGER.debug("Max Amps: %s", options)
+            self.coordinator.logger.debug("Max Amps: %s", options)
             return options
         return self._default_options or []

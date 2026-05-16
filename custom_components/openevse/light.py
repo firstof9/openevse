@@ -132,7 +132,7 @@ class OpenEVSELight(CoordinatorEntity, LightEntity):
                 return
             await self.manager.set_led_brightness(DEFAULT_ON)
         except CONNECTION_ERRORS as err:
-            _LOGGER.error(CONNECTION_ERROR, err)
+            self.coordinator.logger.error(CONNECTION_ERROR, err)
             raise HomeAssistantError(
                 f"Error connecting to device: {err}, "
                 "please check your network connection."
@@ -143,7 +143,7 @@ class OpenEVSELight(CoordinatorEntity, LightEntity):
         try:
             await self.manager.set_led_brightness(DEFAULT_OFF)
         except CONNECTION_ERRORS as err:
-            _LOGGER.error(CONNECTION_ERROR, err)
+            self.coordinator.logger.error(CONNECTION_ERROR, err)
             raise HomeAssistantError(
                 f"Error connecting to device: {err}, "
                 "please check your network connection."

@@ -566,7 +566,7 @@ async def test_coordinator_parse_errors(hass, test_charger, mock_ws_start, caplo
     # 3. Test KeyError in websocket_update
     with (
         patch.dict(hass.data[DOMAIN], {entry.entry_id: {}}, clear=True),
-        patch("custom_components.openevse._LOGGER.error") as mock_log_error,
+        patch.object(coordinator.logger, "error") as mock_log_error,
     ):
         await coordinator.websocket_update()
         assert mock_log_error.called

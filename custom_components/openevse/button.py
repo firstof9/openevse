@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import logging
-
 from homeassistant.components.button import ButtonEntity, ButtonEntityDescription
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -15,11 +13,10 @@ from .const import (
     BUTTON_TYPES,
     CONF_NAME,
     CONNECTION_ERROR,
+    COORDINATOR,
     DOMAIN,
     MANAGER,
 )
-
-_LOGGER = logging.getLogger(__name__)
 
 
 async def async_setup_entry(
@@ -29,10 +26,13 @@ async def async_setup_entry(
 ) -> None:
     """Set up OpenEVSE buttons based on a config entry."""
     manager = hass.data[DOMAIN][config_entry.entry_id][MANAGER]
+    coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
     assert manager is not None
     buttons = []
     for button in BUTTON_TYPES:
-        buttons.append(OpenEVSEButton(BUTTON_TYPES[button], manager, config_entry))
+        buttons.append(
+            OpenEVSEButton(BUTTON_TYPES[button], manager, config_entry, coordinator)
+        )
     async_add_entities(buttons, False)
 
 
@@ -44,8 +44,10 @@ class OpenEVSEButton(ButtonEntity):
         button_description: ButtonEntityDescription,
         manager: OpenEVSEManager,
         config_entry: ConfigEntry,
+        coordinator,
     ) -> None:
         """Initialise a OpenEVSE button."""
+        self.coordinator = coordinator
         self.entity_description = button_description
         self.config = config_entry
         self.manager = manager
@@ -71,7 +73,7 @@ class OpenEVSEButton(ButtonEntity):
         try:
             await getattr(self.manager, self._key)()
         except CONNECTION_ERRORS as err:
-            _LOGGER.error(CONNECTION_ERROR, err)
+            self.coordinator.logger.error(CONNECTION_ERROR, err)
             raise HomeAssistantError(
                 f"Error connecting to device: {err}, "
                 "please check your network connection."
