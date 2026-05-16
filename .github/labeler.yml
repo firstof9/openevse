@@ -1,41 +1,35 @@
-backend:
-  - changed-files:
-      - any-glob-to-any-file: custom_components/openevse/**/*.py
-tests:
-  - changed-files:
-      - any-glob-to-any-file: tests/**/*
-translations:
-  - changed-files:
-      - any-glob-to-any-file: custom_components/openevse/translations/**/*
-docs:
+chore:
+  - head-branch: ['^chore[/|-].*']
+
+bugfix:
+  - head-branch: ['^fix[/|-].*', '^bugfix[/|-].*']
+
+feature:
+  - head-branch: ['^feature[/|-].*', '^feat[/|-].*']
+
+enhancement:
+  - head-branch: ['^refactor[/|-].*']
+
+documentation:
+  - head-branch: ['^docs[/|-].*']
   - changed-files:
       - any-glob-to-any-file:
           - README.md
           - CONTRIBUTING.md
           - LICENSE
+          - docs/**/*
+
+tests:
+  - changed-files:
+      - any-glob-to-any-file: tests/**/*
+
+translations:
+  - changed-files:
+      - any-glob-to-any-file: custom_components/openevse/translations/**/*
+
 github:
   - changed-files:
       - any-glob-to-any-file: .github/**/*
 
-chore:
-  - head-branch: ['^chore/.*']
-  - any:
-      - title: ['^chore:.*']
-bugfix:
-  - head-branch: ['^fix/.*', '^bugfix/.*']
-  - any:
-      - title: ['^fix:.*']
-feature:
-  - head-branch: ['^feature/.*', '^feat/.*']
-  - any:
-      - title: ['^feat:.*']
-enhancement:
-  - head-branch: ['^refactor/.*']
-  - any:
-      - title: ['^refactor:.*']
-code-quality:
-  - any:
-      - title: ['^tests:.*']
 dependencies:
-  - any:
-      - title: ['^build\(deps\):.*']
+  - head-branch: ['^deps[/|-].*', '^dependabot/.*']
