@@ -2,74 +2,134 @@ name-template: "$RESOLVED_VERSION"
 tag-template: "$RESOLVED_VERSION"
 change-template: "- $TITLE @$AUTHOR (#$NUMBER)"
 sort-direction: ascending
-autolabeler:
-  - label: "chore"
-    branch:
-      - "chore-*"
-      - "docs-*"
-    title:
-      - "/^chore(\\s*\\(.*\\))?:/i"
-      - "/^docs(\\s*\\(.*\\))?:/i"
-  - label: "documentation"
-    branch:
-      - "docs-*"
-    title:
-      - "/^docs(\\s*\\(.*\\))?:/i"
-  - label: "bugfix"
-    branch:
-      - "fix-*"
-    title:
-      - "/^fix(\\s*\\(.*\\))?:/i"
-  - label: "feature"
-    branch:
-      - "feat-*"
-    title:
-      - "/^feat(\\s*\\(.*\\))?:/i"
-  - label: "enhancement"
-    branch:
-      - "refactor-*"
-    title:
-      - "/^refactor(\\s*\\(.*\\))?:/i"
-  - label: "code-quality"
-    branch:
-      - "test-*"
-    title:
-      - "/^test(s)?(\\s*\\(.*\\))?:/i"
-  - label: "dependencies"
-    branch:
-      - "deps-*"
-    title:
-      - "/^build\\(deps\\):/i"
-      - "/^chore\\(deps\\):/i"
 categories:
   - title: "💥 Breaking Change 💥"
     labels:
       - "breaking-change"
-  - title: "⚡ Enhancements ⚡"
-    labels:
-      - "enhancement"
   - title: "✨ New Features ✨"
     labels:
+      - "enhancement"
       - "feature"
   - title: "🐛 Bug Fixes 🐛"
     labels:
       - "fix"
       - "bugfix"
       - "bug"
+  - title: "⚡ Performance ⚡"
+    labels:
+      - "performance"
   - title: "🔧 Maintenance 🔧"
     labels:
       - "chore"
-      - "docs"
       - "documentation"
-    collapse-after: 1
+      - "maintenance"
+      - "repo"
+      - "dependencies"
+      - "github_actions"
+      - "refactor"
+      - "style"
+      - "build"
+      - "revert"
+      - "translations"
   - title: "🎓 Code Quality 🎓"
     labels:
       - "code-quality"
-  - title: "🔩 Dependency 🔩"
+      - "CI"
+      - "test"
+      - "has-tests"
+autolabeler:
+  - label: "breaking-change"
+    title:
+      - '/^[a-z]+(\([^)]+\))?!:/i'
+  - label: "feature"
+    branch:
+      - "feat-*"
+      - "feature-*"
+    title:
+      - '/^feat(\([^)]+\))?:/i'
+  - label: "bugfix"
+    branch:
+      - "fix-*"
+      - "bugfix-*"
+    title:
+      - '/^fix(\([^)]+\))?:/i'
+  - label: "refactor"
+    branch:
+      - "refactor-*"
+    title:
+      - '/^refactor(\([^)]+\))?:/i'
+  - label: "code-quality"
+    branch:
+      - "test-*"
+    title:
+      - '/^test(\([^)]+\))?:/i'
+  - label: "CI"
+    title:
+      - '/^ci(\([^)]+\))?:/i'
+  - label: "chore"
+    branch:
+      - "chore-*"
+    title:
+      - '/^chore(\([^)]+\))?:/i'
+  - label: "documentation"
+    branch:
+      - "docs-*"
+    title:
+      - '/^docs(\([^)]+\))?:/i'
+    files:
+      - "README.md"
+      - "CONTRIBUTING.md"
+      - "LICENSE"
+      - "docs/**/*"
+  - label: "style"
+    title:
+      - '/^style(\([^)]+\))?:/i'
+  - label: "performance"
+    title:
+      - '/^perf(\([^)]+\))?:/i'
+  - label: "revert"
+    title:
+      - '/^revert(\([^)]+\))?:/i'
+  - label: "build"
+    title:
+      - '/^build(\([^)]+\))?:/i'
+  - label: "dependencies"
+    branch:
+      - "deps-*"
+      - "dependabot/*"
+    title:
+      - "/^build\\(deps\\):/i"
+      - "/^chore\\(deps\\):/i"
+  - label: "has-tests"
+    files:
+      - "tests/**/*"
+  - label: "translations"
+    files:
+      - "custom_components/openevse/translations/**/*"
+version-resolver:
+  major:
     labels:
-      - "dependencies"
-    collapse-after: 1
-
+      - "breaking-change"
+  minor:
+    labels:
+      - "feature"
+      - "enhancement"
+  patch:
+    labels:
+      - "bug"
+      - "fix"
+      - "bugfix"
+      - "performance"
+      - "refactor"
+      - "style"
+      - "build"
+      - "chore"
+      - "documentation"
+      - "CI"
+      - "test"
+      - "code-quality"
+      - "revert"
+  default: patch
 template: |
   [![Downloads for this release](https://img.shields.io/github/downloads/firstof9/openevse/$RESOLVED_VERSION/total.svg)](https://github.com/firstof9/openevse/releases/$RESOLVED_VERSION)
 
