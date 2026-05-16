@@ -39,6 +39,7 @@ from .const import (
     SERVICE_SET_LIMIT,
     SERVICE_SET_OVERRIDE,
 )
+from .logger import OpenEVSELoggerAdapter
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -54,7 +55,6 @@ class OpenEVSEServices:
         """Initialize with hass object."""
         self.hass = hass
         self._config = config
-        from . import OpenEVSELoggerAdapter
 
         self.logger = OpenEVSELoggerAdapter(
             _LOGGER, {"device_name": config.data.get(CONF_NAME, "OpenEVSE")}
