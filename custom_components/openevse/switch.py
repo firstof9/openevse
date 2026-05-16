@@ -111,6 +111,8 @@ class OpenEVSESwitch(CoordinatorEntity, SwitchEntity):
         try:
             if self.toggle_command == "claim":
                 await self._manager.release_claim()
+            elif self.toggle_command == "set_shaper":
+                await self._manager.set_shaper(True)
             else:
                 await getattr(self._manager, self.toggle_command)()
         except CONNECTION_ERRORS as err:
@@ -127,6 +129,8 @@ class OpenEVSESwitch(CoordinatorEntity, SwitchEntity):
         try:
             if self.toggle_command == "claim":
                 await self._manager.make_claim(state="active")
+            elif self.toggle_command == "set_shaper":
+                await self._manager.set_shaper(False)
             else:
                 await getattr(self._manager, self.toggle_command)()
         except CONNECTION_ERRORS as err:
