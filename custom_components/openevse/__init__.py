@@ -243,6 +243,11 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
     if manager.version_check("4.1.0"):
         services = OpenEVSEServices(hass, config_entry)
         services.async_register()
+    else:
+        logger.debug(
+            "Skipping service registration: firmware version does not meet "
+            "minimum requirement (4.1.0)"
+        )
 
     sensors = []
     options = config_entry.options

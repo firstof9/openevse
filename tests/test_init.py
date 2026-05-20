@@ -306,7 +306,7 @@ async def test_setup_entry_v2(hass, test_charger_v2, mock_ws_start):
     assert len(entries) == 1
 
 
-async def test_setup_entry_old_firmware(hass, test_charger, mock_ws_start):
+async def test_setup_entry_old_firmware(hass, test_charger, mock_ws_start, caplog):
     """Test setup with older firmware where services are not registered."""
     entry = MockConfigEntry(
         domain=DOMAIN,
@@ -325,6 +325,10 @@ async def test_setup_entry_old_firmware(hass, test_charger, mock_ws_start):
         # Verify that a service specific to > 4.1.0 is NOT registered
         # 'set_override' is one of the services registered in services.py
         assert not hass.services.has_service(DOMAIN, "set_override")
+        assert (
+            "Skipping service registration: firmware version does not meet "
+            "minimum requirement (4.1.0)" in caplog.text
+        )
 
 
 async def test_setup_entry_state_change_unavailable(
