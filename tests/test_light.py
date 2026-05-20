@@ -179,3 +179,29 @@ async def test_light_connection_error(
             blocking=True,
         )
     assert "Error connecting to device" in caplog.text
+
+
+async def test_light_available_version_check(hass, test_charger, mock_ws_start):
+    """Test light availability version checks."""
+    entry = MockConfigEntry(domain=DOMAIN, data=CONFIG_DATA)
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
+    manager = hass.data[DOMAIN][entry.entry_id][MANAGER]
+    entity_id = "light.openevse_led_brightness"
+
+    # With version_check returning True, the entity should be available
+    with patch.object(manager, "version_check", return_value=True):
+        coordinator.async_update_listeners()
+        await hass.async_block_till_done()
+        state = hass.states.get(entity_id)
+        assert state.state != "unavailable"
+
+    # With version_check returning False, the entity should be unavailable
+    with patch.object(manager, "version_check", return_value=False):
+        coordinator.async_update_listeners()
+        await hass.async_block_till_done()
+        state = hass.states.get(entity_id)
+        assert state.state == "unavailable"
