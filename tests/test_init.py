@@ -317,7 +317,10 @@ async def test_setup_entry_old_firmware(hass, test_charger, mock_ws_start, caplo
 
     # Patch version_check to return False (simulating firmware < 4.1.0)
     # The integration uses the 'manager' object which is an instance of OpenEVSE
-    with patch("custom_components.openevse.OpenEVSE.version_check", return_value=False):
+    with (
+        patch("custom_components.openevse.OpenEVSE.version_check", return_value=False),
+        caplog.at_level(logging.DEBUG),
+    ):
         entry.add_to_hass(hass)
         assert await hass.config_entries.async_setup(entry.entry_id)
         await hass.async_block_till_done()
