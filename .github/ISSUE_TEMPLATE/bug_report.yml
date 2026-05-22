@@ -29,14 +29,37 @@ body:
 
         [![Open your Home Assistant instance and show the system information.](https://my.home-assistant.io/badges/system_health.svg)](https://my.home-assistant.io/redirect/system_health/)
   - type: input
+    id: wifi_version
     validations:
       required: true
     attributes:
-      label: What version of OpenEVSE?
+      label: What version of the OpenEVSE WiFi Firmware?
+      placeholder: e.g., 4.1.2, 5.0.0
       description: >
-        Can be found in: [Settings ⇒ Devices & services ⇒ OpenEVSE under the OpenEVSE logo](https://my.home-assistant.io/redirect/integration/?domain=openevse)
+        Can be found on the OpenEVSE device information card in Home Assistant: [Settings ⇒ Devices & services ⇒ OpenEVSE](https://my.home-assistant.io/redirect/integration/?domain=openevse)
 
         [![Open your Home Assistant instance and show the integration information.](https://my.home-assistant.io/badges/integration.svg)](https://my.home-assistant.io/redirect/integration/?domain=openevse)
+  - type: input
+    id: controller_version
+    validations:
+      required: false
+    attributes:
+      label: What version of the OpenEVSE Controller Firmware?
+      placeholder: e.g., 7.1.3, 8.2.1
+      description: >
+        Can be found on the OpenEVSE device information card in Home Assistant: [Settings ⇒ Devices & services ⇒ OpenEVSE](https://my.home-assistant.io/redirect/integration/?domain=openevse)
+  - type: dropdown
+    id: connection_type
+    validations:
+      required: true
+    attributes:
+      label: Connection Type
+      description: How is your OpenEVSE charger connected to your local network?
+      options:
+        - Wi-Fi
+        - Ethernet
+        - Serial
+        - Other
   - type: markdown
     attributes:
       value: |
@@ -55,7 +78,7 @@ body:
   - type: textarea
     attributes:
       label: Anything in the logs that might be useful for us?
-      description: For example, error message, or stack traces.
+      description: For example, error message, or stack traces. (Please enable debug logging if possible).
       render: txt
   - type: textarea
     attributes:
