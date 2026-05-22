@@ -137,6 +137,42 @@ Claims allow multiple automations or external apps to request different charger 
 * **`openevse.get_limit`** *(Returns Response Data)*: Retrieve current session limits from the charger.
 * **`openevse.list_overrides`** *(Returns Response Data)*: List active overrides on the EVSE.
 
+### Service Call Examples
+
+Here are some examples of how to invoke these services in your Home Assistant automations or scripts:
+
+#### Set Manual Override
+Start charging immediately at `24 Amps` and release the override once the vehicle is disconnected:
+```yaml
+service: openevse.set_override
+target:
+  entity_id: sensor.openevse_charging_status
+data:
+  state: active
+  charge_current: 24
+  auto_release: true
+```
+
+#### Set Charge Limit (SoC)
+Stop charging once the vehicle's battery level reaches `80%`:
+```yaml
+service: openevse.set_limit
+target:
+  entity_id: sensor.openevse_charging_status
+data:
+  type: soc
+  value: 80
+  auto_release: true
+```
+
+#### Clear Active Limit
+Remove any active time, energy, SoC, or range limit on the charger:
+```yaml
+service: openevse.clear_limit
+target:
+  entity_id: sensor.openevse_charging_status
+```
+
 ---
 
 ## Dashboards & UI
