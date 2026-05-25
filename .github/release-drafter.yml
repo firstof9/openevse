@@ -43,45 +43,26 @@ autolabeler:
     title:
       - '/^[a-z]+(\([^)]+\))?!:/i'
   - label: "feature"
-    branch:
-      - "feat-*"
-      - "feature-*"
     title:
       - '/^feat(\([^)]+\))?:/i'
   - label: "bugfix"
-    branch:
-      - "fix-*"
-      - "bugfix-*"
     title:
       - '/^fix(\([^)]+\))?:/i'
   - label: "refactor"
-    branch:
-      - "refactor-*"
     title:
       - '/^refactor(\([^)]+\))?:/i'
   - label: "code-quality"
-    branch:
-      - "test-*"
     title:
       - '/^test(\([^)]+\))?:/i'
   - label: "CI"
     title:
       - '/^ci(\([^)]+\))?:/i'
   - label: "chore"
-    branch:
-      - "chore-*"
     title:
       - '/^chore(\([^)]+\))?:/i'
   - label: "documentation"
-    branch:
-      - "docs-*"
     title:
       - '/^docs(\([^)]+\))?:/i'
-    files:
-      - "README.md"
-      - "CONTRIBUTING.md"
-      - "LICENSE"
-      - "docs/**/*"
   - label: "style"
     title:
       - '/^style(\([^)]+\))?:/i'
@@ -95,9 +76,6 @@ autolabeler:
     title:
       - '/^build(\([^)]+\))?:/i'
   - label: "dependencies"
-    branch:
-      - "deps-*"
-      - "dependabot/*"
     title:
       - "/^build\\(deps\\):/i"
       - "/^chore\\(deps\\):/i"
