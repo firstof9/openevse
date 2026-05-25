@@ -485,3 +485,39 @@ async def test_select_clear_override_not_active(
         )
         await hass.async_block_till_done()
         assert "No active override to clear." in caplog.text
+
+
+async def test_select_clear_override_other_runtime_error(
+    hass,
+    test_charger,
+    mock_ws_start,
+    mock_aioclient,
+):
+    """Test select platform when clearing override raises unexpected RuntimeError."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA,
+    )
+
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    entity_id = "select.openevse_override_state"
+
+    mock_aioclient.delete(
+        TEST_URL_OVERRIDE,
+        status=500,
+        body='{"msg": "Some other server error"}',
+    )
+
+    servicedata = {
+        "entity_id": entity_id,
+        "option": "auto",
+    }
+
+    with pytest.raises(HomeAssistantError, match="Error communicating with device"):
+        await hass.services.async_call(
+            SELECT_DOMAIN, SERVICE_SELECT_OPTION, servicedata, blocking=True
+        )
