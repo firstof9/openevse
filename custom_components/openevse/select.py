@@ -112,7 +112,9 @@ class OpenEVSESelect(CoordinatorEntity, SelectEntity):
                                 "No active override to clear."
                             )
                         else:
-                            raise
+                            raise HomeAssistantError(
+                                f"Error communicating with device: {err}"
+                            ) from err
                 return None
 
             if self._command.startswith("$"):
