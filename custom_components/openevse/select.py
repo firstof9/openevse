@@ -101,8 +101,18 @@ class OpenEVSESelect(CoordinatorEntity, SelectEntity):
                     response = await charger.set_override(state=option.lower())
                     self.coordinator.logger.debug("Select response: %s", response)
                 else:
-                    response = await charger.clear_override()
-                    self.coordinator.logger.debug("Select Auto response: %s", response)
+                    try:
+                        response = await charger.clear_override()
+                        self.coordinator.logger.debug(
+                            "Select Auto response: %s", response
+                        )
+                    except RuntimeError as err:
+                        if "Failed to release manual override" in str(err):
+                            self.coordinator.logger.debug(
+                                "No active override to clear."
+                            )
+                        else:
+                            raise
                 return None
 
             if self._command.startswith("$"):
