@@ -11,6 +11,7 @@ from homeassistant.core import (
     SupportsResponse,
     callback,
 )
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import device_registry as dr
 
@@ -276,6 +277,13 @@ class OpenEVSEServices:
                     logger.debug("Override clear command sent.")
                 except CONNECTION_ERRORS as err:
                     logger.error(CONNECTION_ERROR, err)
+                except RuntimeError as err:
+                    if "Failed to release manual override" in str(err):
+                        logger.debug("No active override to clear.")
+                    else:
+                        raise HomeAssistantError(
+                            f"Error communicating with device: {err}"
+                        ) from err
             except KeyError as err:
                 logger.error("Error locating configuration: %s", err)
 

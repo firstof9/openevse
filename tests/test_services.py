@@ -6,6 +6,7 @@ import logging
 from unittest.mock import MagicMock, patch
 
 import pytest
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
@@ -383,6 +384,93 @@ async def test_clear_override(
             blocking=True,
         )
         assert "Override clear command sent." in caplog.text
+
+
+async def test_clear_override_not_active(
+    hass,
+    test_charger_services,
+    mock_aioclient,
+    mock_ws_start,
+    entity_registry: er.EntityRegistry,
+    caplog,
+):
+    """Test release claim service call when no override is active."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA,
+    )
+    mock_aioclient.delete(
+        TEST_URL_OVERRIDE,
+        status=500,
+        body='{"msg": "Failed to release manual override"}',
+    )
+    mock_aioclient.get(
+        TEST_URL_OVERRIDE,
+        status=200,
+        body="{}",
+        repeat=True,
+    )
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    entry = entity_registry.async_get("sensor.openevse_station_status")
+    assert entry
+    assert entry.device_id
+
+    # setup service call
+    with caplog.at_level(logging.DEBUG):
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_CLEAR_OVERRIDE,
+            {ATTR_DEVICE_ID: entry.device_id},
+            blocking=True,
+        )
+        assert "No active override to clear." in caplog.text
+
+
+async def test_clear_override_other_runtime_error(
+    hass,
+    test_charger_services,
+    mock_aioclient,
+    mock_ws_start,
+    entity_registry: er.EntityRegistry,
+):
+    """Test release claim service call with an unexpected RuntimeError."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA,
+    )
+    # Status code 500 with another message
+    mock_aioclient.delete(
+        TEST_URL_OVERRIDE,
+        status=500,
+        body='{"msg": "Some other server error"}',
+    )
+    mock_aioclient.get(
+        TEST_URL_OVERRIDE,
+        status=200,
+        body="{}",
+        repeat=True,
+    )
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    entry = entity_registry.async_get("sensor.openevse_station_status")
+    assert entry
+    assert entry.device_id
+
+    # setup service call, expects HomeAssistantError
+    with pytest.raises(HomeAssistantError, match="Error communicating with device"):
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_CLEAR_OVERRIDE,
+            {ATTR_DEVICE_ID: entry.device_id},
+            blocking=True,
+        )
 
 
 async def test_list_overrides(
