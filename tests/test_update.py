@@ -9,6 +9,7 @@ from homeassistant.components.update import (
     ATTR_RELEASE_URL,
 )
 from homeassistant.components.update import DOMAIN as UPDATE_DOMAIN
+from homeassistant.exceptions import HomeAssistantError
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.openevse.const import COORDINATOR, DOMAIN, FW_COORDINATOR
@@ -117,8 +118,6 @@ async def test_update_install_no_url(hass, test_charger, mock_ws_start):
     fw_coordinator.data = {}
 
     entity_id = "update.openevse_update"
-    from homeassistant.exceptions import HomeAssistantError
-
     with pytest.raises(HomeAssistantError):
         await hass.services.async_call(
             UPDATE_DOMAIN, "install", {"entity_id": entity_id}, blocking=True
@@ -141,8 +140,6 @@ async def test_update_install_failure(hass, test_charger, mock_ws_start):
     manager.update_firmware = AsyncMock(side_effect=RuntimeError("Update failed"))
 
     entity_id = "update.openevse_update"
-    from homeassistant.exceptions import HomeAssistantError
-
     with pytest.raises(HomeAssistantError):
         await hass.services.async_call(
             UPDATE_DOMAIN, "install", {"entity_id": entity_id}, blocking=True
