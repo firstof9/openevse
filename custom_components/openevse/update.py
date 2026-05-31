@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from typing import Any
 
 from homeassistant.components.update import (
     UpdateDeviceClass,
@@ -37,7 +38,9 @@ class OpenEVSEUpdateEntity(CoordinatorEntity, UpdateEntity):
     """Update entity for a OpenEVSE device."""
 
     _attr_device_class = UpdateDeviceClass.FIRMWARE
-    _attr_supported_features = UpdateEntityFeature.RELEASE_NOTES
+    _attr_supported_features = (
+        UpdateEntityFeature.RELEASE_NOTES | UpdateEntityFeature.INSTALL
+    )
 
     def __init__(
         self,
@@ -95,3 +98,14 @@ class OpenEVSEUpdateEntity(CoordinatorEntity, UpdateEntity):
         if self.fw_coordinator.data is not None:
             return self.fw_coordinator.data.get("release_url")
         return None
+
+    async def async_install(
+        self, version: str | None, backup: bool, **kwargs: Any
+    ) -> None:
+        """Install an update."""
+        firmware_url = (
+            self.fw_coordinator.data.get("browser_download_url")
+            if self.fw_coordinator.data
+            else None
+        )
+        await self.coordinator._manager.update_firmware(firmware_url=firmware_url)

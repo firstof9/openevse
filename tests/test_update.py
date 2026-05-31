@@ -1,5 +1,7 @@
 """Test OpenEVSE update platform."""
 
+from unittest.mock import AsyncMock
+
 import pytest
 from homeassistant.components.update import (
     ATTR_INSTALLED_VERSION,
@@ -71,3 +73,29 @@ async def test_update_coverage_gaps(hass, test_charger, mock_ws_start):
     # Test installed_version when coordinator data is missing
     coordinator.data = None
     assert update.installed_version is None
+
+
+async def test_update_install(hass, test_charger, mock_ws_start):
+    """Test update install service."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA,
+    )
+
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    manager = hass.data[DOMAIN][entry.entry_id]["manager"]
+    manager.update_firmware = AsyncMock()
+
+    entity_id = "update.openevse_update"
+    await hass.services.async_call(
+        UPDATE_DOMAIN, "install", {"entity_id": entity_id}, blocking=True
+    )
+
+    assert manager.update_firmware.called
+    manager.update_firmware.assert_called_once_with(
+        firmware_url="https://github.com/OpenEVSE/ESP32_WiFi_V4.x/releases/download/4.1.7/openevse_wifi_v1.bin"
+    )
