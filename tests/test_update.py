@@ -115,13 +115,17 @@ async def test_update_install_no_url(hass, test_charger, mock_ws_start):
     await hass.async_block_till_done()
 
     fw_coordinator = hass.data[DOMAIN][entry.entry_id][FW_COORDINATOR]
-    fw_coordinator.data = {}
+    fw_coordinator.data = {
+        "latest_version": "4.1.8",
+        "browser_download_url": None,
+    }
 
     entity_id = "update.openevse_update"
-    with pytest.raises(HomeAssistantError):
+    with pytest.raises(HomeAssistantError) as excinfo:
         await hass.services.async_call(
             UPDATE_DOMAIN, "install", {"entity_id": entity_id}, blocking=True
         )
+    assert str(excinfo.value) == "No firmware download URL available to install"
 
 
 async def test_update_install_failure(hass, test_charger, mock_ws_start):
