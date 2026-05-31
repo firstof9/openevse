@@ -12,6 +12,7 @@ from homeassistant.components.update import (
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import (
     CoordinatorEntity,
@@ -108,4 +109,12 @@ class OpenEVSEUpdateEntity(CoordinatorEntity, UpdateEntity):
             if self.fw_coordinator.data
             else None
         )
-        await self.coordinator._manager.update_firmware(firmware_url=firmware_url)
+        if not firmware_url:
+            raise HomeAssistantError("No firmware download URL available to install")
+
+        try:
+            await self.coordinator._manager.update_firmware(firmware_url=firmware_url)
+        except Exception as err:
+            raise HomeAssistantError(
+                f"Failed to install firmware update: {err}"
+            ) from err
