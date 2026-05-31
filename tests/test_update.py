@@ -12,7 +12,12 @@ from homeassistant.components.update import DOMAIN as UPDATE_DOMAIN
 from homeassistant.exceptions import HomeAssistantError
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.openevse.const import COORDINATOR, DOMAIN, FW_COORDINATOR
+from custom_components.openevse.const import (
+    COORDINATOR,
+    DOMAIN,
+    FW_COORDINATOR,
+    MANAGER,
+)
 from custom_components.openevse.update import OpenEVSEUpdateEntity
 from tests.typing import WebSocketGenerator
 
@@ -68,8 +73,9 @@ async def test_update_coverage_gaps(hass, test_charger, mock_ws_start):
 
     coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
     fw_coordinator = hass.data[DOMAIN][entry.entry_id][FW_COORDINATOR]
+    manager = hass.data[DOMAIN][entry.entry_id][MANAGER]
 
-    update = OpenEVSEUpdateEntity(coordinator, fw_coordinator, entry)
+    update = OpenEVSEUpdateEntity(coordinator, fw_coordinator, entry, manager)
 
     # Test installed_version when coordinator data is missing
     coordinator.data = None
@@ -144,7 +150,8 @@ async def test_update_install_failure(hass, test_charger, mock_ws_start):
     manager.update_firmware = AsyncMock(side_effect=RuntimeError("Update failed"))
 
     entity_id = "update.openevse_update"
-    with pytest.raises(HomeAssistantError):
+    with pytest.raises(HomeAssistantError) as excinfo:
         await hass.services.async_call(
             UPDATE_DOMAIN, "install", {"entity_id": entity_id}, blocking=True
         )
+    assert "Failed to install firmware update" in str(excinfo.value)

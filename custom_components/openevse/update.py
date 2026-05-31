@@ -18,8 +18,9 @@ from homeassistant.helpers.update_coordinator import (
     CoordinatorEntity,
     DataUpdateCoordinator,
 )
+from openevsehttp.__main__ import OpenEVSE
 
-from .const import CONF_NAME, COORDINATOR, DOMAIN, FW_COORDINATOR
+from .const import CONF_NAME, COORDINATOR, DOMAIN, FW_COORDINATOR, MANAGER
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -30,7 +31,8 @@ async def async_setup_entry(
     """Set up update entities for Netgear component."""
     coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
     fw_coordinator = hass.data[DOMAIN][entry.entry_id][FW_COORDINATOR]
-    entities = [OpenEVSEUpdateEntity(coordinator, fw_coordinator, entry)]
+    manager = hass.data[DOMAIN][entry.entry_id][MANAGER]
+    entities = [OpenEVSEUpdateEntity(coordinator, fw_coordinator, entry, manager)]
 
     async_add_entities(entities)
 
@@ -48,6 +50,7 @@ class OpenEVSEUpdateEntity(CoordinatorEntity, UpdateEntity):
         coordinator: DataUpdateCoordinator,
         fw_coordinator: DataUpdateCoordinator,
         config: ConfigEntry,
+        manager: OpenEVSE,
     ) -> None:
         """Initialize a OpenEVSE device."""
         super().__init__(fw_coordinator)
@@ -57,6 +60,7 @@ class OpenEVSEUpdateEntity(CoordinatorEntity, UpdateEntity):
         self._attr_name = f"{config.data[CONF_NAME]} Update"
         self._base_unique_id = config.entry_id
         self._attr_unique_id = f"{self._base_unique_id}.update"
+        self._manager = manager
 
     @property
     def device_info(self) -> dict:
@@ -113,7 +117,7 @@ class OpenEVSEUpdateEntity(CoordinatorEntity, UpdateEntity):
             raise HomeAssistantError("No firmware download URL available to install")
 
         try:
-            await self.coordinator._manager.update_firmware(firmware_url=firmware_url)
+            await self._manager.update_firmware(firmware_url=firmware_url)
         except Exception as err:
             raise HomeAssistantError(
                 f"Failed to install firmware update: {err}"
