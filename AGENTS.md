@@ -31,7 +31,7 @@ To comply with the project linting rules, always place Python imports at the top
 
 ### 2. Local Testing Against Library Changes
 The integration depends on `python-openevse-http`. If you need to make changes to both libraries, you can temporarily edit `requirements.txt` to point to a local directory:
-```
+```txt
 -e /path/to/cloned/python-openevse-http
 ```
 **CRITICAL**: Make sure to revert this change back to a published version (e.g., `python-openevse-http==0.4.0`) before staging, committing, or pushing to avoid shipping local paths.
