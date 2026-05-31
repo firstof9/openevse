@@ -32,7 +32,7 @@ The **OpenEVSE** Home Assistant integration provides direct, local control over 
 - ☀️ **Solar PV Divert Mode**: Dynamically adjust charging current based on your home's excess solar power.
 - 🛡️ **Claim & Override System**: Safely queue, override, or limit charge rates and sessions using Home Assistant services or the UI.
 - 🎨 **LED Brightness Control**: Manage the charger's LED display brightness directly (firmware v4.1.0+).
-- 🆙 **Update Notification**: Track charger firmware updates and review release notes inside Home Assistant.
+- 🆙 **Firmware Updates**: Track, download, and install charger firmware updates directly within Home Assistant.
 
 ---
 
@@ -103,7 +103,7 @@ The integration sets up the following platforms and entities:
 | `select` | • Charge Rate<br>• Divert Mode (`fast` / `eco`) | Select charge limits, divert types, or override status. |
 | `sensor` | • Station Status<br>• Charging Status<br>• Charging Voltage / Current<br>• Current Power Usage (Actual & Calc)<br>• Usage this Session (Energy)<br>• Total Usage (Energy)<br>• WiFi Signal Strength<br>• Temperatures (Ambient, ESP32, RTC, IR)<br>• Vehicle Battery Level (SOC) (v4.1.0+) | Sensor telemetry, stats, and diagnostic measurements. |
 | `switch` | • Sleep Mode<br>• Manual Override (v4.1.0+)<br>• Solar PV Divert (v4.1.0+)<br>• Current Shaper (v4.1.0+) | Controls to toggle operational modes of the EVSE. |
-| `update` | • OpenEVSE Update | Detects controller firmware updates and provides release notes. |
+| `update` | • OpenEVSE Update | Detects controller firmware updates, provides release notes, and installs updates. |
 
 ---
 

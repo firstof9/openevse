@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from typing import Any
 
 from homeassistant.components.update import (
     UpdateDeviceClass,
@@ -11,13 +12,15 @@ from homeassistant.components.update import (
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import (
     CoordinatorEntity,
     DataUpdateCoordinator,
 )
+from openevsehttp.__main__ import OpenEVSE
 
-from .const import CONF_NAME, COORDINATOR, DOMAIN, FW_COORDINATOR
+from .const import CONF_NAME, COORDINATOR, DOMAIN, FW_COORDINATOR, MANAGER
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -28,7 +31,8 @@ async def async_setup_entry(
     """Set up update entities for Netgear component."""
     coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
     fw_coordinator = hass.data[DOMAIN][entry.entry_id][FW_COORDINATOR]
-    entities = [OpenEVSEUpdateEntity(coordinator, fw_coordinator, entry)]
+    manager = hass.data[DOMAIN][entry.entry_id][MANAGER]
+    entities = [OpenEVSEUpdateEntity(coordinator, fw_coordinator, entry, manager)]
 
     async_add_entities(entities)
 
@@ -37,13 +41,16 @@ class OpenEVSEUpdateEntity(CoordinatorEntity, UpdateEntity):
     """Update entity for a OpenEVSE device."""
 
     _attr_device_class = UpdateDeviceClass.FIRMWARE
-    _attr_supported_features = UpdateEntityFeature.RELEASE_NOTES
+    _attr_supported_features = (
+        UpdateEntityFeature.RELEASE_NOTES | UpdateEntityFeature.INSTALL
+    )
 
     def __init__(
         self,
         coordinator: DataUpdateCoordinator,
         fw_coordinator: DataUpdateCoordinator,
         config: ConfigEntry,
+        manager: OpenEVSE,
     ) -> None:
         """Initialize a OpenEVSE device."""
         super().__init__(fw_coordinator)
@@ -53,6 +60,7 @@ class OpenEVSEUpdateEntity(CoordinatorEntity, UpdateEntity):
         self._attr_name = f"{config.data[CONF_NAME]} Update"
         self._base_unique_id = config.entry_id
         self._attr_unique_id = f"{self._base_unique_id}.update"
+        self._manager = manager
 
     @property
     def device_info(self) -> dict:
@@ -95,3 +103,22 @@ class OpenEVSEUpdateEntity(CoordinatorEntity, UpdateEntity):
         if self.fw_coordinator.data is not None:
             return self.fw_coordinator.data.get("release_url")
         return None
+
+    async def async_install(
+        self, version: str | None, backup: bool, **kwargs: Any
+    ) -> None:
+        """Install an update."""
+        firmware_url = (
+            self.fw_coordinator.data.get("browser_download_url")
+            if self.fw_coordinator.data
+            else None
+        )
+        if not firmware_url:
+            raise HomeAssistantError("No firmware download URL available to install")
+
+        try:
+            await self._manager.update_firmware(firmware_url=firmware_url)
+        except Exception as err:
+            raise HomeAssistantError(
+                f"Failed to install firmware update: {err}"
+            ) from err

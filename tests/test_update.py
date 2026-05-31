@@ -1,5 +1,7 @@
 """Test OpenEVSE update platform."""
 
+from unittest.mock import AsyncMock
+
 import pytest
 from homeassistant.components.update import (
     ATTR_INSTALLED_VERSION,
@@ -7,9 +9,15 @@ from homeassistant.components.update import (
     ATTR_RELEASE_URL,
 )
 from homeassistant.components.update import DOMAIN as UPDATE_DOMAIN
+from homeassistant.exceptions import HomeAssistantError
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.openevse.const import COORDINATOR, DOMAIN, FW_COORDINATOR
+from custom_components.openevse.const import (
+    COORDINATOR,
+    DOMAIN,
+    FW_COORDINATOR,
+    MANAGER,
+)
 from custom_components.openevse.update import OpenEVSEUpdateEntity
 from tests.typing import WebSocketGenerator
 
@@ -65,9 +73,85 @@ async def test_update_coverage_gaps(hass, test_charger, mock_ws_start):
 
     coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
     fw_coordinator = hass.data[DOMAIN][entry.entry_id][FW_COORDINATOR]
+    manager = hass.data[DOMAIN][entry.entry_id][MANAGER]
 
-    update = OpenEVSEUpdateEntity(coordinator, fw_coordinator, entry)
+    update = OpenEVSEUpdateEntity(coordinator, fw_coordinator, entry, manager)
 
     # Test installed_version when coordinator data is missing
     coordinator.data = None
     assert update.installed_version is None
+
+
+async def test_update_install(hass, test_charger, mock_ws_start):
+    """Test update install service."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA,
+    )
+
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    manager = hass.data[DOMAIN][entry.entry_id]["manager"]
+    manager.update_firmware = AsyncMock()
+
+    entity_id = "update.openevse_update"
+    await hass.services.async_call(
+        UPDATE_DOMAIN, "install", {"entity_id": entity_id}, blocking=True
+    )
+
+    assert manager.update_firmware.called
+    manager.update_firmware.assert_called_once_with(
+        firmware_url="https://github.com/OpenEVSE/ESP32_WiFi_V4.x/releases/download/4.1.7/openevse_wifi_v1.bin"
+    )
+
+
+async def test_update_install_no_url(hass, test_charger, mock_ws_start):
+    """Test update install service with no URL."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA,
+    )
+
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    fw_coordinator = hass.data[DOMAIN][entry.entry_id][FW_COORDINATOR]
+    fw_coordinator.data = {
+        "latest_version": "4.1.8",
+        "browser_download_url": None,
+    }
+
+    entity_id = "update.openevse_update"
+    with pytest.raises(HomeAssistantError) as excinfo:
+        await hass.services.async_call(
+            UPDATE_DOMAIN, "install", {"entity_id": entity_id}, blocking=True
+        )
+    assert str(excinfo.value) == "No firmware download URL available to install"
+
+
+async def test_update_install_failure(hass, test_charger, mock_ws_start):
+    """Test update install service when update fails."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA,
+    )
+
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    manager = hass.data[DOMAIN][entry.entry_id]["manager"]
+    manager.update_firmware = AsyncMock(side_effect=RuntimeError("Update failed"))
+
+    entity_id = "update.openevse_update"
+    with pytest.raises(HomeAssistantError) as excinfo:
+        await hass.services.async_call(
+            UPDATE_DOMAIN, "install", {"entity_id": entity_id}, blocking=True
+        )
+    assert "Failed to install firmware update" in str(excinfo.value)
