@@ -221,7 +221,8 @@ async def test_update_polling(hass, test_charger, mock_ws_start):
     entity_id = "update.openevse_update"
 
     # Mock process_request to return ota_update=1 on first poll,
-    # then ota_update=0 on second poll
+    # raise an exception on second poll (to test recovery/reboot),
+    # then return ota_update=0 on third poll
     poll_count = 0
     original_process_request = manager.process_request
 
@@ -231,6 +232,8 @@ async def test_update_polling(hass, test_charger, mock_ws_start):
             poll_count += 1
             if poll_count == 1:
                 return {"ota_update": 1, "ota_progress": 45}
+            elif poll_count == 2:
+                raise RuntimeError("Connection error during reboot")
             else:
                 return {"ota_update": 0}
         return await original_process_request(url, method, data, rapi)
@@ -243,9 +246,9 @@ async def test_update_polling(hass, test_charger, mock_ws_start):
         )
         # Give the background task time to run its iterations
         for _ in range(50):
-            if poll_count == 2:
+            if poll_count == 3:
                 break
             await asyncio.sleep(0.01)
 
-        assert poll_count == 2
-        assert mock_sleep.call_count == 2
+        assert poll_count == 3
+        assert mock_sleep.call_count == 3
