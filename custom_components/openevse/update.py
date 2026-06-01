@@ -42,7 +42,9 @@ class OpenEVSEUpdateEntity(CoordinatorEntity, UpdateEntity):
 
     _attr_device_class = UpdateDeviceClass.FIRMWARE
     _attr_supported_features = (
-        UpdateEntityFeature.RELEASE_NOTES | UpdateEntityFeature.INSTALL
+        UpdateEntityFeature.RELEASE_NOTES
+        | UpdateEntityFeature.INSTALL
+        | UpdateEntityFeature.PROGRESS
     )
 
     def __init__(
@@ -61,6 +63,13 @@ class OpenEVSEUpdateEntity(CoordinatorEntity, UpdateEntity):
         self._base_unique_id = config.entry_id
         self._attr_unique_id = f"{self._base_unique_id}.update"
         self._manager = manager
+
+    async def async_added_to_hass(self) -> None:
+        """Register callbacks."""
+        await super().async_added_to_hass()
+        self.async_on_remove(
+            self.coordinator.async_add_listener(self.async_write_ha_state)
+        )
 
     @property
     def device_info(self) -> dict:
@@ -103,6 +112,16 @@ class OpenEVSEUpdateEntity(CoordinatorEntity, UpdateEntity):
         if self.fw_coordinator.data is not None:
             return self.fw_coordinator.data.get("release_url")
         return None
+
+    @property
+    def in_progress(self) -> bool:
+        """Update installation progress."""
+        return self._manager.ota_update
+
+    @property
+    def update_percentage(self) -> int | None:
+        """Update installation progress percentage."""
+        return self._manager.ota_progress
 
     async def async_install(
         self, version: str | None, backup: bool, **kwargs: Any
