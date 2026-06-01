@@ -1,12 +1,14 @@
 """Test OpenEVSE update platform."""
 
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, PropertyMock, patch
 
 import pytest
 from homeassistant.components.update import (
+    ATTR_IN_PROGRESS,
     ATTR_INSTALLED_VERSION,
     ATTR_LATEST_VERSION,
     ATTR_RELEASE_URL,
+    ATTR_UPDATE_PERCENTAGE,
 )
 from homeassistant.components.update import DOMAIN as UPDATE_DOMAIN
 from homeassistant.exceptions import HomeAssistantError
@@ -155,3 +157,44 @@ async def test_update_install_failure(hass, test_charger, mock_ws_start):
             UPDATE_DOMAIN, "install", {"entity_id": entity_id}, blocking=True
         )
     assert "Failed to install firmware update" in str(excinfo.value)
+
+
+async def test_update_progress(hass, test_charger, mock_ws_start):
+    """Test update entity progress attributes."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA,
+    )
+
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    entity_id = "update.openevse_update"
+    state = hass.states.get(entity_id)
+    assert state
+    assert state.attributes[ATTR_IN_PROGRESS] is False
+    assert state.attributes.get(ATTR_UPDATE_PERCENTAGE) is None
+
+    # Set update in progress
+    with (
+        patch(
+            "openevsehttp.__main__.OpenEVSE.ota_update",
+            new_callable=PropertyMock,
+        ) as mock_ota_update,
+        patch(
+            "openevsehttp.__main__.OpenEVSE.ota_progress",
+            new_callable=PropertyMock,
+        ) as mock_ota_progress,
+    ):
+        mock_ota_update.return_value = True
+        mock_ota_progress.return_value = 50
+
+        coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
+        await coordinator.async_refresh()
+        await hass.async_block_till_done()
+
+        state = hass.states.get(entity_id)
+        assert state.attributes[ATTR_IN_PROGRESS] is True
+        assert state.attributes[ATTR_UPDATE_PERCENTAGE] == 50
