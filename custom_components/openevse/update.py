@@ -154,17 +154,11 @@ class OpenEVSEUpdateEntity(CoordinatorEntity, UpdateEntity):
         for _ in range(150):
             await async_sleep(2)
             try:
-                url = f"{self._manager.url}status"
-                response = await self._manager.process_request(url, method="get")
-                if isinstance(response, dict) and "error" not in response:
-                    self._manager._status = dict(response)
-                    _LOGGER.debug(
-                        "Update progress poll status: %s", self._manager._status
-                    )
-                    await self.coordinator.websocket_update()
-                    if not self._manager.ota_update:
-                        _LOGGER.debug("Update complete, stopping progress polling")
-                        break
+                await self._manager.update(force_status=True)
+                await self.coordinator.websocket_update()
+                if not self._manager.ota_update:
+                    _LOGGER.debug("Update complete, stopping progress polling")
+                    break
             except Exception as err:
                 _LOGGER.debug(
                     "Error polling update progress (expected during reboot): %s",

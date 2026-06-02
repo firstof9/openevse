@@ -240,15 +240,28 @@ async def test_update_polling(hass, test_charger, mock_ws_start):
 
     manager.process_request = mock_process_request
 
-    with patch("custom_components.openevse.update.async_sleep") as mock_sleep:
+    async def mock_sleep_func(*args, **kwargs):
+        await asyncio.sleep(0)
+
+    mock_sleep = AsyncMock(side_effect=mock_sleep_func)
+
+    with patch("custom_components.openevse.update.async_sleep", new=mock_sleep):
         await hass.services.async_call(
             UPDATE_DOMAIN, "install", {"entity_id": entity_id}, blocking=True
         )
-        # Give the background task time to run its iterations
-        for _ in range(50):
-            if poll_count == 3:
-                break
-            await asyncio.sleep(0.01)
+        await hass.async_block_till_done()
+
+        # Find and await the background polling task to ensure deterministic execution
+        bg_tasks = [
+            t
+            for t in asyncio.all_tasks()
+            if t.get_name() == "openevse_update_progress_polling"
+        ]
+        if bg_tasks:
+            await asyncio.gather(*bg_tasks)
 
         assert poll_count == 3
-        assert mock_sleep.call_count == 3
+        state = hass.states.get(entity_id)
+        assert state is not None
+        assert state.attributes[ATTR_IN_PROGRESS] is False
+        assert state.attributes.get(ATTR_UPDATE_PERCENTAGE) is None
