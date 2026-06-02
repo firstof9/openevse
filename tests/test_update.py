@@ -1,5 +1,6 @@
 """Test OpenEVSE update platform."""
 
+import asyncio
 from unittest.mock import AsyncMock, PropertyMock, patch
 
 import pytest
@@ -100,9 +101,11 @@ async def test_update_install(hass, test_charger, mock_ws_start):
     manager.update_firmware = AsyncMock()
 
     entity_id = "update.openevse_update"
-    await hass.services.async_call(
-        UPDATE_DOMAIN, "install", {"entity_id": entity_id}, blocking=True
-    )
+    with patch("custom_components.openevse.update.async_sleep"):
+        await hass.services.async_call(
+            UPDATE_DOMAIN, "install", {"entity_id": entity_id}, blocking=True
+        )
+        await hass.async_block_till_done()
 
     assert manager.update_firmware.called
     manager.update_firmware.assert_called_once_with(
@@ -198,3 +201,67 @@ async def test_update_progress(hass, test_charger, mock_ws_start):
         state = hass.states.get(entity_id)
         assert state.attributes[ATTR_IN_PROGRESS] is True
         assert state.attributes[ATTR_UPDATE_PERCENTAGE] == 50
+
+
+async def test_update_polling(hass, test_charger, mock_ws_start):
+    """Test update progress polling loop."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA,
+    )
+
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    manager = hass.data[DOMAIN][entry.entry_id][MANAGER]
+    manager.update_firmware = AsyncMock()
+
+    entity_id = "update.openevse_update"
+
+    # Mock process_request to return ota_update=1 on first poll,
+    # raise an exception on second poll (to test recovery/reboot),
+    # then return ota_update=0 on third poll
+    poll_count = 0
+    original_process_request = manager.process_request
+
+    async def mock_process_request(url, method="", data=None, rapi=None):
+        nonlocal poll_count
+        if "status" in url and method == "get":
+            poll_count += 1
+            if poll_count == 1:
+                return {"ota_update": 1, "ota_progress": 45}
+            elif poll_count == 2:
+                raise RuntimeError("Connection error during reboot")
+            else:
+                return {"ota_update": 0}
+        return await original_process_request(url, method, data, rapi)
+
+    manager.process_request = mock_process_request
+
+    async def mock_sleep_func(*args, **kwargs):
+        await asyncio.sleep(0)
+
+    mock_sleep = AsyncMock(side_effect=mock_sleep_func)
+
+    with patch("custom_components.openevse.update.async_sleep", new=mock_sleep):
+        await hass.services.async_call(
+            UPDATE_DOMAIN, "install", {"entity_id": entity_id}, blocking=True
+        )
+        await hass.async_block_till_done()
+
+        # Find and await the background polling task to ensure deterministic execution
+        bg_tasks = [
+            t
+            for t in asyncio.all_tasks()
+            if t.get_name() == "openevse_update_progress_polling"
+        ]
+        if bg_tasks:
+            await asyncio.gather(*bg_tasks)
+
+        assert poll_count == 3
+        state = hass.states.get(entity_id)
+        assert state is not None
+        assert state.attributes[ATTR_IN_PROGRESS] is False
+        assert state.attributes.get(ATTR_UPDATE_PERCENTAGE) is None

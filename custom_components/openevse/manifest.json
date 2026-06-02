@@ -16,7 +16,7 @@
     "openevsehttp"
   ],
   "requirements": [
-    "python-openevse-http==0.4.1"
+    "python-openevse-http==0.4.2"
   ],
   "version": "0.0.0-dev",
   "zeroconf": [

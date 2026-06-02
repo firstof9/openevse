@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from asyncio import sleep as async_sleep
 from typing import Any
 
 from homeassistant.components.update import (
@@ -141,3 +142,25 @@ class OpenEVSEUpdateEntity(CoordinatorEntity, UpdateEntity):
             raise HomeAssistantError(
                 f"Failed to install firmware update: {err}"
             ) from err
+
+        self.hass.async_create_background_task(
+            self._async_poll_update_progress(),
+            "openevse_update_progress_polling",
+        )
+
+    async def _async_poll_update_progress(self) -> None:
+        """Poll the status endpoint to track update progress."""
+        _LOGGER.debug("Starting update progress polling")
+        for _ in range(150):
+            await async_sleep(2)
+            try:
+                await self._manager.update(force_status=True)
+                await self.coordinator.websocket_update()
+                if not self._manager.ota_update:
+                    _LOGGER.debug("Update complete, stopping progress polling")
+                    break
+            except Exception as err:
+                _LOGGER.debug(
+                    "Error polling update progress (expected during reboot): %s",
+                    err,
+                )
