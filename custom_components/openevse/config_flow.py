@@ -11,6 +11,7 @@ from homeassistant.components import zeroconf
 from homeassistant.const import CONF_HOST, CONF_PASSWORD, CONF_USERNAME
 from homeassistant.data_entry_flow import AbortFlow, FlowResult
 from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.selector import (
     EntitySelector,
     EntitySelectorConfig,
@@ -68,14 +69,13 @@ class OpenEVSEFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             data=self.discovery_info,
         )
 
-    @staticmethod
-    async def _async_try_connect_and_fetch(ip_address: str) -> dict[str, Any]:
+    async def _async_try_connect_and_fetch(self, ip_address: str) -> dict[str, Any]:
         """Try to connect."""
         _LOGGER.debug("[%s] config_flow _async_try_connect_and_fetch", ip_address)
 
         # Make connection with device
         # This is to test the connection and to get info for unique_id
-        charger = OpenEVSE(ip_address)
+        charger = OpenEVSE(ip_address, session=async_get_clientsession(self.hass))
 
         try:
             await charger.update()
@@ -142,6 +142,7 @@ class OpenEVSEFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                 user_input[CONF_HOST],
                 user=user_input[CONF_USERNAME],
                 pwd=user_input[CONF_PASSWORD],
+                session=async_get_clientsession(self.hass),
             )
 
             try:
@@ -184,6 +185,7 @@ class OpenEVSEFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                 user_input[CONF_HOST],
                 user=user_input[CONF_USERNAME],
                 pwd=user_input[CONF_PASSWORD],
+                session=async_get_clientsession(self.hass),
             )
 
             try:
