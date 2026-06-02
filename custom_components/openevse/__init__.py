@@ -24,6 +24,7 @@ from homeassistant.core import (
 )
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.event import async_track_state_change_event
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from openevsehttp.__main__ import OpenEVSE
@@ -656,7 +657,12 @@ class OpenEVSEManager:
         self._host = config_entry.data.get(CONF_HOST)
         self._username = config_entry.data.get(CONF_USERNAME)
         self._password = config_entry.data.get(CONF_PASSWORD)
-        self.charger = OpenEVSE(self._host, user=self._username, pwd=self._password)
+        self.charger = OpenEVSE(
+            self._host,
+            user=self._username,
+            pwd=self._password,
+            session=async_get_clientsession(hass),
+        )
 
 
 class InvalidValueError(Exception):
