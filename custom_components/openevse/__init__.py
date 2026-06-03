@@ -463,7 +463,7 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
         ):
             self.logger.debug("Connecting to websocket...")
             try:
-                self._manager.ws_start()
+                await self._manager.ws_start()
             except RuntimeError as err:
                 self.logger.debug("Websocket connection issue: %s", err)
             except Exception as error:
