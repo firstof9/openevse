@@ -117,7 +117,7 @@ class OpenEVSEFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         self.context.update({"title_placeholders": {"name": name}})
 
         # Test connection to device
-        await self._async_try_connect_and_fetch(self.hass, host)
+        await self._async_try_connect_and_fetch(host)
 
         unique_id = f"{name}_{serial}"
 
