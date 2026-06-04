@@ -41,5 +41,5 @@ jobs:
           days-before-close: 7
           stale-issue-label: 'stale'
           stale-pr-label: 'stale'
-          exempt-issue-labels: 'bug,pinned,security'
-          exempt-pr-labels: 'bug,pinned,security'
+          exempt-issue-labels: 'pinned,security'
+          exempt-pr-labels: 'bugfix,pinned,security'
