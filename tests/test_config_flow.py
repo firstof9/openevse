@@ -436,6 +436,11 @@ async def test_options_flow(hass, test_charger, mock_ws_start):
         "solar": "",
         "voltage": "sensor.grid_voltage",
         "shaper": "sensor.shaper_power",
+        "vehicle_soc": "",
+        "vehicle_range": "",
+        "vehicle_eta": "",
+        "home_battery_soc": "",
+        "home_battery_power": "",
         "invert_grid": False,
     }
 
@@ -518,6 +523,11 @@ async def test_options_flow_all_empty_entities(hass, test_charger, mock_ws_start
         "solar": "",
         "voltage": "",
         "shaper": "",
+        "vehicle_soc": "",
+        "vehicle_range": "",
+        "vehicle_eta": "",
+        "home_battery_soc": "",
+        "home_battery_power": "",
         "invert_grid": False,
     }
 
