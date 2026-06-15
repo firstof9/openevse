@@ -22,13 +22,17 @@ from homeassistant.core import (
     HomeAssistant,
     callback,
 )
-from homeassistant.exceptions import ConfigEntryNotReady
+from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.event import async_track_state_change_event
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from openevsehttp.__main__ import OpenEVSE
-from openevsehttp.exceptions import MissingSerial, UnsupportedFeature
+from openevsehttp.exceptions import (
+    AuthenticationError,
+    MissingSerial,
+    UnsupportedFeature,
+)
 
 from .const import (
     BINARY_SENSORS,
@@ -337,6 +341,8 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
     await fw_coordinator.async_refresh()
 
     if not coordinator.last_update_success:
+        if isinstance(coordinator.last_exception, ConfigEntryAuthFailed):
+            raise coordinator.last_exception
         raise ConfigEntryNotReady
 
     model_info, sw_version = await get_firmware(manager, logger)
@@ -452,6 +458,8 @@ async def get_firmware(
     data = {}
     try:
         await manager.update()
+    except AuthenticationError as err:
+        raise ConfigEntryAuthFailed(err) from err
     except CONNECTION_ERRORS as err:
         logger.debug(CONNECTION_ERROR, err)
         return ("", "")
@@ -578,6 +586,8 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
         """Update sensor data."""
         try:
             await self._manager.update()
+        except AuthenticationError as error:
+            raise ConfigEntryAuthFailed(error) from error
         except RuntimeError as error:
             self.logger.debug(
                 "Error updating sensors [%s]: %s", type(error).__name__, error

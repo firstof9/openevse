@@ -1,7 +1,8 @@
 {
   "config": {
     "error": {
-      "communication": "Unable to connect to OpenEVSE charger. Please check the log for details."
+      "communication": "Unable to connect to OpenEVSE charger. Please check the log for details.",
+      "invalid_auth": "Invalid authentication credentials."
     },
     "step": {
       "user": {
@@ -27,6 +28,14 @@
       "discovery_confirm": {
         "description": "Do you want to set up {name}?",
         "title": "Discovered charger"
+      },
+      "reauth_confirm": {
+        "data": {
+          "password": "Password (optional)",
+          "username": "Username (optional)"
+        },
+        "description": "Please enter the new connection credentials of your OpenEVSE charger.",
+        "title": "Reauthenticate OpenEVSE"
       }
     }
   },

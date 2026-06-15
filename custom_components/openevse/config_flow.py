@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
 from typing import Any, Final
 
 import voluptuous as vol
@@ -17,6 +18,7 @@ from homeassistant.helpers.selector import (
     EntitySelectorConfig,
 )
 from openevsehttp.__main__ import OpenEVSE
+from openevsehttp.exceptions import AuthenticationError
 
 from .const import (
     CONF_GRID,
@@ -153,6 +155,8 @@ class OpenEVSEFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             try:
                 await charger.update()
                 await charger.ws_disconnect()
+            except AuthenticationError:
+                self._errors[CONF_HOST] = "invalid_auth"
             except Exception as ex:
                 _LOGGER.exception(
                     "[%s] Error connecting with OpenEVSE: %s",
@@ -196,6 +200,8 @@ class OpenEVSEFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             try:
                 await charger.update()
                 await charger.ws_disconnect()
+            except AuthenticationError:
+                self._errors[CONF_HOST] = "invalid_auth"
             except Exception as ex:
                 _LOGGER.exception(
                     "[%s] Error connecting with OpenEVSE: %s",
@@ -221,6 +227,67 @@ class OpenEVSEFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         return self.async_show_form(
             step_id="reconfigure",
             data_schema=_get_schema(user_input, self._data),
+            errors=self._errors,
+        )
+
+    async def async_step_reauth(self, entry_data: Mapping[str, Any]) -> FlowResult:
+        """Handle reauth."""
+        self._entry = self.hass.config_entries.async_get_entry(self.context["entry_id"])
+        assert self._entry
+        self._data = dict(self._entry.data)
+        self._errors = {}
+        return await self.async_step_reauth_confirm()
+
+    async def async_step_reauth_confirm(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Handle reauth confirmation/credentials entry."""
+        self._errors = {}
+        if user_input is not None:
+            self._data.update(user_input)
+
+            charger = OpenEVSE(
+                self._data[CONF_HOST],
+                user=user_input[CONF_USERNAME],
+                pwd=user_input[CONF_PASSWORD],
+                session=async_get_clientsession(self.hass),
+            )
+
+            try:
+                await charger.update()
+                await charger.ws_disconnect()
+            except AuthenticationError:
+                self._errors["base"] = "invalid_auth"
+            except Exception as ex:
+                _LOGGER.exception(
+                    "[%s] Error connecting with OpenEVSE: %s",
+                    self._data[CONF_HOST],
+                    ex,
+                )
+                self._errors["base"] = "communication"
+
+            if not self._errors:
+                self.hass.config_entries.async_update_entry(
+                    self._entry, data=self._data
+                )
+                await self.hass.config_entries.async_reload(self._entry.entry_id)
+                _LOGGER.debug(
+                    "[%s] %s reauthenticated.", self._data.get(CONF_HOST), DOMAIN
+                )
+                return self.async_abort(reason="reconfigure_successful")
+
+        return self.async_show_form(
+            step_id="reauth_confirm",
+            data_schema=vol.Schema(
+                {
+                    vol.Optional(
+                        CONF_USERNAME, default=self._data.get(CONF_USERNAME, "")
+                    ): cv.string,
+                    vol.Optional(
+                        CONF_PASSWORD, default=self._data.get(CONF_PASSWORD, "")
+                    ): cv.string,
+                }
+            ),
             errors=self._errors,
         )
 

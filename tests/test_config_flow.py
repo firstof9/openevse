@@ -8,6 +8,7 @@ from homeassistant import config_entries, setup
 from homeassistant.const import CONF_HOST
 from homeassistant.data_entry_flow import FlowResultType
 from homeassistant.helpers.service_info.zeroconf import ZeroconfServiceInfo
+from openevsehttp.exceptions import AuthenticationError
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.openevse.const import DOMAIN
@@ -572,3 +573,175 @@ async def test_migrate_from_v1(hass, test_charger, mock_ws_start):
     # Verify connection data is preserved
     assert entry.data.get("host") == "openevse.test.tld"
     assert entry.data.get("name") == "openevse"
+
+
+async def test_form_user_invalid_auth(hass):
+    """Test we get an invalid_auth error on form when AuthenticationError is raised."""
+    await setup.async_setup_component(hass, "persistent_notification", {})
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": config_entries.SOURCE_USER}
+    )
+    assert result["type"] == FlowResultType.FORM
+    assert result["step_id"] == "user"
+
+    with patch(
+        "custom_components.openevse.OpenEVSE.update",
+        side_effect=AuthenticationError("Invalid credentials"),
+    ):
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            {
+                "name": "openevse",
+                "host": "openevse.test.tld",
+                "username": "user",
+                "password": "wrong_password",
+            },
+        )
+
+    assert result["type"] == FlowResultType.FORM
+    assert result["errors"] == {"host": "invalid_auth"}
+
+
+async def test_form_reconfigure_invalid_auth(hass, test_charger, mock_ws_start):
+    """Test reconfigure flow returns invalid_auth error on AuthenticationError."""
+    await setup.async_setup_component(hass, "persistent_notification", {})
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA,
+        version=2,
+    )
+    entry.add_to_hass(hass)
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    reconfigure_result = await hass.config_entries.flow.async_init(
+        DOMAIN,
+        context={
+            "source": config_entries.SOURCE_RECONFIGURE,
+            "entry_id": entry.entry_id,
+        },
+    )
+    assert reconfigure_result["type"] is FlowResultType.FORM
+    assert reconfigure_result["step_id"] == "reconfigure"
+
+    with patch(
+        "custom_components.openevse.OpenEVSE.update",
+        side_effect=AuthenticationError("Invalid credentials"),
+    ):
+        result = await hass.config_entries.flow.async_configure(
+            reconfigure_result["flow_id"],
+            {
+                "name": "openevse",
+                "host": "openevse.test.tld",
+                "username": "user",
+                "password": "wrong_password",
+            },
+        )
+
+    assert result["type"] is FlowResultType.FORM
+    assert result["errors"] == {"host": "invalid_auth"}
+
+
+async def test_reauth_flow(hass, test_charger, mock_ws_start):
+    """Test reauth flow works successfully."""
+    await setup.async_setup_component(hass, "persistent_notification", {})
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA,
+        version=2,
+    )
+    entry.add_to_hass(hass)
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    # Trigger reauth step
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN,
+        context={
+            "source": config_entries.SOURCE_REAUTH,
+            "entry_id": entry.entry_id,
+        },
+        data=entry.data,
+    )
+    assert result["type"] == FlowResultType.FORM
+    assert result["step_id"] == "reauth_confirm"
+
+    # Submit correct/new credentials
+    with (
+        patch("custom_components.openevse.OpenEVSE.update", return_value=True),
+        patch("custom_components.openevse.OpenEVSE.ws_disconnect", return_value=True),
+    ):
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            {
+                "username": "new_user",
+                "password": "new_password",
+            },
+        )
+
+    assert result["type"] == FlowResultType.ABORT
+    assert result["reason"] == "reconfigure_successful"
+    await hass.async_block_till_done()
+
+    assert entry.data["username"] == "new_user"
+    assert entry.data["password"] == "new_password"
+
+
+async def test_reauth_flow_errors(hass, test_charger, mock_ws_start):
+    """Test reauth flow handles connection and auth errors."""
+    await setup.async_setup_component(hass, "persistent_notification", {})
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA,
+        version=2,
+    )
+    entry.add_to_hass(hass)
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    # Trigger reauth step
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN,
+        context={
+            "source": config_entries.SOURCE_REAUTH,
+            "entry_id": entry.entry_id,
+        },
+        data=entry.data,
+    )
+    assert result["type"] == FlowResultType.FORM
+    assert result["step_id"] == "reauth_confirm"
+
+    # 1. Test AuthenticationError
+    with patch(
+        "custom_components.openevse.OpenEVSE.update",
+        side_effect=AuthenticationError("Invalid credentials"),
+    ):
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            {
+                "username": "user",
+                "password": "wrong_password",
+            },
+        )
+
+    assert result["type"] == FlowResultType.FORM
+    assert result["errors"] == {"base": "invalid_auth"}
+
+    # 2. Test generic Connection/Exception Error
+    with patch(
+        "custom_components.openevse.OpenEVSE.update",
+        side_effect=Exception("Connection timed out"),
+    ):
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            {
+                "username": "user",
+                "password": "password",
+            },
+        )
+
+    assert result["type"] == FlowResultType.FORM
+    assert result["errors"] == {"base": "communication"}

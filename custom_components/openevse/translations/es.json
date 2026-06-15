@@ -1,7 +1,8 @@
 {
   "config": {
     "error": {
-      "communication": "No es posible conectar al cargador OpenEVSE. Por favor, revisa los detalles en el registro."
+      "communication": "No es posible conectar al cargador OpenEVSE. Por favor, revisa los detalles en el registro.",
+      "invalid_auth": "Credenciales de autenticación no válidas."
     },
     "step": {
       "user": {
@@ -27,6 +28,14 @@
       "discovery_confirm": {
         "description": "¿Quieres configurar {name}?",
         "title": "Cargador descubierto"
+      },
+      "reauth_confirm": {
+        "data": {
+          "password": "Contraseña (opcional)",
+          "username": "Usuario (opcional)"
+        },
+        "description": "Por favor, introduce las nuevas credenciales de conexión al cargador OpenEVSE.",
+        "title": "Reautenticar OpenEVSE"
       }
     }
   },
