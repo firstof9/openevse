@@ -14,7 +14,11 @@ from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import EVENT_HOMEASSISTANT_STARTED
 from homeassistant.core import CoreState
 from homeassistant.helpers.update_coordinator import UpdateFailed
-from openevsehttp.exceptions import MissingSerial, UnsupportedFeature
+from openevsehttp.exceptions import (
+    AuthenticationError,
+    MissingSerial,
+    UnsupportedFeature,
+)
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.openevse import (
@@ -538,6 +542,21 @@ async def test_setup_entry_not_ready(hass, test_charger, mock_ws_start):
         # The exception is caught by HA, so we check the entry state
         # instead of asserting raises
         assert entry.state == ConfigEntryState.SETUP_RETRY
+
+
+async def test_setup_entry_auth_failed(hass, test_charger, mock_ws_start):
+    """Test setup entry sets state to SETUP_ERROR on AuthenticationError."""
+    entry = MockConfigEntry(domain=DOMAIN, data=CONFIG_DATA, version=2)
+
+    with patch(
+        "custom_components.openevse.OpenEVSE.update",
+        side_effect=AuthenticationError("Authentication Error"),
+    ):
+        entry.add_to_hass(hass)
+        await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+
+        assert entry.state == ConfigEntryState.SETUP_ERROR
 
 
 async def test_coordinator_parse_errors(hass, test_charger, mock_ws_start, caplog):
