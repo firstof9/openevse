@@ -38,6 +38,11 @@
           "solar": "Solar production sensor (optional)",
           "voltage": "Grid voltage sensor (optional)",
           "shaper": "Shaper live power sensor (optional)",
+          "vehicle_soc": "Vehicle state of charge sensor (optional)",
+          "vehicle_range": "Vehicle range sensor (optional)",
+          "vehicle_eta": "Vehicle time-to-full-charge sensor (optional)",
+          "home_battery_soc": "Home battery state of charge sensor (optional)",
+          "home_battery_power": "Home battery power sensor (optional)",
           "invert_grid": "Invert grid import/export"
         },
         "description": "Configure sensor entities to push data to OpenEVSE.\n\nIMPORTANT NOTE: OpenEVSE expects positive import and negative export.",

@@ -38,6 +38,11 @@
           "solar": "Sensor de producción solar (opcional)",
           "voltage": "Sensor de tensión de red (opcional)",
           "shaper": "Sensor de potencia en vivo del shaper (opcional)",
+          "vehicle_soc": "Sensor de estado de carga del vehículo (opcional)",
+          "vehicle_range": "Sensor de autonomía del vehículo (opcional)",
+          "vehicle_eta": "Sensor de tiempo hasta carga completa del vehículo (opcional)",
+          "home_battery_soc": "Sensor de estado de carga de la batería doméstica (opcional)",
+          "home_battery_power": "Sensor de potencia de la batería doméstica (opcional)",
           "invert_grid": "Importación/exportación de cuadrícula inversa"
         },
         "description": "Configure los sensores para enviar datos a OpenEVSE.\n\nNOTA IMPORTANTE: OpenEVSE espera una importación positiva y una exportación negativa.",

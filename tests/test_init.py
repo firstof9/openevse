@@ -14,7 +14,7 @@ from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import EVENT_HOMEASSISTANT_STARTED
 from homeassistant.core import CoreState
 from homeassistant.helpers.update_coordinator import UpdateFailed
-from openevsehttp.exceptions import MissingSerial
+from openevsehttp.exceptions import MissingSerial, UnsupportedFeature
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.openevse import (
@@ -1089,3 +1089,186 @@ async def test_websocket_unexpected_error(
     assert "Unexpected error parsing sensors" in caplog.text
     # Verify traceback IS present for unexpected exceptions
     assert "Traceback" in caplog.text
+
+
+async def test_setup_entry_state_change_vehicle(
+    hass, test_charger, mock_ws_start, caplog
+):
+    """Test state changes push vehicle SoC/range/ETA to the charger."""
+    soc_entity = "sensor.vehicle_soc"
+    range_entity = "sensor.vehicle_range"
+    eta_entity = "sensor.vehicle_eta"
+
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA,
+        options={
+            "vehicle_soc": soc_entity,
+            "vehicle_range": range_entity,
+            "vehicle_eta": eta_entity,
+        },
+        version=2,
+    )
+    # seed initial states before setup so listeners attach
+    hass.states.async_set(soc_entity, "50")
+    hass.states.async_set(range_entity, "200")
+    hass.states.async_set(eta_entity, "3600")
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    entries = hass.config_entries.async_entries(DOMAIN)
+    assert len(entries) == 1
+    await hass.async_block_till_done()
+
+    hass.states.async_set(soc_entity, "75")
+    await hass.async_block_till_done()
+    assert "Sending sensor data to OpenEVSE: (vehicle_soc: 75)" in caplog.text
+
+    hass.states.async_set(range_entity, "240")
+    await hass.async_block_till_done()
+    assert "Sending sensor data to OpenEVSE: (vehicle_range: 240)" in caplog.text
+
+    hass.states.async_set(eta_entity, "1800")
+    await hass.async_block_till_done()
+    assert "Sending sensor data to OpenEVSE: (vehicle_eta: 1800)" in caplog.text
+
+    # non-numeric value -> warning logged and None sent
+    caplog.clear()
+    hass.states.async_set(soc_entity, "invalid")
+    await hass.async_block_till_done()
+    assert "Non-numeric state for vehicle SoC sensor: invalid" in caplog.text
+
+    caplog.clear()
+    hass.states.async_set(range_entity, "invalid")
+    await hass.async_block_till_done()
+    assert "Non-numeric state for vehicle range sensor: invalid" in caplog.text
+
+    caplog.clear()
+    hass.states.async_set(eta_entity, "invalid")
+    await hass.async_block_till_done()
+    assert "Non-numeric state for vehicle ETA sensor: invalid" in caplog.text
+
+    # unavailable/unknown/empty states -> None sent (no warning)
+    caplog.clear()
+    hass.states.async_set(soc_entity, "unknown")
+    await hass.async_block_till_done()
+    assert "Sending sensor data to OpenEVSE: (vehicle_soc: None)" in caplog.text
+
+    caplog.clear()
+    hass.states.async_set(range_entity, "unavailable")
+    await hass.async_block_till_done()
+    assert "Sending sensor data to OpenEVSE: (vehicle_range: None)" in caplog.text
+
+    caplog.clear()
+    hass.states.async_set(eta_entity, "")
+    await hass.async_block_till_done()
+    assert "Sending sensor data to OpenEVSE: (vehicle_eta: None)" in caplog.text
+
+    # firmware that doesn't support the push -> debug logged, no crash
+    caplog.clear()
+    with patch(
+        "custom_components.openevse.OpenEVSE.soc",
+        side_effect=UnsupportedFeature,
+    ):
+        hass.states.async_set(soc_entity, "55")
+        hass.states.async_set(range_entity, "210")
+        hass.states.async_set(eta_entity, "900")
+        await hass.async_block_till_done()
+    assert "Vehicle SoC push not supported by firmware." in caplog.text
+    assert "Vehicle range push not supported by firmware." in caplog.text
+    assert "Vehicle ETA push not supported by firmware." in caplog.text
+
+    # connection error on push -> warning logged, no crash
+    caplog.clear()
+    with patch(
+        "custom_components.openevse.OpenEVSE.soc",
+        side_effect=TimeoutError,
+    ):
+        hass.states.async_set(soc_entity, "56")
+        hass.states.async_set(range_entity, "211")
+        hass.states.async_set(eta_entity, "901")
+        await hass.async_block_till_done()
+    assert "Error connecting to device:" in caplog.text
+
+
+async def test_setup_entry_state_change_home_battery(
+    hass, test_charger, mock_ws_start, caplog
+):
+    """Test state changes push home battery SoC/power to the charger."""
+    soc_entity = "sensor.home_battery_soc"
+    power_entity = "sensor.home_battery_power"
+
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA,
+        options={
+            "home_battery_soc": soc_entity,
+            "home_battery_power": power_entity,
+        },
+        version=2,
+    )
+    # seed initial states before setup so listeners attach
+    hass.states.async_set(soc_entity, "60")
+    hass.states.async_set(power_entity, "0")
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    entries = hass.config_entries.async_entries(DOMAIN)
+    assert len(entries) == 1
+    await hass.async_block_till_done()
+
+    hass.states.async_set(soc_entity, "82")
+    await hass.async_block_till_done()
+    assert "Sending sensor data to OpenEVSE: (home_battery_soc: 82)" in caplog.text
+
+    hass.states.async_set(power_entity, "-1500")
+    await hass.async_block_till_done()
+    assert "Sending sensor data to OpenEVSE: (home_battery_power: -1500)" in caplog.text
+
+    # non-numeric value -> warning logged and None sent
+    caplog.clear()
+    hass.states.async_set(soc_entity, "invalid")
+    await hass.async_block_till_done()
+    assert "Non-numeric state for home battery SoC sensor: invalid" in caplog.text
+
+    caplog.clear()
+    hass.states.async_set(power_entity, "invalid")
+    await hass.async_block_till_done()
+    assert "Non-numeric state for home battery power sensor: invalid" in caplog.text
+
+    # unavailable/empty states -> None sent (no warning)
+    caplog.clear()
+    hass.states.async_set(soc_entity, "unavailable")
+    await hass.async_block_till_done()
+    assert "Sending sensor data to OpenEVSE: (home_battery_soc: None)" in caplog.text
+
+    caplog.clear()
+    hass.states.async_set(power_entity, "unknown")
+    await hass.async_block_till_done()
+    assert "Sending sensor data to OpenEVSE: (home_battery_power: None)" in caplog.text
+
+    # firmware that doesn't support the push -> debug logged, no crash
+    caplog.clear()
+    with patch(
+        "custom_components.openevse.OpenEVSE.home_battery",
+        side_effect=UnsupportedFeature,
+    ):
+        hass.states.async_set(soc_entity, "70")
+        hass.states.async_set(power_entity, "-500")
+        await hass.async_block_till_done()
+    assert "Home battery push not supported by firmware." in caplog.text
+
+    # connection error on push -> warning logged, no crash
+    caplog.clear()
+    with patch(
+        "custom_components.openevse.OpenEVSE.home_battery",
+        side_effect=TimeoutError,
+    ):
+        hass.states.async_set(soc_entity, "71")
+        hass.states.async_set(power_entity, "-501")
+        await hass.async_block_till_done()
+    assert "Error connecting to device:" in caplog.text

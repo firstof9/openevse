@@ -33,10 +33,15 @@ from openevsehttp.exceptions import MissingSerial, UnsupportedFeature
 from .const import (
     BINARY_SENSORS,
     CONF_GRID,
+    CONF_HOME_BATTERY_POWER,
+    CONF_HOME_BATTERY_SOC,
     CONF_INVERT,
     CONF_NAME,
     CONF_SHAPER,
     CONF_SOLAR,
+    CONF_VEHICLE_ETA,
+    CONF_VEHICLE_RANGE,
+    CONF_VEHICLE_SOC,
     CONF_VOLTAGE,
     CONNECTION_ERROR,
     CONNECTION_ERRORS,
@@ -89,6 +94,11 @@ async def handle_state_change(
     solar_sensor = options.get(CONF_SOLAR)
     voltage_sensor = options.get(CONF_VOLTAGE)
     shaper_sensor = options.get(CONF_SHAPER)
+    vehicle_soc_sensor = options.get(CONF_VEHICLE_SOC)
+    vehicle_range_sensor = options.get(CONF_VEHICLE_RANGE)
+    vehicle_eta_sensor = options.get(CONF_VEHICLE_ETA)
+    home_battery_soc_sensor = options.get(CONF_HOME_BATTERY_SOC)
+    home_battery_power_sensor = options.get(CONF_HOME_BATTERY_POWER)
     changed_entity = event.data["entity_id"]
 
     if grid_sensor is not None and changed_entity == grid_sensor:
@@ -160,6 +170,118 @@ async def handle_state_change(
         logger.debug("Sending sensor data to OpenEVSE: (shaper: %s)", power)
         try:
             await manager.set_shaper_live_pwr(power=power)
+        except CONNECTION_ERRORS as err:
+            logger.warning(CONNECTION_ERROR, err)
+
+    if vehicle_soc_sensor is not None and changed_entity == vehicle_soc_sensor:
+        state = hass.states.get(vehicle_soc_sensor)
+        soc = state.state if state else None
+        if soc in [None, "unavailable", "unknown", ""]:
+            soc = None
+        else:
+            try:
+                soc = round(float(soc))
+            except (ValueError, TypeError):
+                logger.warning("Non-numeric state for vehicle SoC sensor: %s", soc)
+                soc = None
+
+        logger.debug("Sending sensor data to OpenEVSE: (vehicle_soc: %s)", soc)
+        try:
+            await manager.soc(battery_level=soc)
+        except UnsupportedFeature:
+            logger.debug("Vehicle SoC push not supported by firmware.")
+        except CONNECTION_ERRORS as err:
+            logger.warning(CONNECTION_ERROR, err)
+
+    if vehicle_range_sensor is not None and changed_entity == vehicle_range_sensor:
+        state = hass.states.get(vehicle_range_sensor)
+        vrange = state.state if state else None
+        if vrange in [None, "unavailable", "unknown", ""]:
+            vrange = None
+        else:
+            try:
+                vrange = round(float(vrange))
+            except (ValueError, TypeError):
+                logger.warning("Non-numeric state for vehicle range sensor: %s", vrange)
+                vrange = None
+
+        logger.debug("Sending sensor data to OpenEVSE: (vehicle_range: %s)", vrange)
+        try:
+            await manager.soc(battery_range=vrange)
+        except UnsupportedFeature:
+            logger.debug("Vehicle range push not supported by firmware.")
+        except CONNECTION_ERRORS as err:
+            logger.warning(CONNECTION_ERROR, err)
+
+    if vehicle_eta_sensor is not None and changed_entity == vehicle_eta_sensor:
+        state = hass.states.get(vehicle_eta_sensor)
+        eta = state.state if state else None
+        if eta in [None, "unavailable", "unknown", ""]:
+            eta = None
+        else:
+            try:
+                eta = round(float(eta))
+            except (ValueError, TypeError):
+                logger.warning("Non-numeric state for vehicle ETA sensor: %s", eta)
+                eta = None
+
+        logger.debug("Sending sensor data to OpenEVSE: (vehicle_eta: %s)", eta)
+        try:
+            await manager.soc(time_to_full=eta)
+        except UnsupportedFeature:
+            logger.debug("Vehicle ETA push not supported by firmware.")
+        except CONNECTION_ERRORS as err:
+            logger.warning(CONNECTION_ERROR, err)
+
+    if (
+        home_battery_soc_sensor is not None
+        and changed_entity == home_battery_soc_sensor
+    ):
+        state = hass.states.get(home_battery_soc_sensor)
+        hb_soc = state.state if state else None
+        if hb_soc in [None, "unavailable", "unknown", ""]:
+            hb_soc = None
+        else:
+            try:
+                hb_soc = round(float(hb_soc))
+            except (ValueError, TypeError):
+                logger.warning(
+                    "Non-numeric state for home battery SoC sensor: %s", hb_soc
+                )
+                hb_soc = None
+
+        logger.debug("Sending sensor data to OpenEVSE: (home_battery_soc: %s)", hb_soc)
+        try:
+            await manager.home_battery(soc=hb_soc)
+        except UnsupportedFeature:
+            logger.debug("Home battery push not supported by firmware.")
+        except CONNECTION_ERRORS as err:
+            logger.warning(CONNECTION_ERROR, err)
+
+    if (
+        home_battery_power_sensor is not None
+        and changed_entity == home_battery_power_sensor
+    ):
+        state = hass.states.get(home_battery_power_sensor)
+        hb_power = state.state if state else None
+        if hb_power in [None, "unavailable", "unknown", ""]:
+            hb_power = None
+        else:
+            try:
+                hb_power = round(float(hb_power))
+            except (ValueError, TypeError):
+                logger.warning(
+                    "Non-numeric state for home battery power sensor: %s", hb_power
+                )
+                hb_power = None
+
+        logger.debug(
+            "Sending sensor data to OpenEVSE: (home_battery_power: %s)", hb_power
+        )
+        try:
+            await manager.home_battery(power=hb_power)
+        except UnsupportedFeature:
+            logger.debug("Home battery push not supported by firmware.")
         except CONNECTION_ERRORS as err:
             logger.warning(CONNECTION_ERROR, err)
 
@@ -260,6 +382,16 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
         sensors.append(options.get(CONF_VOLTAGE))
     if options.get(CONF_SHAPER):
         sensors.append(options.get(CONF_SHAPER))
+    if options.get(CONF_VEHICLE_SOC):
+        sensors.append(options.get(CONF_VEHICLE_SOC))
+    if options.get(CONF_VEHICLE_RANGE):
+        sensors.append(options.get(CONF_VEHICLE_RANGE))
+    if options.get(CONF_VEHICLE_ETA):
+        sensors.append(options.get(CONF_VEHICLE_ETA))
+    if options.get(CONF_HOME_BATTERY_SOC):
+        sensors.append(options.get(CONF_HOME_BATTERY_SOC))
+    if options.get(CONF_HOME_BATTERY_POWER):
+        sensors.append(options.get(CONF_HOME_BATTERY_POWER))
 
     if len(sensors) > 0:
         if hass.state == CoreState.running:

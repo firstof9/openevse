@@ -20,11 +20,16 @@ from openevsehttp.__main__ import OpenEVSE
 
 from .const import (
     CONF_GRID,
+    CONF_HOME_BATTERY_POWER,
+    CONF_HOME_BATTERY_SOC,
     CONF_INVERT,
     CONF_NAME,
     CONF_SERIAL,
     CONF_SHAPER,
     CONF_SOLAR,
+    CONF_VEHICLE_ETA,
+    CONF_VEHICLE_RANGE,
+    CONF_VEHICLE_SOC,
     CONF_VOLTAGE,
     DEFAULT_HOST,
     DEFAULT_NAME,
@@ -264,6 +269,24 @@ class OpenEVSEOptionsFlowHandler(config_entries.OptionsFlow):
                     ): OptionalEntitySelector(EntitySelectorConfig(domain="sensor")),
                     vol.Optional(
                         CONF_SHAPER, default=options.get(CONF_SHAPER, "")
+                    ): OptionalEntitySelector(EntitySelectorConfig(domain="sensor")),
+                    vol.Optional(
+                        CONF_VEHICLE_SOC, default=options.get(CONF_VEHICLE_SOC, "")
+                    ): OptionalEntitySelector(EntitySelectorConfig(domain="sensor")),
+                    vol.Optional(
+                        CONF_VEHICLE_RANGE,
+                        default=options.get(CONF_VEHICLE_RANGE, ""),
+                    ): OptionalEntitySelector(EntitySelectorConfig(domain="sensor")),
+                    vol.Optional(
+                        CONF_VEHICLE_ETA, default=options.get(CONF_VEHICLE_ETA, "")
+                    ): OptionalEntitySelector(EntitySelectorConfig(domain="sensor")),
+                    vol.Optional(
+                        CONF_HOME_BATTERY_SOC,
+                        default=options.get(CONF_HOME_BATTERY_SOC, ""),
+                    ): OptionalEntitySelector(EntitySelectorConfig(domain="sensor")),
+                    vol.Optional(
+                        CONF_HOME_BATTERY_POWER,
+                        default=options.get(CONF_HOME_BATTERY_POWER, ""),
                     ): OptionalEntitySelector(EntitySelectorConfig(domain="sensor")),
                     vol.Optional(
                         CONF_INVERT, default=options.get(CONF_INVERT, False)
