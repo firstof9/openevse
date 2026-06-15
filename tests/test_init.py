@@ -13,6 +13,7 @@ from homeassistant.components.switch import DOMAIN as SWITCH_DOMAIN
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import EVENT_HOMEASSISTANT_STARTED
 from homeassistant.core import CoreState
+from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.update_coordinator import UpdateFailed
 from openevsehttp.exceptions import (
     AuthenticationError,
@@ -497,6 +498,11 @@ async def test_get_firmware_logic(hass):
     mock_manager.update.side_effect = RuntimeError("Runtime Failure")
     res = await get_firmware(mock_manager)
     assert res == ("", "")
+
+    # 1c. AuthenticationError (should raise ConfigEntryAuthFailed)
+    mock_manager.update.side_effect = AuthenticationError("Invalid auth")
+    with pytest.raises(ConfigEntryAuthFailed):
+        await get_firmware(mock_manager)
 
     # 2. Missing Serial (should return fallback versions)
     mock_manager.update.side_effect = None  # Reset
