@@ -14,7 +14,7 @@
           "ssl": "Usar SSL",
           "verify_ssl": "Verificar certificado SSL"
         },
-        "description": "Por favor, introduce la información de conexión al cargador OpenEVSE.",
+        "description": "Por favor, introduce la información de conexión al cargador OpenEVSE.\n\nNota: Los certificados deben subirse al dispositivo antes de poder utilizar HTTPS.",
         "title": "Configuración OpenEVSE"
       },
       "reconfigure": {
@@ -26,7 +26,7 @@
           "ssl": "Usar SSL",
           "verify_ssl": "Verificar certificado SSL"
         },
-        "description": "Por favor, introduce la información de conexión al cargador OpenEVSE.",
+        "description": "Por favor, introduce la información de conexión al cargador OpenEVSE.\n\nNota: Los certificados deben subirse al dispositivo antes de poder utilizar HTTPS.",
         "title": "Configuración OpenEVSE"
       },
       "discovery_confirm": {
