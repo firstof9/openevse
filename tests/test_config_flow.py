@@ -1,7 +1,7 @@
 """Test config flow."""
 
 from ipaddress import ip_address
-from unittest.mock import patch
+from unittest.mock import ANY, AsyncMock, patch
 
 import pytest
 from homeassistant import config_entries, setup
@@ -36,6 +36,28 @@ pytestmark = pytest.mark.asyncio
                 "host": "openevse.test.tld",
                 "username": "",
                 "password": "",
+                "ssl": False,
+                "verify_ssl": True,
+            },
+        ),
+        (
+            {
+                "name": "OpenEVSE Charger SSL",
+                "host": "openevse.test.tld",
+                "username": "",
+                "password": "",
+                "ssl": True,
+                "verify_ssl": False,
+            },
+            "user",
+            "OpenEVSE Charger SSL",
+            {
+                "name": "OpenEVSE Charger SSL",
+                "host": "openevse.test.tld",
+                "username": "",
+                "password": "",
+                "ssl": True,
+                "verify_ssl": False,
             },
         ),
     ],
@@ -137,6 +159,28 @@ async def test_form_user_connection_error(
                 "host": "openevse.test.tld",
                 "username": "",
                 "password": "",
+                "ssl": False,
+                "verify_ssl": True,
+            },
+        ),
+        (
+            {
+                "name": "OpenEVSE Charger",
+                "host": "openevse.test.tld",
+                "username": "",
+                "password": "",
+                "ssl": True,
+                "verify_ssl": False,
+            },
+            "reconfigure",
+            "openevse",
+            {
+                "name": "OpenEVSE Charger",
+                "host": "openevse.test.tld",
+                "username": "",
+                "password": "",
+                "ssl": True,
+                "verify_ssl": False,
             },
         ),
     ],
@@ -745,3 +789,65 @@ async def test_reauth_flow_errors(hass, test_charger, mock_ws_start):
 
     assert result["type"] == FlowResultType.FORM
     assert result["errors"] == {"base": "communication"}
+
+
+async def test_reauth_flow_ssl(hass, test_charger, mock_ws_start):
+    """Test reauth flow works successfully with SSL configured."""
+    await setup.async_setup_component(hass, "persistent_notification", {})
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data={**CONFIG_DATA, "ssl": True, "verify_ssl": False},
+        version=2,
+    )
+    entry.add_to_hass(hass)
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    # Trigger reauth step
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN,
+        context={
+            "source": config_entries.SOURCE_REAUTH,
+            "entry_id": entry.entry_id,
+        },
+        data=entry.data,
+    )
+    assert result["type"] == FlowResultType.FORM
+    assert result["step_id"] == "reauth_confirm"
+
+    # Submit correct/new credentials
+    with (
+        patch("custom_components.openevse.config_flow.OpenEVSE") as mock_openevse,
+        patch("custom_components.openevse.OpenEVSE.ws_disconnect", return_value=True),
+    ):
+        # We need update to return True on the mocked instance
+        mock_instance = mock_openevse.return_value
+        mock_instance.update = AsyncMock(return_value=True)
+        mock_instance.ws_disconnect = AsyncMock(return_value=True)
+
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            {
+                "username": "new_user",
+                "password": "new_password",
+            },
+        )
+
+        mock_openevse.assert_called_once_with(
+            "openevse.test.tld",
+            user="new_user",
+            pwd="new_password",
+            ssl=True,
+            ssl_verify=False,
+            session=ANY,
+        )
+
+    assert result["type"] == FlowResultType.ABORT
+    assert result["reason"] == "reconfigure_successful"
+    await hass.async_block_till_done()
+
+    assert entry.data["username"] == "new_user"
+    assert entry.data["password"] == "new_password"
+    assert entry.data["ssl"] is True
+    assert entry.data["verify_ssl"] is False

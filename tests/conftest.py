@@ -107,8 +107,20 @@ def test_charger(mock_aioclient):
         body=load_fixture("status.json"),
         repeat=True,
     )
+    mock_aioclient.get(
+        TEST_URL_STATUS.replace("http://", "https://"),
+        status=200,
+        body=load_fixture("status.json"),
+        repeat=True,
+    )
     mock_aioclient.post(
         TEST_URL_STATUS,
+        status=200,
+        body='{ "msg": "OK" }',
+        repeat=True,
+    )
+    mock_aioclient.post(
+        TEST_URL_STATUS.replace("http://", "https://"),
         status=200,
         body='{ "msg": "OK" }',
         repeat=True,
@@ -120,7 +132,19 @@ def test_charger(mock_aioclient):
         repeat=True,
     )
     mock_aioclient.get(
+        TEST_URL_CONFIG.replace("http://", "https://"),
+        status=200,
+        body=load_fixture("config.json"),
+        repeat=True,
+    )
+    mock_aioclient.get(
         TEST_URL_WS,
+        status=101,
+        body=load_fixture("status.json"),
+        repeat=True,
+    )
+    mock_aioclient.get(
+        TEST_URL_WS.replace("ws://", "wss://"),
         status=101,
         body=load_fixture("status.json"),
         repeat=True,
@@ -132,8 +156,20 @@ def test_charger(mock_aioclient):
         body='{ "msg": "OK" }',
         repeat=True,
     )
+    mock_aioclient.post(
+        TEST_URL_OVERRIDE.replace("http://", "https://"),
+        status=200,
+        body='{ "msg": "OK" }',
+        repeat=True,
+    )
     mock_aioclient.patch(
         TEST_URL_OVERRIDE,
+        status=200,
+        body='{ "msg": "OK" }',
+        repeat=True,
+    )
+    mock_aioclient.patch(
+        TEST_URL_OVERRIDE.replace("http://", "https://"),
         status=200,
         body='{ "msg": "OK" }',
         repeat=True,
@@ -145,7 +181,19 @@ def test_charger(mock_aioclient):
         repeat=True,
     )
     mock_aioclient.get(
+        TEST_URL_OVERRIDE.replace("http://", "https://"),
+        status=200,
+        body="{}",
+        repeat=True,
+    )
+    mock_aioclient.get(
         TEST_URL_CLAIMS_TARGET,
+        status=200,
+        body='{"properties":{"state":"disabled","charge_current":28,"max_current":23,"auto_release":false},"claims":{"state":65540,"charge_current":65537,"max_current":65548}}',
+        repeat=True,
+    )
+    mock_aioclient.get(
+        TEST_URL_CLAIMS_TARGET.replace("http://", "https://"),
         status=200,
         body='{"properties":{"state":"disabled","charge_current":28,"max_current":23,"auto_release":false},"claims":{"state":65540,"charge_current":65537,"max_current":65548}}',
         repeat=True,
