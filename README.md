@@ -77,6 +77,10 @@ Alternatively, add it manually within HACS:
 3. If not, click **+ Add Integration** in the bottom right, search for **OpenEVSE**, and select it.
 4. Enter the charger's **Host/IP address** (default: `openevse.local`), and optional **Username** and **Password** if your charger requires authentication.
 
+> [!NOTE]
+> If configuring the integration to use **HTTPS / SSL**, certificate files must be uploaded to the OpenEVSE device first.
+
+
 ### Advanced Options (Integration Configuration)
 To unlock smart features like **Solar PV Divert** and **Current Shaper**, you must bind external sensors.
 1. Go to **Settings** -> **Devices & Services** -> **OpenEVSE**.

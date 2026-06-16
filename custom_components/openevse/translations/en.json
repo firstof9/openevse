@@ -14,7 +14,7 @@
           "ssl": "Use SSL",
           "verify_ssl": "Verify SSL Certificate"
         },
-        "description": "Please enter the connection information of OpenEVSE charger.",
+        "description": "Please enter the connection information of OpenEVSE charger.\n\nNote: Certificates must be uploaded to the device before being able to use HTTPS.",
         "title": "OpenEVSE Setup"
       },
       "reconfigure": {
@@ -26,7 +26,7 @@
           "ssl": "Use SSL",
           "verify_ssl": "Verify SSL Certificate"
         },
-        "description": "Please enter the connection information of OpenEVSE charger.",
+        "description": "Please enter the connection information of OpenEVSE charger.\n\nNote: Certificates must be uploaded to the device before being able to use HTTPS.",
         "title": "OpenEVSE Setup"
       },
       "discovery_confirm": {
