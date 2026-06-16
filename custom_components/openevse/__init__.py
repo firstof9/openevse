@@ -12,7 +12,9 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
     CONF_HOST,
     CONF_PASSWORD,
+    CONF_SSL,
     CONF_USERNAME,
+    CONF_VERIFY_SSL,
     EVENT_HOMEASSISTANT_STARTED,
 )
 from homeassistant.core import (
@@ -799,10 +801,14 @@ class OpenEVSEManager:
         self._host = config_entry.data.get(CONF_HOST)
         self._username = config_entry.data.get(CONF_USERNAME)
         self._password = config_entry.data.get(CONF_PASSWORD)
+        self._ssl = config_entry.data.get(CONF_SSL, False)
+        self._ssl_verify = config_entry.data.get(CONF_VERIFY_SSL, True)
         self.charger = OpenEVSE(
             self._host,
             user=self._username,
             pwd=self._password,
+            ssl=self._ssl,
+            ssl_verify=self._ssl_verify,
             session=async_get_clientsession(hass),
         )
 

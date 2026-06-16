@@ -9,7 +9,13 @@ from typing import Any, Final
 import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.components import zeroconf
-from homeassistant.const import CONF_HOST, CONF_PASSWORD, CONF_USERNAME
+from homeassistant.const import (
+    CONF_HOST,
+    CONF_PASSWORD,
+    CONF_SSL,
+    CONF_USERNAME,
+    CONF_VERIFY_SSL,
+)
 from homeassistant.data_entry_flow import AbortFlow, FlowResult
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
@@ -149,6 +155,8 @@ class OpenEVSEFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                 user_input[CONF_HOST],
                 user=user_input[CONF_USERNAME],
                 pwd=user_input[CONF_PASSWORD],
+                ssl=user_input.get(CONF_SSL, False),
+                ssl_verify=user_input.get(CONF_VERIFY_SSL, True),
                 session=async_get_clientsession(self.hass),
             )
 
@@ -194,6 +202,8 @@ class OpenEVSEFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                 user_input[CONF_HOST],
                 user=user_input[CONF_USERNAME],
                 pwd=user_input[CONF_PASSWORD],
+                ssl=user_input.get(CONF_SSL, False),
+                ssl_verify=user_input.get(CONF_VERIFY_SSL, True),
                 session=async_get_clientsession(self.hass),
             )
 
@@ -250,6 +260,8 @@ class OpenEVSEFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                 self._data[CONF_HOST],
                 user=user_input[CONF_USERNAME],
                 pwd=user_input[CONF_PASSWORD],
+                ssl=self._data.get(CONF_SSL, False),
+                ssl_verify=self._data.get(CONF_VERIFY_SSL, True),
                 session=async_get_clientsession(self.hass),
             )
 
@@ -389,5 +401,9 @@ def _get_schema(
             vol.Optional(
                 CONF_PASSWORD, default=_get_default(CONF_PASSWORD, "")
             ): cv.string,
+            vol.Optional(CONF_SSL, default=_get_default(CONF_SSL, False)): bool,
+            vol.Optional(
+                CONF_VERIFY_SSL, default=_get_default(CONF_VERIFY_SSL, True)
+            ): bool,
         },
     )

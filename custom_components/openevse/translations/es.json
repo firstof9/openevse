@@ -10,7 +10,9 @@
           "name": "Alias",
           "host": "Hostname/IP",
           "password": "Contraseña (opcional)",
-          "username": "Usuario (opcional)"
+          "username": "Usuario (opcional)",
+          "ssl": "Usar SSL",
+          "verify_ssl": "Verificar certificado SSL"
         },
         "description": "Por favor, introduce la información de conexión al cargador OpenEVSE.",
         "title": "Configuración OpenEVSE"
@@ -20,7 +22,9 @@
           "name": "Alias",
           "host": "Hostname/IP",
           "password": "Contraseña (opcional)",
-          "username": "Usuario (opcional)"
+          "username": "Usuario (opcional)",
+          "ssl": "Usar SSL",
+          "verify_ssl": "Verificar certificado SSL"
         },
         "description": "Por favor, introduce la información de conexión al cargador OpenEVSE.",
         "title": "Configuración OpenEVSE"
