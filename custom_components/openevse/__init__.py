@@ -680,6 +680,8 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
             if skip_async and getattr(descriptor, "is_async_value", False):
                 continue
             sensor_property = descriptor.key
+            if sensor_property == "vehicle_range":
+                sensor_property = "vehicle_range_with_unit"
             if sensor_property not in manager_dir:
                 self.logger.debug("Could not update status for %s", key)
                 continue
@@ -760,6 +762,8 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
         data.update(self._collect_values(SELECT_TYPES, "select"))
         data.update(self._collect_values(NUMBER_TYPES, "number"))
         data.update(self._collect_values(LIGHT_TYPES, "light"))
+        if "vehicle_range" in data and isinstance(data["vehicle_range"], tuple):
+            data["vehicle_range"] = data["vehicle_range"][0]
         self.logger.debug("Parsed data: %s", data)
         return data
 
@@ -776,6 +780,8 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
         data.update(
             await self._collect_async_values(SENSOR_TYPES, "sensor", seen_results)
         )
+        if "vehicle_range" in data and isinstance(data["vehicle_range"], tuple):
+            data["vehicle_range"] = data["vehicle_range"][0]
         self.logger.debug("Parsed async data: %s", data)
         return data
 
