@@ -411,3 +411,51 @@ async def test_vehicle_range_sensor_miles(
         ):
             res = await coordinator.async_parse_sensors()
             assert res["vehicle_range"] == 100
+
+
+async def test_vehicle_range_sensor_km(
+    hass,
+    test_charger,
+    mock_ws_start,
+    mock_aioclient,
+    entity_registry: er.EntityRegistry,
+):
+    """Test vehicle range sensor with km and kilometers unit mapping."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA,
+    )
+    entry.add_to_hass(hass)
+
+    with patch(
+        "custom_components.openevse.OpenEVSE.vehicle_range_with_unit",
+        new_callable=PropertyMock,
+        return_value=(240, "km"),
+    ):
+        assert await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+
+        entity_id = "sensor.openevse_vehicle_range"
+        entity_entry = entity_registry.async_get(entity_id)
+        assert entity_entry
+        entity_registry.async_update_entity(entity_id, disabled_by=None)
+
+        assert await hass.config_entries.async_forward_entry_unload(entry, "sensor")
+        await hass.config_entries.async_forward_entry_setups(entry, ["sensor"])
+        await hass.async_block_till_done()
+
+        entity = hass.data["entity_components"]["sensor"].get_entity(entity_id)
+        assert entity
+        assert entity.native_unit_of_measurement == UnitOfLength.KILOMETERS
+
+    # Reload and test with "kilometers"
+    with patch(
+        "custom_components.openevse.OpenEVSE.vehicle_range_with_unit",
+        new_callable=PropertyMock,
+        return_value=(240, "kilometers"),
+    ):
+        # Trigger dynamic update check
+        entity = hass.data["entity_components"]["sensor"].get_entity(entity_id)
+        assert entity
+        assert entity.native_unit_of_measurement == UnitOfLength.KILOMETERS
