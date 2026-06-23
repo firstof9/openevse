@@ -299,6 +299,19 @@ async def test_switch_coverage_gaps(hass, test_charger, mock_ws_start):
     switch = OpenEVSESwitch(hass, entry, coordinator, description, manager)
     assert switch.is_on is None
 
+    # Test is_on when value_fn returns None
+    description_value_fn = MagicMock(
+        key="test_value_fn",
+        name="ValueFnTest",
+        toggle_command="test",
+        min_version=None,
+        value_fn=lambda d: None,
+    )
+    switch_value_fn = OpenEVSESwitch(
+        hass, entry, coordinator, description_value_fn, manager
+    )
+    assert switch_value_fn.is_on is None
+
     # Test toggling of claim-based switches
     description_claim = MagicMock(
         key="state",

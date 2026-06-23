@@ -3,7 +3,7 @@
 import contextlib
 import logging
 from datetime import datetime
-from unittest.mock import PropertyMock, patch
+from unittest.mock import MagicMock, PropertyMock, patch
 
 import pytest
 from aiohttp import ClientError
@@ -14,6 +14,7 @@ from homeassistant.util import dt as dt_util
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.openevse.const import DOMAIN
+from custom_components.openevse.sensor import OpenEVSESensor
 
 from .const import CONFIG_DATA
 
@@ -459,3 +460,25 @@ async def test_vehicle_range_sensor_km(
         entity = hass.data["entity_components"]["sensor"].get_entity(entity_id)
         assert entity
         assert entity.native_unit_of_measurement == UnitOfLength.KILOMETERS
+
+
+async def test_sensor_coverage_gaps(hass, test_charger, mock_ws_start):
+    """Test sensor coverage gaps."""
+    entry = MockConfigEntry(domain=DOMAIN, data=CONFIG_DATA)
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
+
+    description_no_val_fn = MagicMock(
+        key="test_sensor_key",
+        name="Test Sensor",
+        min_version=None,
+        value_fn=None,
+        native_unit_of_measurement=None,
+        icon=None,
+    )
+    entity = OpenEVSESensor(description_no_val_fn, "test_unique_id", coordinator, entry)
+    coordinator.data = {"test_sensor_key": "some_value"}
+    assert entity.native_value == "some_value"
