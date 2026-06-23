@@ -473,6 +473,12 @@ SWITCH_TYPES: Final[dict[str, OpenEVSESwitchEntityDescription]] = {
         device_class=SwitchDeviceClass.SWITCH,
         min_version="4.1.0",
     ),
+    "mqtt_vehicle_range_miles": OpenEVSESwitchEntityDescription(
+        name="Vehicle Range Miles",
+        key="mqtt_vehicle_range_miles",
+        toggle_command="set_mqtt_vehicle_range_miles",
+        device_class=SwitchDeviceClass.SWITCH,
+    ),
 }
 
 # Name, options, command, entity category
@@ -556,6 +562,12 @@ BINARY_SENSORS: Final[dict[str, BinarySensorEntityDescription]] = {
     "shaper_updated": BinarySensorEntityDescription(
         name="Shaper Updated",
         key="shaper_updated",
+        entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=False,
+    ),
+    "mqtt_vehicle_range_miles": BinarySensorEntityDescription(
+        name="Vehicle Range Miles",
+        key="mqtt_vehicle_range_miles",
         entity_category=EntityCategory.DIAGNOSTIC,
         entity_registry_enabled_default=False,
     ),

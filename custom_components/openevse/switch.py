@@ -115,6 +115,8 @@ class OpenEVSESwitch(CoordinatorEntity, SwitchEntity):
                 await self._manager.release_claim()
             elif self.toggle_command == "set_shaper":
                 await self._manager.set_shaper(True)
+            elif self.toggle_command == "set_mqtt_vehicle_range_miles":
+                await self._manager.set_mqtt_vehicle_range_miles(True)
             else:
                 await getattr(self._manager, self.toggle_command)()
         except CONNECTION_ERRORS as err:
@@ -133,6 +135,8 @@ class OpenEVSESwitch(CoordinatorEntity, SwitchEntity):
                 await self._manager.make_claim(state="active")
             elif self.toggle_command == "set_shaper":
                 await self._manager.set_shaper(False)
+            elif self.toggle_command == "set_mqtt_vehicle_range_miles":
+                await self._manager.set_mqtt_vehicle_range_miles(False)
             else:
                 await getattr(self._manager, self.toggle_command)()
         except CONNECTION_ERRORS as err:
