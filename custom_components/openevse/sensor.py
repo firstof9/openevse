@@ -10,6 +10,7 @@ from homeassistant.components.sensor import (
     SensorEntityDescription,
 )
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import UnitOfLength
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import CONF_NAME, COORDINATOR, DOMAIN, MANAGER, SENSOR_TYPES
@@ -81,6 +82,20 @@ class OpenEVSESensor(CoordinatorEntity, SensorEntity):
     def native_value(self) -> Any:
         """Return the state of the sensor."""
         return self.coordinator.data.get(self._type)
+
+    @property
+    def native_unit_of_measurement(self) -> str | None:
+        """Return the unit of measurement."""
+        if self._type == "vehicle_range":
+            manager = self.hass.data[DOMAIN][self._unique_id][MANAGER]
+            range_data = getattr(manager, "vehicle_range_with_unit", None)
+            if range_data is not None:
+                unit = range_data[1]
+                if unit == "miles":
+                    return UnitOfLength.MILES
+                if unit in ("km", "kilometers"):
+                    return UnitOfLength.KILOMETERS
+        return self.entity_description.native_unit_of_measurement
 
     @property
     def icon(self) -> str | None:
