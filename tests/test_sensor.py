@@ -3,11 +3,12 @@
 import contextlib
 import logging
 from datetime import datetime
-from unittest.mock import patch
+from unittest.mock import PropertyMock, patch
 
 import pytest
 from aiohttp import ClientError
 from homeassistant.components.sensor import DOMAIN as SENSOR_DOMAIN
+from homeassistant.const import UnitOfLength
 from homeassistant.helpers import entity_registry as er
 from homeassistant.util import dt as dt_util
 from pytest_homeassistant_custom_component.common import MockConfigEntry
@@ -361,3 +362,52 @@ async def test_sensor_availability_aioclient(
 
     state = hass.states.get("sensor.openevse_charging_status")
     assert state.state != "unavailable"
+
+
+async def test_vehicle_range_sensor_miles(
+    hass,
+    test_charger,
+    mock_ws_start,
+    mock_aioclient,
+    entity_registry: er.EntityRegistry,
+):
+    """Test vehicle range sensor with miles unit and async parsing logic."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA,
+    )
+    entry.add_to_hass(hass)
+
+    with patch(
+        "custom_components.openevse.OpenEVSE.vehicle_range_with_unit",
+        new_callable=PropertyMock,
+        return_value=(150, "miles"),
+    ):
+        assert await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+
+        # Enable vehicle range sensor (disabled by default)
+        entity_id = "sensor.openevse_vehicle_range"
+        entity_entry = entity_registry.async_get(entity_id)
+        assert entity_entry
+        entity_registry.async_update_entity(entity_id, disabled_by=None)
+
+        # reload the integration sensor platform
+        assert await hass.config_entries.async_forward_entry_unload(entry, "sensor")
+        await hass.config_entries.async_forward_entry_setups(entry, ["sensor"])
+        await hass.async_block_till_done()
+
+        entity = hass.data["entity_components"]["sensor"].get_entity(entity_id)
+        assert entity
+        assert entity.native_unit_of_measurement == UnitOfLength.MILES
+
+        # Test async_parse_sensors unpacking
+        coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
+        with patch.object(
+            coordinator,
+            "_collect_async_values",
+            return_value={"vehicle_range": (100, "miles")},
+        ):
+            res = await coordinator.async_parse_sensors()
+            assert res["vehicle_range"] == 100

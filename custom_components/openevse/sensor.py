@@ -93,7 +93,8 @@ class OpenEVSESensor(CoordinatorEntity, SensorEntity):
                 unit = range_data[1]
                 if unit == "miles":
                     return UnitOfLength.MILES
-                return UnitOfLength.KILOMETERS
+                if unit == "km":
+                    return UnitOfLength.KILOMETERS
         return self.entity_description.native_unit_of_measurement
 
     @property
