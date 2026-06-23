@@ -20,7 +20,7 @@ from . import (
     send_command,
 )
 from .const import CONNECTION_ERROR, COORDINATOR, DOMAIN, MANAGER, SELECT_TYPES
-from .entity import OpenEVSESelectEntityDescription
+from .entity import OpenEVSEEntity, OpenEVSESelectEntityDescription
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -30,15 +30,19 @@ async def async_setup_entry(hass, entry, async_add_entities):
     coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
     manager = hass.data[DOMAIN][entry.entry_id][MANAGER]
     selects = []
-    for select in SELECT_TYPES:
-        selects.append(
-            OpenEVSESelect(hass, entry, coordinator, SELECT_TYPES[select], manager)
-        )
+    for description in SELECT_TYPES:
+        if description.key == "max_current_soft":
+            _LOGGER.warning(
+                "The Charge Rate select entity (max_current_soft) is deprecated "
+                "and will be removed in a future release. "
+                "Please use the number entity instead."
+            )
+        selects.append(OpenEVSESelect(hass, entry, coordinator, description, manager))
 
     async_add_entities(selects, False)
 
 
-class OpenEVSESelect(CoordinatorEntity, SelectEntity):
+class OpenEVSESelect(CoordinatorEntity, OpenEVSEEntity, SelectEntity):
     """Define OpenEVSE Service Level select."""
 
     def __init__(
@@ -54,6 +58,7 @@ class OpenEVSESelect(CoordinatorEntity, SelectEntity):
         self.hass = hass
         self._config = config_entry
         self.coordinator = coordinator
+        self.entity_description = description
         self._description = description
         self._type = description.key
         self._attr_name = f"{config_entry.data[CONF_NAME]} {description.name}"
@@ -70,19 +75,12 @@ class OpenEVSESelect(CoordinatorEntity, SelectEntity):
         return self.get_options()
 
     @property
-    def device_info(self):
-        """Return a port description for device registry."""
-        info = {
-            "manufacturer": "OpenEVSE",
-            "name": self._config.data[CONF_NAME],
-            "connections": {(DOMAIN, self._config.entry_id)},
-        }
-        return info
-
-    @property
     def current_option(self) -> str | None:
         """Return the selected entity option to represent the entity state."""
         data = self.coordinator.data
+        if getattr(self.entity_description, "value_fn", None) is not None:
+            state = self.entity_description.value_fn(data)
+            return None if state is None else str(state)
         if isinstance(data, dict) and self._type in data:
             state = data[self._type]
             self.coordinator.logger.debug(

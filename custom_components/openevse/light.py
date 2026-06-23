@@ -29,7 +29,7 @@ from .const import (
     LIGHT_TYPES,
     MANAGER,
 )
-from .entity import OpenEVSELightEntityDescription
+from .entity import OpenEVSEEntity, OpenEVSELightEntityDescription
 
 _LOGGER = logging.getLogger(__name__)
 DEFAULT_ON = 125
@@ -41,21 +41,21 @@ async def async_setup_entry(
     config_entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Set up OpenEVSE Number entity from Config Entry."""
+    """Set up the OpenEVSE light entities."""
     coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
     manager = hass.data[DOMAIN][config_entry.entry_id][MANAGER]
 
     entities: list[LightEntity] = []
 
-    for light in LIGHT_TYPES:
-        if LIGHT_TYPES[light].key in coordinator.data:
+    for description in LIGHT_TYPES:
+        if description.key in coordinator.data:
             entities.append(
-                OpenEVSELight(config_entry, coordinator, LIGHT_TYPES[light], manager)
+                OpenEVSELight(config_entry, coordinator, description, manager)
             )
     async_add_entities(entities)
 
 
-class OpenEVSELight(CoordinatorEntity, LightEntity):
+class OpenEVSELight(CoordinatorEntity, OpenEVSEEntity, LightEntity):
     """Implementation of an OpenEVSE light."""
 
     _attr_supported_color_modes: ClassVar[set[ColorMode]] = {ColorMode.BRIGHTNESS}
@@ -84,21 +84,12 @@ class OpenEVSELight(CoordinatorEntity, LightEntity):
         self._attr_name = f"{self._config.data[CONF_NAME]} {self._name}"
         self._attr_unique_id = f"{self._name}_{self._unique_id}"
         data = coordinator.data
-        if isinstance(data, dict) and self._type in data:
+        if getattr(light_description, "value_fn", None) is not None:
+            self._attr_brightness = light_description.value_fn(data)
+        elif isinstance(data, dict) and self._type in data:
             self._attr_brightness = data[self._type]
         else:
             self._attr_brightness = None
-
-    @property
-    def device_info(self) -> dict:
-        """Return a port description for device registry."""
-        info = {
-            "manufacturer": "OpenEVSE",
-            "name": self._config.data[CONF_NAME],
-            "connections": {(DOMAIN, self._unique_id)},
-        }
-
-        return info
 
     @property
     def available(self) -> bool:
@@ -111,7 +102,9 @@ class OpenEVSELight(CoordinatorEntity, LightEntity):
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
         data = self.coordinator.data
-        if isinstance(data, dict) and self._type in data:
+        if getattr(self.entity_description, "value_fn", None) is not None:
+            self._attr_brightness = self.entity_description.value_fn(data)
+        elif isinstance(data, dict) and self._type in data:
             self._attr_brightness = data[self._type]
         else:
             self._attr_brightness = None

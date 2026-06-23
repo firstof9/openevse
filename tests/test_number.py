@@ -105,7 +105,10 @@ async def test_number_validation_error(hass, test_charger, mock_ws_start):
     coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
 
     entity = OpenEVSENumberEntity(
-        entry, coordinator, NUMBER_TYPES["max_current_soft"], manager
+        entry,
+        coordinator,
+        next(desc for desc in NUMBER_TYPES if desc.key == "max_current_soft"),
+        manager,
     )
 
     with pytest.raises(ValueError, match="charge rate must be whole amps"):
@@ -130,7 +133,10 @@ async def test_number_coverage_gaps(hass, test_charger, mock_ws_start):
 
     # 1. Test fallback when coordinator.data is None
     entity = OpenEVSENumberEntity(
-        entry, coordinator, NUMBER_TYPES["max_current_soft"], None
+        entry,
+        coordinator,
+        next(desc for desc in NUMBER_TYPES if desc.key == "max_current_soft"),
+        None,
     )
     coordinator.data = None
     assert entity.native_min_value == 6.0

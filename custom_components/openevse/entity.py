@@ -2,13 +2,31 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
+from typing import Any
 
+from homeassistant.components.binary_sensor import BinarySensorEntityDescription
 from homeassistant.components.light import LightEntityDescription
 from homeassistant.components.number import NumberEntityDescription
 from homeassistant.components.select import SelectEntityDescription
 from homeassistant.components.sensor import SensorEntityDescription
 from homeassistant.components.switch import SwitchEntityDescription
+from homeassistant.const import CONF_NAME
+from homeassistant.helpers.device_registry import DeviceInfo
+
+
+class OpenEVSEEntity:
+    """Base class for OpenEVSE entities."""
+
+    @property
+    def device_info(self) -> DeviceInfo:
+        """Return a port description for device registry."""
+        return DeviceInfo(
+            manufacturer="OpenEVSE",
+            name=self._config.data[CONF_NAME],
+            connections={("openevse", self._config.entry_id)},
+        )
 
 
 @dataclass
@@ -20,6 +38,7 @@ class OpenEVSESelectEntityDescription(SelectEntityDescription):
     is_async_value: bool | None = False
     value: str | None = None
     min_version: str | None = None
+    value_fn: Callable[[dict[str, Any]], Any] | None = None
 
 
 @dataclass
@@ -28,6 +47,7 @@ class OpenEVSESwitchEntityDescription(SwitchEntityDescription):
 
     toggle_command: str | None = None
     min_version: str | None = None
+    value_fn: Callable[[dict[str, Any]], Any] | None = None
 
 
 @dataclass
@@ -40,6 +60,7 @@ class OpenEVSENumberEntityDescription(NumberEntityDescription):
     max: int | None = None
     is_async_value: bool | None = False
     value: str | None = None
+    value_fn: Callable[[dict[str, Any]], Any] | None = None
 
 
 @dataclass
@@ -48,6 +69,7 @@ class OpenEVSELightEntityDescription(LightEntityDescription):
 
     command: str | None = None
     min_version: str | None = None
+    value_fn: Callable[[dict[str, Any]], Any] | None = None
 
 
 @dataclass
@@ -57,3 +79,14 @@ class OpenEVSESensorEntityDescription(SensorEntityDescription):
     is_async_value: bool | None = False
     value: str | None = None
     min_version: str | None = None
+    value_fn: Callable[[dict[str, Any]], Any] | None = None
+
+
+@dataclass
+class OpenEVSEBinarySensorEntityDescription(BinarySensorEntityDescription):
+    """Class describing OpenEVSE binary sensor entities."""
+
+    is_async_value: bool | None = False
+    value: str | None = None
+    min_version: str | None = None
+    value_fn: Callable[[dict[str, Any]], Any] | None = None

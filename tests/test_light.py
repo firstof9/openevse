@@ -125,7 +125,12 @@ async def test_light_coverage_gaps(hass, test_charger, mock_ws_start):
 
     # Case: coordinator.data is empty during init
     coordinator.data = {}
-    light = OpenEVSELight(entry, coordinator, LIGHT_TYPES["led_brightness"], manager)
+    light = OpenEVSELight(
+        entry,
+        coordinator,
+        next(desc for desc in LIGHT_TYPES if desc.key == "led_brightness"),
+        manager,
+    )
     assert light._attr_brightness is None
 
     # Verify _handle_coordinator_update with missing data
