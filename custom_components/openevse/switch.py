@@ -75,11 +75,16 @@ class OpenEVSESwitch(CoordinatorEntity, OpenEVSEEntity, SwitchEntity):
         return self._attr_name
 
     @property
-    def is_on(self) -> bool:
+    def is_on(self) -> bool | None:
         """Return True if switch is on."""
-        data = self.coordinator.data
+        data = self.coordinator.data if isinstance(self.coordinator.data, dict) else {}
         if getattr(self.entity_description, "value_fn", None) is not None:
             val = self.entity_description.value_fn(data)
+            if val is None:
+                self.coordinator.logger.warning(
+                    "switch [%s] not supported.", self._type
+                )
+                return None
             if self._type == ATTR_STATE:
                 return val == SLEEP_STATE
             return cast(bool, val == 1)

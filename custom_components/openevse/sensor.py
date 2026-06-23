@@ -69,9 +69,10 @@ class OpenEVSESensor(CoordinatorEntity, OpenEVSEEntity, SensorEntity):
     @property
     def native_value(self) -> Any:
         """Return the state of the sensor."""
+        data = self.coordinator.data if isinstance(self.coordinator.data, dict) else {}
         if getattr(self.entity_description, "value_fn", None) is not None:
-            return self.entity_description.value_fn(self.coordinator.data)
-        return self.coordinator.data.get(self._type)
+            return self.entity_description.value_fn(data)
+        return data.get(self._type)
 
     @property
     def native_unit_of_measurement(self) -> str | None:

@@ -116,12 +116,12 @@ class OpenEVSENumberEntity(CoordinatorEntity, OpenEVSEEntity, NumberEntity):
     @property
     def native_value(self) -> float | None:
         """Return the entity value."""
-        data = self.coordinator.data
+        data = self.coordinator.data if isinstance(self.coordinator.data, dict) else {}
         if getattr(self._description, "value_fn", None) is not None:
             value = self._description.value_fn(data)
             return None if value is None else float(value)
         value = None
-        if isinstance(data, dict) and self._type in data:
+        if self._type in data:
             value = data[self._type]
         self.coordinator.logger.debug(
             "Number [%s] updated value: %s", self._type, value

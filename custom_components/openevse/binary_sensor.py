@@ -53,11 +53,12 @@ class OpenEVSEBinarySensor(CoordinatorEntity, OpenEVSEEntity, BinarySensorEntity
         self._attr_unique_id = f"{self._name}_{self._unique_id}"
 
     @property
-    def is_on(self) -> bool:
+    def is_on(self) -> bool | None:
         """Return True if the service is on."""
-        data = self.coordinator.data
+        data = self.coordinator.data if isinstance(self.coordinator.data, dict) else {}
         if getattr(self.entity_description, "value_fn", None) is not None:
-            return cast(bool, self.entity_description.value_fn(data) == 1)
+            value = self.entity_description.value_fn(data)
+            return None if value is None else cast(bool, value == 1)
         if self._type not in data:
             self.coordinator.logger.info(
                 "binary_sensor [%s] not supported.", self._type

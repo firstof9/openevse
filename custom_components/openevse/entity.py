@@ -12,6 +12,7 @@ from homeassistant.components.number import NumberEntityDescription
 from homeassistant.components.select import SelectEntityDescription
 from homeassistant.components.sensor import SensorEntityDescription
 from homeassistant.components.switch import SwitchEntityDescription
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_NAME
 from homeassistant.helpers.device_registry import DeviceInfo
 
@@ -19,12 +20,14 @@ from homeassistant.helpers.device_registry import DeviceInfo
 class OpenEVSEEntity:
     """Base class for OpenEVSE entities."""
 
+    _config: ConfigEntry
+
     @property
     def device_info(self) -> DeviceInfo:
         """Return a port description for device registry."""
         return DeviceInfo(
             manufacturer="OpenEVSE",
-            name=self._config.data[CONF_NAME],
+            name=self._config.data.get(CONF_NAME),
             connections={("openevse", self._config.entry_id)},
         )
 
