@@ -9,6 +9,7 @@ from homeassistant.exceptions import HomeAssistantError
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.openevse.const import COORDINATOR, DOMAIN, LIGHT_TYPES, MANAGER
+from custom_components.openevse.entity import OpenEVSELightEntityDescription
 from custom_components.openevse.light import OpenEVSELight
 
 from .conftest import TEST_URL_CONFIG
@@ -125,7 +126,12 @@ async def test_light_coverage_gaps(hass, test_charger, mock_ws_start):
 
     # Case: coordinator.data is empty during init
     coordinator.data = {}
-    light = OpenEVSELight(entry, coordinator, LIGHT_TYPES["led_brightness"], manager)
+    light = OpenEVSELight(
+        entry,
+        coordinator,
+        next(desc for desc in LIGHT_TYPES if desc.key == "led_brightness"),
+        manager,
+    )
     assert light._attr_brightness is None
 
     # Verify _handle_coordinator_update with missing data
@@ -134,6 +140,22 @@ async def test_light_coverage_gaps(hass, test_charger, mock_ws_start):
     with patch.object(light, "async_write_ha_state"):
         light._handle_coordinator_update()
     assert light._attr_brightness is None
+
+    # Case: description has NO value_fn, but key is present during init
+    desc_no_val_fn = OpenEVSELightEntityDescription(
+        key="led_brightness",
+        name="LED Brightness No Value FN",
+        value_fn=None,
+    )
+    coordinator.data = {"led_brightness": 120}
+    light_no_val_fn = OpenEVSELight(entry, coordinator, desc_no_val_fn, manager)
+    assert light_no_val_fn._attr_brightness == 120
+
+    # Case: description has NO value_fn, and we update coordinator.data
+    coordinator.data = {"led_brightness": 80}
+    with patch.object(light_no_val_fn, "async_write_ha_state"):
+        light_no_val_fn._handle_coordinator_update()
+    assert light_no_val_fn._attr_brightness == 80
 
 
 async def test_light_connection_error(

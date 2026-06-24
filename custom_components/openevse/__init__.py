@@ -7,6 +7,7 @@ import functools
 import inspect
 import logging
 from datetime import timedelta
+from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
@@ -670,13 +671,19 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
         new_data.update(await self.async_parse_sensors())
         self._data = new_data
 
+    def _normalize_descriptors(self, descriptors) -> list[tuple[str, Any]]:
+        """Normalize descriptors to a list of (key, descriptor) tuples."""
+        if isinstance(descriptors, dict):
+            return list(descriptors.items())
+        return [(desc.key, desc) for desc in descriptors]
+
     def _collect_values(
         self, descriptors, label, value_cast=None, skip_async=True
     ) -> dict:
         """Collect values from descriptors."""
         data = {}
         manager_dir = dir(self._manager)
-        for key, descriptor in descriptors.items():
+        for key, descriptor in self._normalize_descriptors(descriptors):
             if skip_async and getattr(descriptor, "is_async_value", False):
                 continue
             sensor_property = descriptor.key
@@ -711,7 +718,7 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
         if seen_results is None:
             seen_results = {}
         manager_dir = dir(self._manager)
-        for key, descriptor in descriptors.items():
+        for key, descriptor in self._normalize_descriptors(descriptors):
             if not getattr(descriptor, "is_async_value", False):
                 continue
             sensor_property = descriptor.key

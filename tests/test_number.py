@@ -1,7 +1,7 @@
 """Test OpenEVSE number platform."""
 
 import logging
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from homeassistant.components.number import DOMAIN as NUMBER_DOMAIN
@@ -105,7 +105,10 @@ async def test_number_validation_error(hass, test_charger, mock_ws_start):
     coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
 
     entity = OpenEVSENumberEntity(
-        entry, coordinator, NUMBER_TYPES["max_current_soft"], manager
+        entry,
+        coordinator,
+        next(desc for desc in NUMBER_TYPES if desc.key == "max_current_soft"),
+        manager,
     )
 
     with pytest.raises(ValueError, match="charge rate must be whole amps"):
@@ -130,7 +133,10 @@ async def test_number_coverage_gaps(hass, test_charger, mock_ws_start):
 
     # 1. Test fallback when coordinator.data is None
     entity = OpenEVSENumberEntity(
-        entry, coordinator, NUMBER_TYPES["max_current_soft"], None
+        entry,
+        coordinator,
+        next(desc for desc in NUMBER_TYPES if desc.key == "max_current_soft"),
+        None,
     )
     coordinator.data = None
     assert entity.native_min_value == 6.0
@@ -144,6 +150,24 @@ async def test_number_coverage_gaps(hass, test_charger, mock_ws_start):
     # Verify available when data is not a dict
     coordinator.data = "not a dict"
     assert entity.available == coordinator.last_update_success
+
+    # 3. Test fallback when value_fn is None
+    description_no_val_fn = MagicMock(
+        key="test_key",
+        name="Test",
+        command="test",
+        min_version=None,
+        value_fn=None,
+        native_unit_of_measurement=None,
+    )
+    entity_no_val_fn = OpenEVSENumberEntity(
+        entry,
+        coordinator,
+        description_no_val_fn,
+        None,
+    )
+    coordinator.data = {"test_key": 25.0}
+    assert entity_no_val_fn.native_value == 25.0
 
 
 async def test_number_connection_error(

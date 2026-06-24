@@ -19,7 +19,7 @@ from .const import (
     MANAGER,
     SWITCH_TYPES,
 )
-from .entity import OpenEVSESwitchEntityDescription
+from .entity import OpenEVSEEntity, OpenEVSESwitchEntityDescription
 
 _LOGGER = logging.getLogger(__name__)
 SLEEP_STATE = "sleeping"
@@ -32,15 +32,13 @@ async def async_setup_entry(hass, entry, async_add_entities):
     manager = hass.data[DOMAIN][entry.entry_id][MANAGER]
 
     switches = []
-    for switch in SWITCH_TYPES:
-        switches.append(
-            OpenEVSESwitch(hass, entry, coordinator, SWITCH_TYPES[switch], manager)
-        )
+    for description in SWITCH_TYPES:
+        switches.append(OpenEVSESwitch(hass, entry, coordinator, description, manager))
 
     async_add_entities(switches, False)
 
 
-class OpenEVSESwitch(CoordinatorEntity, SwitchEntity):
+class OpenEVSESwitch(CoordinatorEntity, OpenEVSEEntity, SwitchEntity):
     """Representation of the value of a OpenEVSE Switch."""
 
     def __init__(
@@ -56,6 +54,7 @@ class OpenEVSESwitch(CoordinatorEntity, SwitchEntity):
         self.hass = hass
         self._config = config_entry
         self.coordinator = coordinator
+        self.entity_description = description
         self._type = description.key
         self._unique_id = config_entry.entry_id
         self._attr_name = f"{config_entry.data[CONF_NAME]} {description.name}"
@@ -76,20 +75,19 @@ class OpenEVSESwitch(CoordinatorEntity, SwitchEntity):
         return self._attr_name
 
     @property
-    def device_info(self) -> dict:
-        """Return a port description for device registry."""
-        info = {
-            "manufacturer": "OpenEVSE",
-            "name": self._config.data[CONF_NAME],
-            "connections": {(DOMAIN, self._unique_id)},
-        }
-
-        return info
-
-    @property
-    def is_on(self) -> bool:
+    def is_on(self) -> bool | None:
         """Return True if switch is on."""
-        data = self.coordinator.data
+        data = self.coordinator.data if isinstance(self.coordinator.data, dict) else {}
+        if getattr(self.entity_description, "value_fn", None) is not None:
+            val = self.entity_description.value_fn(data)
+            if val is None:
+                self.coordinator.logger.warning(
+                    "switch [%s] not supported.", self._type
+                )
+                return None
+            if self._type == ATTR_STATE:
+                return val == SLEEP_STATE
+            return cast(bool, val == 1)
         if self._type not in data:
             self.coordinator.logger.warning("switch [%s] not supported.", self._type)
             return None

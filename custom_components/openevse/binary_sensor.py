@@ -5,7 +5,6 @@ from typing import cast
 
 from homeassistant.components.binary_sensor import (
     BinarySensorEntity,
-    BinarySensorEntityDescription,
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers.update_coordinator import (
@@ -14,6 +13,7 @@ from homeassistant.helpers.update_coordinator import (
 )
 
 from .const import BINARY_SENSORS, CONF_NAME, COORDINATOR, DOMAIN
+from .entity import OpenEVSEBinarySensorEntityDescription, OpenEVSEEntity
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -23,20 +23,20 @@ async def async_setup_entry(hass, entry, async_add_devices):
     coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
 
     binary_sensors = []
-    for binary_sensor in BINARY_SENSORS:
-        binary_sensors.append(
-            OpenEVSEBinarySensor(BINARY_SENSORS[binary_sensor], coordinator, entry)
-        )
+    for description in BINARY_SENSORS:
+        binary_sensors.append(OpenEVSEBinarySensor(description, coordinator, entry))
 
     async_add_devices(binary_sensors, False)
 
 
-class OpenEVSEBinarySensor(CoordinatorEntity, BinarySensorEntity):
+class OpenEVSEBinarySensor(CoordinatorEntity, OpenEVSEEntity, BinarySensorEntity):
     """Implementation of an OpenEVSE binary sensor."""
+
+    entity_description: OpenEVSEBinarySensorEntityDescription
 
     def __init__(
         self,
-        sensor_description: BinarySensorEntityDescription,
+        sensor_description: OpenEVSEBinarySensorEntityDescription,
         coordinator: DataUpdateCoordinator,
         config: ConfigEntry,
     ) -> None:
@@ -53,20 +53,12 @@ class OpenEVSEBinarySensor(CoordinatorEntity, BinarySensorEntity):
         self._attr_unique_id = f"{self._name}_{self._unique_id}"
 
     @property
-    def device_info(self) -> dict:
-        """Return a port description for device registry."""
-        info = {
-            "manufacturer": "OpenEVSE",
-            "name": self._config.data[CONF_NAME],
-            "connections": {(DOMAIN, self._unique_id)},
-        }
-
-        return info
-
-    @property
-    def is_on(self) -> bool:
+    def is_on(self) -> bool | None:
         """Return True if the service is on."""
-        data = self.coordinator.data
+        data = self.coordinator.data if isinstance(self.coordinator.data, dict) else {}
+        if getattr(self.entity_description, "value_fn", None) is not None:
+            value = self.entity_description.value_fn(data)
+            return None if value is None else cast(bool, value == 1)
         if self._type not in data:
             self.coordinator.logger.info(
                 "binary_sensor [%s] not supported.", self._type

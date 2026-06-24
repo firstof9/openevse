@@ -45,6 +45,19 @@ async def test_select(
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
 
+    # Enable disabled select
+    charge_rate_entity_id = "select.openevse_charge_rate"
+    entity_entry = entity_registry.async_get(charge_rate_entity_id)
+    updated_entry = entity_registry.async_update_entity(
+        entity_entry.entity_id, disabled_by=None
+    )
+    assert updated_entry.disabled is False
+
+    # Reload to apply enabled state
+    await hass.config_entries.async_forward_entry_unload(entry, SELECT_DOMAIN)
+    await hass.config_entries.async_forward_entry_setups(entry, [SELECT_DOMAIN])
+    await hass.async_block_till_done()
+
     assert len(hass.states.async_entity_ids(SELECT_DOMAIN)) == 3
     entries = hass.config_entries.async_entries(DOMAIN)
     assert len(entries) == 1
@@ -172,6 +185,14 @@ async def test_select_max_current(
     entry.add_to_hass(hass)
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
+
+    # Enable disabled select
+    entity_entry = entity_registry.async_get("select.openevse_charge_rate")
+    entity_registry.async_update_entity(entity_entry.entity_id, disabled_by=None)
+    await hass.config_entries.async_forward_entry_unload(entry, SELECT_DOMAIN)
+    await hass.config_entries.async_forward_entry_setups(entry, [SELECT_DOMAIN])
+    await hass.async_block_till_done()
+
     entity_id = "select.openevse_charge_rate"
     state = hass.states.get(entity_id)
 
@@ -193,7 +214,12 @@ async def test_select_max_current(
 
 
 async def test_select_availability_divert(
-    hass, test_charger, mock_ws_start, mock_aioclient, caplog
+    hass,
+    test_charger,
+    mock_ws_start,
+    mock_aioclient,
+    entity_registry: er.EntityRegistry,
+    caplog,
 ):
     """Test that charge rate select becomes unavailable when divert is active."""
     entry = MockConfigEntry(
@@ -203,6 +229,13 @@ async def test_select_availability_divert(
     )
     entry.add_to_hass(hass)
     assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    # Enable disabled select
+    entity_entry = entity_registry.async_get("select.openevse_charge_rate")
+    entity_registry.async_update_entity(entity_entry.entity_id, disabled_by=None)
+    await hass.config_entries.async_forward_entry_unload(entry, SELECT_DOMAIN)
+    await hass.config_entries.async_forward_entry_setups(entry, [SELECT_DOMAIN])
     await hass.async_block_till_done()
 
     entity_id = "select.openevse_charge_rate"
