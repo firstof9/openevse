@@ -69,7 +69,7 @@ async def test_switches(
     mock_aioclient.post(
         TEST_URL_OVERRIDE,
         status=200,
-        body='{"msg": "OK"}',
+        text='{"msg": "OK"}',
     )
 
     await hass.services.async_call(
@@ -98,7 +98,7 @@ async def test_switches(
     mock_aioclient.post(
         TEST_URL_CONFIG,
         status=200,
-        body='{"msg": "OK"}',
+        text='{"msg": "OK"}',
     )
 
     # Action: Turn On
@@ -126,7 +126,7 @@ async def test_switches(
     mock_aioclient.post(
         TEST_URL_DIVERT,
         status=200,
-        body='{"msg": "OK"}',
+        text='{"msg": "OK"}',
     )
 
     # Action: Turn On
@@ -154,8 +154,7 @@ async def test_switches(
     mock_aioclient.post(
         TEST_URL_SHAPER,
         status=200,
-        body='{"msg": "Current Shaper state changed"}',
-        repeat=True,
+        text='{"msg": "Current Shaper state changed"}',
     )
 
     # Action: Turn Off
@@ -200,8 +199,7 @@ async def test_switches(
     mock_aioclient.post(
         "http://openevse.test.tld/config",
         status=200,
-        body='{"msg": "OK"}',
-        repeat=True,
+        text='{"msg": "OK"}',
     )
 
     await hass.services.async_call(

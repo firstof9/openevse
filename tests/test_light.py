@@ -20,6 +20,14 @@ pytestmark = pytest.mark.asyncio
 CHARGER_NAME = "openevse"
 
 
+def _assert_config_post(mock_aioclient, payload):
+    """Assert a POST request to /config with given payload was made."""
+    assert any(
+        call[0] == "POST" and call[1].path == "/config" and call[2] == payload
+        for call in mock_aioclient.mock_calls
+    )
+
+
 async def test_light(
     hass,
     test_charger,
@@ -52,8 +60,7 @@ async def test_light(
     mock_aioclient.post(
         TEST_URL_CONFIG,
         status=200,
-        body='{"msg": "OK"}',
-        repeat=True,
+        text='{"msg": "OK"}',
     )
 
     await hass.services.async_call(
@@ -63,9 +70,7 @@ async def test_light(
         blocking=True,
     )
 
-    mock_aioclient.assert_any_call(
-        TEST_URL_CONFIG, method="POST", data={ATTR_BRIGHTNESS: 0}
-    )
+    _assert_config_post(mock_aioclient, {"led_brightness": 0})
 
     await hass.services.async_call(
         LIGHT_DOMAIN,
@@ -74,9 +79,7 @@ async def test_light(
         blocking=True,
     )
 
-    mock_aioclient.assert_any_call(
-        TEST_URL_CONFIG, method="POST", data={ATTR_BRIGHTNESS: 128}
-    )
+    _assert_config_post(mock_aioclient, {"led_brightness": 125})
 
     await hass.services.async_call(
         LIGHT_DOMAIN,
@@ -85,9 +88,7 @@ async def test_light(
         blocking=True,
     )
 
-    mock_aioclient.assert_any_call(
-        TEST_URL_CONFIG, method="POST", data={ATTR_BRIGHTNESS: 26}
-    )
+    _assert_config_post(mock_aioclient, {"led_brightness": 26})
 
 
 async def test_light_v2(

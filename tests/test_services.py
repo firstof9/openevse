@@ -61,14 +61,12 @@ async def test_list_claims(
     mock_aioclient.get(
         TEST_URL_CLAIMS,
         status=200,
-        body='[{"client": 4, "priority": 500, "state": "disabled", "auto_release": true}, {"client": 65538, "priority": 50, "state": "active", "charge_current": 7, "auto_release": false}]',  # noqa: E501
-        repeat=True,
+        text='[{"client": 4, "priority": 500, "state": "disabled", "auto_release": true}, {"client": 65538, "priority": 50, "state": "active", "charge_current": 7, "auto_release": false}]',  # noqa: E501
     )
     mock_aioclient.get(
         TEST_URL_OVERRIDE,
         status=200,
-        body="{}",
-        repeat=True,
+        text="{}",
     )
     entry.add_to_hass(hass)
     assert await hass.config_entries.async_setup(entry.entry_id)
@@ -121,14 +119,12 @@ async def test_make_claim(
     mock_aioclient.post(
         f"{TEST_URL_CLAIMS}/20",
         status=200,
-        body='[{"msg":"done"}]',
-        repeat=True,
+        text='[{"msg":"done"}]',
     )
     mock_aioclient.get(
         TEST_URL_OVERRIDE,
         status=200,
-        body="{}",
-        repeat=True,
+        text="{}",
     )
     entry.add_to_hass(hass)
     assert await hass.config_entries.async_setup(entry.entry_id)
@@ -169,14 +165,12 @@ async def test_release_claim(
     mock_aioclient.delete(
         f"{TEST_URL_CLAIMS}/20",
         status=200,
-        body='[{"msg":"done"}]',
-        repeat=True,
+        text='[{"msg":"done"}]',
     )
     mock_aioclient.get(
         TEST_URL_OVERRIDE,
         status=200,
-        body="{}",
-        repeat=True,
+        text="{}",
     )
     entry.add_to_hass(hass)
     assert await hass.config_entries.async_setup(entry.entry_id)
@@ -214,14 +208,12 @@ async def test_get_limit(
     mock_aioclient.get(
         TEST_URL_LIMIT,
         status=200,
-        body='{"type": "energy", "value": 10}',
-        repeat=True,
+        text='{"type": "energy", "value": 10}',
     )
     mock_aioclient.get(
         TEST_URL_OVERRIDE,
         status=200,
-        body="{}",
-        repeat=True,
+        text="{}",
     )
     entry.add_to_hass(hass)
     assert await hass.config_entries.async_setup(entry.entry_id)
@@ -260,13 +252,12 @@ async def test_clear_limit(
     mock_aioclient.delete(
         TEST_URL_LIMIT,
         status=200,
-        body='{"msg": "Deleted"}',
+        text='{"msg": "Deleted"}',
     )
     mock_aioclient.get(
         TEST_URL_OVERRIDE,
         status=200,
-        body="{}",
-        repeat=True,
+        text="{}",
     )
     entry.add_to_hass(hass)
     assert await hass.config_entries.async_setup(entry.entry_id)
@@ -304,20 +295,17 @@ async def test_set_limit(
     mock_aioclient.post(
         TEST_URL_LIMIT,
         status=200,
-        body='{"msg": "OK"}',
-        repeat=True,
+        text='{"msg": "OK"}',
     )
     mock_aioclient.get(
         TEST_URL_LIMIT,
         status=200,
-        body='{"type": "energy", "value": 10}',
-        repeat=True,
+        text='{"type": "energy", "value": 10}',
     )
     mock_aioclient.get(
         TEST_URL_OVERRIDE,
         status=200,
-        body="{}",
-        repeat=True,
+        text="{}",
     )
     entry.add_to_hass(hass)
     assert await hass.config_entries.async_setup(entry.entry_id)
@@ -359,13 +347,12 @@ async def test_clear_override(
     mock_aioclient.delete(
         TEST_URL_OVERRIDE,
         status=200,
-        body='{"msg": "OK"}',
+        text='{"msg": "OK"}',
     )
     mock_aioclient.get(
         TEST_URL_OVERRIDE,
         status=200,
-        body="{}",
-        repeat=True,
+        text="{}",
     )
     entry.add_to_hass(hass)
     assert await hass.config_entries.async_setup(entry.entry_id)
@@ -403,13 +390,12 @@ async def test_clear_override_not_active(
     mock_aioclient.delete(
         TEST_URL_OVERRIDE,
         status=500,
-        body='{"msg": "Failed to release manual override"}',
+        text='{"msg": "Failed to release manual override"}',
     )
     mock_aioclient.get(
         TEST_URL_OVERRIDE,
         status=200,
-        body="{}",
-        repeat=True,
+        text="{}",
     )
     entry.add_to_hass(hass)
     assert await hass.config_entries.async_setup(entry.entry_id)
@@ -447,13 +433,12 @@ async def test_clear_override_other_runtime_error(
     mock_aioclient.delete(
         TEST_URL_OVERRIDE,
         status=500,
-        body='{"msg": "Some other server error"}',
+        text='{"msg": "Some other server error"}',
     )
     mock_aioclient.get(
         TEST_URL_OVERRIDE,
         status=200,
-        body="{}",
-        repeat=True,
+        text="{}",
     )
     entry.add_to_hass(hass)
     assert await hass.config_entries.async_setup(entry.entry_id)
@@ -498,8 +483,7 @@ async def test_list_overrides(
     mock_aioclient.get(
         TEST_URL_OVERRIDE,
         status=200,
-        body=json.dumps(value),
-        repeat=True,
+        text=json.dumps(value),
     )
     entry.add_to_hass(hass)
     assert await hass.config_entries.async_setup(entry.entry_id)
@@ -538,13 +522,12 @@ async def test_set_override(
     mock_aioclient.post(
         TEST_URL_OVERRIDE,
         status=200,
-        body='{"msg": "OK"}',
+        text='{"msg": "OK"}',
     )
     mock_aioclient.get(
         TEST_URL_OVERRIDE,
         status=200,
-        body="{}",
-        repeat=True,
+        text="{}",
     )
     entry.add_to_hass(hass)
     assert await hass.config_entries.async_setup(entry.entry_id)
@@ -586,14 +569,12 @@ async def test_make_claim_with_arguments(
     mock_aioclient.post(
         f"{TEST_URL_CLAIMS}/20",
         status=200,
-        body='[{"msg":"done"}]',
-        repeat=True,
+        text='[{"msg":"done"}]',
     )
     mock_aioclient.get(
         TEST_URL_OVERRIDE,
         status=200,
-        body="{}",
-        repeat=True,
+        text="{}",
     )
     entry.add_to_hass(hass)
     assert await hass.config_entries.async_setup(entry.entry_id)
@@ -636,14 +617,13 @@ async def test_set_override_all_args(
     mock_aioclient.post(
         TEST_URL_OVERRIDE,
         status=200,
-        body='{"msg": "OK"}',
+        text='{"msg": "OK"}',
     )
     # Ensure get override is mocked to avoid errors during setup/teardown updates
     mock_aioclient.get(
         TEST_URL_OVERRIDE,
         status=200,
-        body="{}",
-        repeat=True,
+        text="{}",
     )
     entry.add_to_hass(hass)
     assert await hass.config_entries.async_setup(entry.entry_id)
@@ -686,19 +666,17 @@ async def test_set_limit_auto_release(
     mock_aioclient.post(
         TEST_URL_LIMIT,
         status=200,
-        body='{"msg": "OK"}',
+        text='{"msg": "OK"}',
     )
     mock_aioclient.get(
         TEST_URL_LIMIT,
         status=200,
-        body='{"type": "time", "value": 60, "auto_release": false}',
-        repeat=True,
+        text='{"type": "time", "value": 60, "auto_release": false}',
     )
     mock_aioclient.get(
         TEST_URL_OVERRIDE,
         status=200,
-        body="{}",
-        repeat=True,
+        text="{}",
     )
     entry.add_to_hass(hass)
     assert await hass.config_entries.async_setup(entry.entry_id)
@@ -733,7 +711,7 @@ async def test_service_invalid_device_id(
         title=CHARGER_NAME,
         data=CONFIG_DATA,
     )
-    mock_aioclient.get(TEST_URL_OVERRIDE, status=200, body="{}", repeat=True)
+    mock_aioclient.get(TEST_URL_OVERRIDE, status=200, text="{}")
 
     entry.add_to_hass(hass)
     assert await hass.config_entries.async_setup(entry.entry_id)
@@ -786,7 +764,7 @@ async def test_service_missing_config(
         title=CHARGER_NAME,
         data=CONFIG_DATA,
     )
-    mock_aioclient.get(TEST_URL_OVERRIDE, status=200, body="{}", repeat=True)
+    mock_aioclient.get(TEST_URL_OVERRIDE, status=200, text="{}")
 
     entry.add_to_hass(hass)
     assert await hass.config_entries.async_setup(entry.entry_id)
@@ -850,22 +828,19 @@ async def test_services_with_none_values(
     mock_aioclient.post(
         f"{TEST_URL_CLAIMS}/20",
         status=200,
-        body='[{"msg":"done"}]',
-        repeat=True,
+        text='[{"msg":"done"}]',
     )
 
     # Mock set_override endpoint
     mock_aioclient.post(
         TEST_URL_OVERRIDE,
         status=200,
-        body='{"msg": "OK"}',
-        repeat=True,
+        text='{"msg": "OK"}',
     )
     mock_aioclient.get(
         TEST_URL_OVERRIDE,
         status=200,
-        body="{}",
-        repeat=True,
+        text="{}",
     )
 
     entry.add_to_hass(hass)
@@ -947,7 +922,7 @@ async def test_services_connection_errors(
         title=CHARGER_NAME,
         data=CONFIG_DATA,
     )
-    mock_aioclient.get(TEST_URL_OVERRIDE, status=200, body="{}", repeat=True)
+    mock_aioclient.get(TEST_URL_OVERRIDE, status=200, text="{}")
     entry.add_to_hass(hass)
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
