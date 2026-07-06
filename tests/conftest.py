@@ -7,7 +7,6 @@ from unittest.mock import patch
 
 import openevsehttp.__main__ as main
 import pytest
-from aioresponses import aioresponses
 from homeassistant.components.websocket_api.auth import (
     TYPE_AUTH,
     TYPE_AUTH_OK,
@@ -104,99 +103,83 @@ def test_charger(mock_aioclient):
     mock_aioclient.get(
         TEST_URL_STATUS,
         status=200,
-        body=load_fixture("status.json"),
-        repeat=True,
+        text=load_fixture("status.json"),
     )
     mock_aioclient.get(
         TEST_URL_STATUS.replace("http://", "https://"),
         status=200,
-        body=load_fixture("status.json"),
-        repeat=True,
+        text=load_fixture("status.json"),
     )
     mock_aioclient.post(
         TEST_URL_STATUS,
         status=200,
-        body='{ "msg": "OK" }',
-        repeat=True,
+        text='{ "msg": "OK" }',
     )
     mock_aioclient.post(
         TEST_URL_STATUS.replace("http://", "https://"),
         status=200,
-        body='{ "msg": "OK" }',
-        repeat=True,
+        text='{ "msg": "OK" }',
     )
     mock_aioclient.get(
         TEST_URL_CONFIG,
         status=200,
-        body=load_fixture("config.json"),
-        repeat=True,
+        text=load_fixture("config.json"),
     )
     mock_aioclient.get(
         TEST_URL_CONFIG.replace("http://", "https://"),
         status=200,
-        body=load_fixture("config.json"),
-        repeat=True,
+        text=load_fixture("config.json"),
     )
     mock_aioclient.get(
         TEST_URL_WS,
         status=101,
-        body=load_fixture("status.json"),
-        repeat=True,
+        text=load_fixture("status.json"),
     )
     mock_aioclient.get(
         TEST_URL_WS.replace("ws://", "wss://"),
         status=101,
-        body=load_fixture("status.json"),
-        repeat=True,
+        text=load_fixture("status.json"),
     )
     register_github_release_mocks(mock_aioclient)
     mock_aioclient.post(
         TEST_URL_OVERRIDE,
         status=200,
-        body='{ "msg": "OK" }',
-        repeat=True,
+        text='{ "msg": "OK" }',
     )
     mock_aioclient.post(
         TEST_URL_OVERRIDE.replace("http://", "https://"),
         status=200,
-        body='{ "msg": "OK" }',
-        repeat=True,
+        text='{ "msg": "OK" }',
     )
     mock_aioclient.patch(
         TEST_URL_OVERRIDE,
         status=200,
-        body='{ "msg": "OK" }',
-        repeat=True,
+        text='{ "msg": "OK" }',
     )
     mock_aioclient.patch(
         TEST_URL_OVERRIDE.replace("http://", "https://"),
         status=200,
-        body='{ "msg": "OK" }',
-        repeat=True,
+        text='{ "msg": "OK" }',
     )
     mock_aioclient.get(
         TEST_URL_OVERRIDE,
         status=200,
-        body="{}",
-        repeat=True,
+        text="{}",
     )
     mock_aioclient.get(
         TEST_URL_OVERRIDE.replace("http://", "https://"),
         status=200,
-        body="{}",
-        repeat=True,
+        text="{}",
     )
     mock_aioclient.get(
         TEST_URL_CLAIMS_TARGET,
         status=200,
-        body='{"properties":{"state":"disabled","charge_current":28,"max_current":23,"auto_release":false},"claims":{"state":65540,"charge_current":65537,"max_current":65548}}',
-        repeat=True,
+        text='{"properties":{"state":"disabled","charge_current":28,"max_current":23,"auto_release":false},"claims":{"state":65540,"charge_current":65537,"max_current":65548}}',
     )
     mock_aioclient.get(
         TEST_URL_CLAIMS_TARGET.replace("http://", "https://"),
         status=200,
-        body='{"properties":{"state":"disabled","charge_current":28,"max_current":23,"auto_release":false},"claims":{"state":65540,"charge_current":65537,"max_current":65548}}',
-        repeat=True,
+        text='{"properties":{"state":"disabled","charge_current":28,"max_current":23,"auto_release":false},"claims":{"state":65540,"charge_current":65537,"max_current":65548}}',
     )
     return main.OpenEVSE(TEST_TLD)
 
@@ -207,39 +190,33 @@ def test_charger_services(mock_aioclient):
     mock_aioclient.get(
         TEST_URL_STATUS,
         status=200,
-        body=load_fixture("status.json"),
-        repeat=True,
+        text=load_fixture("status.json"),
     )
     mock_aioclient.post(
         TEST_URL_STATUS,
         status=200,
-        body='{ "msg": "OK" }',
-        repeat=True,
+        text='{ "msg": "OK" }',
     )
     mock_aioclient.get(
         TEST_URL_CONFIG,
         status=200,
-        body=load_fixture("config.json"),
-        repeat=True,
+        text=load_fixture("config.json"),
     )
     mock_aioclient.get(
         TEST_URL_WS,
         status=101,
-        body=load_fixture("status.json"),
-        repeat=True,
+        text=load_fixture("status.json"),
     )
     register_github_release_mocks(mock_aioclient)
     mock_aioclient.post(
         TEST_URL_OVERRIDE,
         status=200,
-        body='{ "msg": "OK" }',
-        repeat=True,
+        text='{ "msg": "OK" }',
     )
     mock_aioclient.get(
         TEST_URL_CLAIMS_TARGET,
         status=200,
-        body='{"properties":{"state":"disabled","charge_current":28,"max_current":23,"auto_release":false},"claims":{"state":65540,"charge_current":65537,"max_current":65548}}',
-        repeat=True,
+        text='{"properties":{"state":"disabled","charge_current":28,"max_current":23,"auto_release":false},"claims":{"state":65540,"charge_current":65537,"max_current":65548}}',
     )
     return main.OpenEVSE(TEST_TLD)
 
@@ -250,33 +227,28 @@ def test_charger_bad_serial(mock_aioclient):
     mock_aioclient.get(
         TEST_URL_STATUS,
         status=200,
-        body=load_fixture("status.json"),
-        repeat=True,
+        text=load_fixture("status.json"),
     )
     mock_aioclient.get(
         TEST_URL_CONFIG,
         status=200,
-        body=load_fixture("config-no-serial.json"),
-        repeat=True,
+        text=load_fixture("config-no-serial.json"),
     )
     mock_aioclient.get(
         TEST_URL_WS,
         status=101,
-        body=load_fixture("status.json"),
-        repeat=True,
+        text=load_fixture("status.json"),
     )
     register_github_release_mocks(mock_aioclient)
     mock_aioclient.get(
         TEST_URL_CLAIMS_TARGET,
         status=200,
-        body='{"properties":{"state":"disabled","charge_current":28,"max_current":23,"auto_release":false},"claims":{"state":65540,"charge_current":65537,"max_current":65548}}',
-        repeat=True,
+        text='{"properties":{"state":"disabled","charge_current":28,"max_current":23,"auto_release":false},"claims":{"state":65540,"charge_current":65537,"max_current":65548}}',
     )
     mock_aioclient.get(
         TEST_URL_OVERRIDE,
         status=200,
-        body="{}",
-        repeat=True,
+        text="{}",
     )
     return main.OpenEVSE(TEST_TLD)
 
@@ -287,38 +259,32 @@ def test_charger_bad_post(mock_aioclient):
     mock_aioclient.get(
         TEST_URL_STATUS,
         status=200,
-        body=load_fixture("status.json"),
-        repeat=True,
+        text=load_fixture("status.json"),
     )
     mock_aioclient.post(
         TEST_URL_STATUS,
-        exception=TimeoutError,
-        repeat=True,
+        exc=TimeoutError,
     )
     mock_aioclient.get(
         TEST_URL_CONFIG,
         status=200,
-        body=load_fixture("config.json"),
-        repeat=True,
+        text=load_fixture("config.json"),
     )
     mock_aioclient.get(
         TEST_URL_WS,
         status=101,
-        body=load_fixture("status.json"),
-        repeat=True,
+        text=load_fixture("status.json"),
     )
     register_github_release_mocks(mock_aioclient)
     mock_aioclient.get(
         TEST_URL_CLAIMS_TARGET,
         status=200,
-        body='{"properties":{"state":"disabled","charge_current":28,"max_current":23,"auto_release":false},"claims":{"state":65540,"charge_current":65537,"max_current":65548}}',
-        repeat=True,
+        text='{"properties":{"state":"disabled","charge_current":28,"max_current":23,"auto_release":false},"claims":{"state":65540,"charge_current":65537,"max_current":65548}}',
     )
     mock_aioclient.get(
         TEST_URL_OVERRIDE,
         status=200,
-        body="{}",
-        repeat=True,
+        text="{}",
     )
     return main.OpenEVSE(TEST_TLD)
 
@@ -329,45 +295,38 @@ def test_charger_new(mock_aioclient):
     mock_aioclient.get(
         TEST_URL_STATUS,
         status=200,
-        body=load_fixture("status-new.json"),
-        repeat=True,
+        text=load_fixture("status-new.json"),
     )
     mock_aioclient.post(
         TEST_URL_STATUS,
         status=200,
-        body='{ "msg": "OK" }',
-        repeat=True,
+        text='{ "msg": "OK" }',
     )
     mock_aioclient.get(
         TEST_URL_CONFIG,
         status=200,
-        body=load_fixture("config.json"),
-        repeat=True,
+        text=load_fixture("config.json"),
     )
     mock_aioclient.get(
         TEST_URL_WS,
         status=101,
-        body=load_fixture("status-new.json"),
-        repeat=True,
+        text=load_fixture("status-new.json"),
     )
     register_github_release_mocks(mock_aioclient)
     mock_aioclient.post(
         TEST_URL_OVERRIDE,
         status=200,
-        body='{ "msg": "OK" }',
-        repeat=True,
+        text='{ "msg": "OK" }',
     )
     mock_aioclient.get(
         TEST_URL_OVERRIDE,
         status=200,
-        body="{}",
-        repeat=True,
+        text="{}",
     )
     mock_aioclient.get(
         TEST_URL_CLAIMS_TARGET,
         status=200,
-        body='{"properties":{"state":"disabled","charge_current":28,"max_current":23,"auto_release":false},"claims":{"state":65540,"charge_current":65537,"max_current":65548}}',
-        repeat=True,
+        text='{"properties":{"state":"disabled","charge_current":28,"max_current":23,"auto_release":false},"claims":{"state":65540,"charge_current":65537,"max_current":65548}}',
     )
     return main.OpenEVSE(TEST_TLD)
 
@@ -381,10 +340,9 @@ def mock_manager():
 
 
 @pytest.fixture
-def mock_aioclient():
+def mock_aioclient(aioclient_mock):
     """Fixture to mock aioclient calls."""
-    with aioresponses(passthrough=["http://127.0.0.1"]) as m:
-        yield m
+    return aioclient_mock
 
 
 def load_fixture(filename):
@@ -401,14 +359,12 @@ def register_github_release_mocks(
     mock_aioclient.get(
         TEST_URL_GITHUB_V4,
         status=200,
-        body=load_fixture(v4_repo),
-        repeat=True,
+        text=load_fixture(v4_repo),
     )
     mock_aioclient.get(
         TEST_URL_GITHUB_V2,
         status=200,
-        body=load_fixture(v2_repo),
-        repeat=True,
+        text=load_fixture(v2_repo),
     )
 
 
@@ -418,45 +374,38 @@ def test_charger_v2(mock_aioclient):
     mock_aioclient.get(
         TEST_URL_STATUS,
         status=200,
-        body=load_fixture("v2_status.json"),
-        repeat=True,
+        text=load_fixture("v2_status.json"),
     )
     mock_aioclient.post(
         TEST_URL_STATUS,
         status=200,
-        body='{ "msg": "OK" }',
-        repeat=True,
+        text='{ "msg": "OK" }',
     )
     mock_aioclient.get(
         TEST_URL_CONFIG,
         status=200,
-        body=load_fixture("v2_config.json"),
-        repeat=True,
+        text=load_fixture("v2_config.json"),
     )
     mock_aioclient.get(
         TEST_URL_WS,
         status=101,
-        body=load_fixture("v2_status.json"),
-        repeat=True,
+        text=load_fixture("v2_status.json"),
     )
     register_github_release_mocks(mock_aioclient)
     mock_aioclient.post(
         TEST_URL_OVERRIDE,
         status=404,
-        body="{}",
-        repeat=True,
+        text="{}",
     )
     mock_aioclient.get(
         TEST_URL_OVERRIDE,
         status=404,
-        body="{}",
-        repeat=True,
+        text="{}",
     )
     mock_aioclient.get(
         TEST_URL_CLAIMS_TARGET,
         status=404,
-        body="{}",
-        repeat=True,
+        text="{}",
     )
     return main.OpenEVSE(TEST_TLD)
 

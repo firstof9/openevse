@@ -325,8 +325,8 @@ async def test_sensor_availability_aioclient(
     }
 
     for url in urls:
-        mock_aioclient.get(url, status=200, payload=valid_response, repeat=True)
-        mock_aioclient.post(url, status=200, payload=valid_response, repeat=True)
+        mock_aioclient.get(url, status=200, json=valid_response)
+        mock_aioclient.post(url, status=200, json=valid_response)
 
     entry = MockConfigEntry(
         domain=DOMAIN,
@@ -339,11 +339,11 @@ async def test_sensor_availability_aioclient(
     await hass.async_block_till_done()
 
     coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
-    mock_aioclient.clear()
+    mock_aioclient.clear_requests()
 
     for url in urls:
-        mock_aioclient.get(url, exception=ClientError("Network Down"), repeat=True)
-        mock_aioclient.post(url, exception=ClientError("Network Down"), repeat=True)
+        mock_aioclient.get(url, exc=ClientError("Network Down"))
+        mock_aioclient.post(url, exc=ClientError("Network Down"))
 
     with contextlib.suppress(ClientError):
         await coordinator.async_refresh()
@@ -353,10 +353,10 @@ async def test_sensor_availability_aioclient(
     state = hass.states.get("sensor.openevse_charging_status")
     assert state.state == "unavailable"
 
-    mock_aioclient.clear()
+    mock_aioclient.clear_requests()
     for url in urls:
-        mock_aioclient.get(url, status=200, payload=valid_response, repeat=True)
-        mock_aioclient.post(url, status=200, payload=valid_response, repeat=True)
+        mock_aioclient.get(url, status=200, json=valid_response)
+        mock_aioclient.post(url, status=200, json=valid_response)
 
     await coordinator.async_refresh()
     await hass.async_block_till_done()

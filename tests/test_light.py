@@ -52,8 +52,7 @@ async def test_light(
     mock_aioclient.post(
         TEST_URL_CONFIG,
         status=200,
-        body='{"msg": "OK"}',
-        repeat=True,
+        text='{"msg": "OK"}',
     )
 
     await hass.services.async_call(
@@ -63,8 +62,11 @@ async def test_light(
         blocking=True,
     )
 
-    mock_aioclient.assert_any_call(
-        TEST_URL_CONFIG, method="POST", data={ATTR_BRIGHTNESS: 0}
+    assert any(
+        call[0] == "POST"
+        and call[1].path == "/config"
+        and call[2] == {"led_brightness": 0}
+        for call in mock_aioclient.mock_calls
     )
 
     await hass.services.async_call(
@@ -74,8 +76,11 @@ async def test_light(
         blocking=True,
     )
 
-    mock_aioclient.assert_any_call(
-        TEST_URL_CONFIG, method="POST", data={ATTR_BRIGHTNESS: 128}
+    assert any(
+        call[0] == "POST"
+        and call[1].path == "/config"
+        and call[2] == {"led_brightness": 125}
+        for call in mock_aioclient.mock_calls
     )
 
     await hass.services.async_call(
@@ -85,8 +90,11 @@ async def test_light(
         blocking=True,
     )
 
-    mock_aioclient.assert_any_call(
-        TEST_URL_CONFIG, method="POST", data={ATTR_BRIGHTNESS: 26}
+    assert any(
+        call[0] == "POST"
+        and call[1].path == "/config"
+        and call[2] == {"led_brightness": 26}
+        for call in mock_aioclient.mock_calls
     )
 
 

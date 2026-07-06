@@ -93,7 +93,7 @@ async def test_select(
     mock_aioclient.delete(
         TEST_URL_OVERRIDE,
         status=200,
-        body='{"msg": "OK"}',
+        text='{"msg": "OK"}',
     )
 
     servicedata = {
@@ -145,7 +145,7 @@ async def test_select(
     mock_aioclient.post(
         TEST_URL_DIVERT,
         status=200,
-        body=value,
+        text=value,
     )
 
     servicedata = {
@@ -504,7 +504,7 @@ async def test_select_clear_override_not_active(
     mock_aioclient.delete(
         TEST_URL_OVERRIDE,
         status=500,
-        body='{"msg": "Failed to release manual override"}',
+        text='{"msg": "Failed to release manual override"}',
     )
 
     servicedata = {
@@ -542,7 +542,7 @@ async def test_select_clear_override_other_runtime_error(
     mock_aioclient.delete(
         TEST_URL_OVERRIDE,
         status=500,
-        body='{"msg": "Some other server error"}',
+        text='{"msg": "Some other server error"}',
     )
 
     servicedata = {
