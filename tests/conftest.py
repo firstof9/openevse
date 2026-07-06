@@ -1,9 +1,11 @@
 """Global fixtures for openevse integration."""
 
+import base64
+import hashlib
 import os
 from collections.abc import Coroutine, Generator
 from typing import Any, cast
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import openevsehttp.__main__ as main
 import pytest
@@ -17,6 +19,10 @@ from homeassistant.core import (
     HomeAssistant,
 )
 from homeassistant.setup import async_setup_component
+from pytest_homeassistant_custom_component.test_util.aiohttp import (
+    AiohttpClientMocker,
+    AiohttpClientMockResponse,
+)
 
 from tests.const import CHARGER_DATA, FW_DATA, GETFW_DATA
 
@@ -27,6 +33,57 @@ from .typing import (
 )
 
 pytest_plugins = "pytest_homeassistant_custom_component"
+
+# Patch AiohttpClientMockResponse to have request_info and history
+# for Python 3.14 / aiohttp compatibility
+if not hasattr(AiohttpClientMockResponse, "request_info"):
+
+    @property
+    def request_info(self):
+        """Return request info."""
+        return Mock(real_url=self.url)
+
+    AiohttpClientMockResponse.request_info = request_info
+
+if not hasattr(AiohttpClientMockResponse, "history"):
+
+    @property
+    def history(self):
+        """Return history."""
+        return ()
+
+    AiohttpClientMockResponse.history = history
+
+if not hasattr(AiohttpClientMockResponse, "connection"):
+
+    @property
+    def connection(self):
+        """Return connection mock."""
+        conn = Mock()
+        conn._connector._timeout_ceil_threshold = 5
+        return conn
+
+    AiohttpClientMockResponse.connection = connection
+
+# Patch AiohttpClientMocker to calculate challenge response for websocket handshakes
+orig_match_request = AiohttpClientMocker.match_request
+
+
+async def patched_match_request(self, method, url, **kwargs):
+    headers = kwargs.get("headers") or {}
+    resp = await orig_match_request(self, method, url, **kwargs)
+    if resp.status == 101 and "Sec-WebSocket-Key" in headers:
+        key = headers["Sec-WebSocket-Key"]
+        accept_val = base64.b64encode(
+            hashlib.sha1(
+                (key + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11").encode()
+            ).digest()
+        ).decode()
+        resp._headers["Sec-WebSocket-Accept"] = accept_val
+    return resp
+
+
+AiohttpClientMocker.match_request = patched_match_request
 
 TEST_URL_GITHUB_V4 = (
     "https://api.github.com/repos/OpenEVSE/ESP32_WiFi_V4.x/releases/latest"
@@ -133,11 +190,13 @@ def test_charger(mock_aioclient):
     mock_aioclient.get(
         TEST_URL_WS,
         status=101,
+        headers={"Upgrade": "websocket", "Connection": "Upgrade"},
         text=load_fixture("status.json"),
     )
     mock_aioclient.get(
         TEST_URL_WS.replace("ws://", "wss://"),
         status=101,
+        headers={"Upgrade": "websocket", "Connection": "Upgrade"},
         text=load_fixture("status.json"),
     )
     register_github_release_mocks(mock_aioclient)
@@ -205,6 +264,7 @@ def test_charger_services(mock_aioclient):
     mock_aioclient.get(
         TEST_URL_WS,
         status=101,
+        headers={"Upgrade": "websocket", "Connection": "Upgrade"},
         text=load_fixture("status.json"),
     )
     register_github_release_mocks(mock_aioclient)
@@ -237,6 +297,7 @@ def test_charger_bad_serial(mock_aioclient):
     mock_aioclient.get(
         TEST_URL_WS,
         status=101,
+        headers={"Upgrade": "websocket", "Connection": "Upgrade"},
         text=load_fixture("status.json"),
     )
     register_github_release_mocks(mock_aioclient)
@@ -273,6 +334,7 @@ def test_charger_bad_post(mock_aioclient):
     mock_aioclient.get(
         TEST_URL_WS,
         status=101,
+        headers={"Upgrade": "websocket", "Connection": "Upgrade"},
         text=load_fixture("status.json"),
     )
     register_github_release_mocks(mock_aioclient)
@@ -310,6 +372,7 @@ def test_charger_new(mock_aioclient):
     mock_aioclient.get(
         TEST_URL_WS,
         status=101,
+        headers={"Upgrade": "websocket", "Connection": "Upgrade"},
         text=load_fixture("status-new.json"),
     )
     register_github_release_mocks(mock_aioclient)
@@ -389,6 +452,7 @@ def test_charger_v2(mock_aioclient):
     mock_aioclient.get(
         TEST_URL_WS,
         status=101,
+        headers={"Upgrade": "websocket", "Connection": "Upgrade"},
         text=load_fixture("v2_status.json"),
     )
     register_github_release_mocks(mock_aioclient)
