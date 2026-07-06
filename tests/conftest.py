@@ -76,7 +76,8 @@ async def patched_match_request(self, method, url, **kwargs):
         key = headers["Sec-WebSocket-Key"]
         accept_val = base64.b64encode(
             hashlib.sha1(
-                (key + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11").encode()
+                (key + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11").encode(),
+                usedforsecurity=False,
             ).digest()
         ).decode()
         resp._headers["Sec-WebSocket-Accept"] = accept_val
