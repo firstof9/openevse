@@ -1,6 +1,6 @@
 -r requirements.txt
 pytest-homeassistant-custom-component
-mypy==2.1.0
+mypy==2.2.0
 ruff==0.15.20
 tox==4.56.2
 pytest<10
