@@ -333,6 +333,9 @@ class OpenEVSEOptionsFlowHandler(config_entries.OptionsFlow):
 
         options = self.config_entry.options
 
+        # default="" is intentional to prevent voluptuous from reverting cleared
+        # fields to their previous values. Pre-population is handled via
+        # add_suggested_values_to_schema.
         schema = vol.Schema(
             {
                 vol.Optional(CONF_GRID, default=""): OptionalEntitySelector(
