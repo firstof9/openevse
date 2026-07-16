@@ -150,6 +150,37 @@ async def test_setup_entry_state_change(hass, test_charger, mock_ws_start, caplo
     assert "Sending sensor data to OpenEVSE: (grid: -200)" in caplog.text
 
 
+async def test_setup_entry_state_change_unit_conversion(
+    hass, test_charger, mock_ws_start, caplog
+):
+    """Test state change with grid sensor in kW converted to W."""
+    grid_entity = "sensor.grid_usage"
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA_GRID,
+        options=OPTIONS_DATA_GRID,
+        version=2,
+    )
+    # set a fake sensor for grid usage initially
+    hass.states.async_set(grid_entity, "0", attributes={"unit_of_measurement": "W"})
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    # Change to a kW value to trigger state change listener
+    hass.states.async_set(grid_entity, "4.1", attributes={"unit_of_measurement": "kW"})
+    await hass.async_block_till_done()
+
+    assert "Sending sensor data to OpenEVSE: (grid: 4100)" in caplog.text
+
+    # Change value to another kW value
+    hass.states.async_set(grid_entity, "-0.2", attributes={"unit_of_measurement": "kW"})
+    await hass.async_block_till_done()
+
+    assert "Sending sensor data to OpenEVSE: (grid: -200)" in caplog.text
+
+
 async def test_setup_entry_state_change_timeout(
     hass, test_charger_bad_post, mock_ws_start, caplog
 ):

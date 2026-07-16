@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import functools
 import inspect
 import logging
@@ -17,6 +18,7 @@ from homeassistant.const import (
     CONF_USERNAME,
     CONF_VERIFY_SSL,
     EVENT_HOMEASSISTANT_STARTED,
+    UnitOfPower,
 )
 from homeassistant.core import (
     CoreState,
@@ -30,6 +32,7 @@ from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.event import async_track_state_change_event
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
+from homeassistant.util.unit_conversion import PowerConverter
 from openevsehttp.__main__ import OpenEVSE
 from openevsehttp.exceptions import (
     AuthenticationError,
@@ -84,6 +87,23 @@ divert_mode = {
 }
 
 
+def _parse_power_state(state) -> int | None:
+    """Parse power sensor state and convert to Watts if necessary."""
+    if not state or state.state in [None, "unavailable", "unknown", ""]:
+        return None
+    try:
+        val = float(state.state)
+    except (ValueError, TypeError):
+        return None
+
+    unit = state.attributes.get("unit_of_measurement")
+    if unit and unit != UnitOfPower.WATT:
+        with contextlib.suppress(Exception):
+            val = PowerConverter.convert(val, unit, UnitOfPower.WATT)
+
+    return round(val)
+
+
 @callback
 async def handle_state_change(
     hass: HomeAssistant,
@@ -110,15 +130,13 @@ async def handle_state_change(
 
     if grid_sensor is not None and changed_entity == grid_sensor:
         state = hass.states.get(grid_sensor)
-        grid = state.state if state else None
-        if grid in [None, "unavailable", "unknown"]:
-            grid = None
-        else:
-            try:
-                grid = round(float(grid))
-            except (ValueError, TypeError):
-                logger.warning("Non-numeric state for grid sensor: %s", grid)
-                grid = None
+        grid = _parse_power_state(state)
+        if (
+            state
+            and state.state not in [None, "unavailable", "unknown", ""]
+            and grid is None
+        ):
+            logger.warning("Non-numeric state for grid sensor: %s", state.state)
 
         logger.debug("Sending sensor data to OpenEVSE: (grid: %s)", grid)
         try:
@@ -128,15 +146,13 @@ async def handle_state_change(
 
     elif solar_sensor is not None and changed_entity == solar_sensor:
         state = hass.states.get(solar_sensor)
-        solar = state.state if state else None
-        if solar in [None, "unavailable", "unknown"]:
-            solar = None
-        else:
-            try:
-                solar = round(float(solar))
-            except (ValueError, TypeError):
-                logger.warning("Non-numeric state for solar sensor: %s", solar)
-                solar = None
+        solar = _parse_power_state(state)
+        if (
+            state
+            and state.state not in [None, "unavailable", "unknown", ""]
+            and solar is None
+        ):
+            logger.warning("Non-numeric state for solar sensor: %s", state.state)
 
         logger.debug("Sending sensor data to OpenEVSE: (solar: %s)", solar)
         try:
@@ -164,15 +180,13 @@ async def handle_state_change(
 
     if shaper_sensor is not None and changed_entity == shaper_sensor:
         state = hass.states.get(shaper_sensor)
-        power = state.state if state else None
-        if power in [None, "unavailable", "unknown", ""]:
-            power = None
-        else:
-            try:
-                power = round(float(power))
-            except (ValueError, TypeError):
-                logger.warning("Non-numeric state for shaper sensor: %s", power)
-                power = None
+        power = _parse_power_state(state)
+        if (
+            state
+            and state.state not in [None, "unavailable", "unknown", ""]
+            and power is None
+        ):
+            logger.warning("Non-numeric state for shaper sensor: %s", state.state)
 
         logger.debug("Sending sensor data to OpenEVSE: (shaper: %s)", power)
         try:
@@ -270,17 +284,15 @@ async def handle_state_change(
         and changed_entity == home_battery_power_sensor
     ):
         state = hass.states.get(home_battery_power_sensor)
-        hb_power = state.state if state else None
-        if hb_power in [None, "unavailable", "unknown", ""]:
-            hb_power = None
-        else:
-            try:
-                hb_power = round(float(hb_power))
-            except (ValueError, TypeError):
-                logger.warning(
-                    "Non-numeric state for home battery power sensor: %s", hb_power
-                )
-                hb_power = None
+        hb_power = _parse_power_state(state)
+        if (
+            state
+            and state.state not in [None, "unavailable", "unknown", ""]
+            and hb_power is None
+        ):
+            logger.warning(
+                "Non-numeric state for home battery power sensor: %s", state.state
+            )
 
         logger.debug(
             "Sending sensor data to OpenEVSE: (home_battery_power: %s)", hb_power
