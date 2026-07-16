@@ -1297,3 +1297,46 @@ async def test_setup_entry_state_change_home_battery(
         hass.states.async_set(power_entity, "-501")
         await hass.async_block_till_done()
     assert "Error connecting to device:" in caplog.text
+
+
+async def test_async_update_cooldown(hass, test_charger, mock_ws_start):
+    """Test async_update_cooldown property of OpenEVSEUpdateCoordinator."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA,
+        version=2,
+    )
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
+    manager = coordinator._manager
+
+    # Save original state to restore later
+    orig_status = manager._status.copy()
+    orig_config = manager._config.copy()
+
+    try:
+        # Case 1: using_ethernet is True
+        manager._status["eth_connected"] = True
+        assert coordinator.async_update_cooldown == 2.0
+
+        # Case 2: using_ethernet is False, wifi_firmware is v4.1.2
+        manager._status["eth_connected"] = False
+        manager._config["version"] = "v4.1.2"
+        assert coordinator.async_update_cooldown == 15.0
+
+        # Case 3: using_ethernet is False, wifi_firmware is v5.1.5
+        manager._status["eth_connected"] = False
+        manager._config["version"] = "v5.1.5"
+        assert coordinator.async_update_cooldown == 5.0
+
+        # Case 4: wifi_firmware is invalid or None
+        manager._status["eth_connected"] = False
+        manager._config["version"] = None
+        assert coordinator.async_update_cooldown == 15.0
+    finally:
+        manager._status = orig_status
+        manager._config = orig_config
