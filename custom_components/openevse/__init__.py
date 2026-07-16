@@ -694,8 +694,8 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
         )
 
         if should_fetch_async:
-            new_data.update(await self.async_parse_sensors())
             self._last_async_update = now
+            new_data.update(await self.async_parse_sensors())
         else:
             # Retain existing async values from the previous snapshot
             for key, value in self._data.items():
