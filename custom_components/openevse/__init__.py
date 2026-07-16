@@ -6,6 +6,7 @@ import asyncio
 import functools
 import inspect
 import logging
+import time
 from datetime import timedelta
 from typing import Any
 
@@ -565,6 +566,7 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
         self._data = {}
         self._update_lock = asyncio.Lock()
         self._manager.callback = self.websocket_update
+        self._last_async_update = 0.0
 
         self.logger = OpenEVSELoggerAdapter(
             _LOGGER, {"device_name": config.data.get(CONF_NAME, "OpenEVSE")}
@@ -579,6 +581,23 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
             name=self.name,
             update_interval=self.interval,
         )
+
+    @property
+    def async_update_cooldown(self) -> float:
+        """Return the cooldown period based on connection type and hardware firmware."""
+        if getattr(self._manager, "using_ethernet", False):
+            return 2.0
+
+        # Check if ESP32 firmware (v5.x or newer) is running
+        fw = getattr(self._manager, "wifi_firmware", "") or ""
+        if fw.startswith("v"):
+            parts = fw[1:].split(".")
+            if parts and parts[0].isdigit():
+                major_version = int(parts[0])
+                if major_version >= 5:
+                    return 5.0  # ESP32 on Wi-Fi
+
+        return 15.0  # ESP8266 or fallback on Wi-Fi
 
     async def _async_update_data(self):
         """Return data."""
@@ -637,7 +656,7 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
         self.logger.debug("Websocket update!")
         try:
             async with self._update_lock:
-                await self._update_data_snapshot()
+                await self._update_data_snapshot(skip_async=True)
         except CONNECTION_ERRORS as error:
             self.logger.warning(
                 "Connection error updating data from websocket [%s]: %s",
@@ -665,10 +684,24 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
         except KeyError as err:
             self.logger.error("Error locating configuration: %s", err)
 
-    async def _update_data_snapshot(self) -> None:
+    async def _update_data_snapshot(self, skip_async: bool = False) -> None:
         """Update the data snapshot."""
         new_data = self.parse_sensors()
-        new_data.update(await self.async_parse_sensors())
+
+        now = time.monotonic()
+        should_fetch_async = not skip_async or (
+            now - self._last_async_update > self.async_update_cooldown
+        )
+
+        if should_fetch_async:
+            new_data.update(await self.async_parse_sensors())
+            self._last_async_update = now
+        else:
+            # Retain existing async values from the previous snapshot
+            for key, value in self._data.items():
+                if key not in new_data:
+                    new_data[key] = value
+
         self._data = new_data
 
     def _normalize_descriptors(self, descriptors) -> list[tuple[str, Any]]:
