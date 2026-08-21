@@ -39,7 +39,7 @@ categories:
         - "documentation"
 
   - title: "⬆️ Dependency updates"
-    semver-increment: "patch"
+    semverincrement: "patch"
     collapse-after: 1
     when:
       labels:
