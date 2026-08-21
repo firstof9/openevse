@@ -46,6 +46,7 @@ CHARGER_DATA = {
     "divert_active": False,
     "using_ethernet": False,
     "shaper_active": False,
+    "mqtt_vehicle_range_miles": False,
     "max_current_soft": 48,
     "led_brightness": 128,
 }
@@ -108,6 +109,7 @@ DIAG_DEVICE_RESULTS = {
     "max_current_soft": 28,
     "min_amps": 6,
     "mqtt_connected": True,
+    "mqtt_vehicle_range_miles": False,
     "openevse_firmware": "7.1.3",
     "ota_update": False,
     "override_state": "auto",

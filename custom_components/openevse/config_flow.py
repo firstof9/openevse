@@ -333,45 +333,45 @@ class OpenEVSEOptionsFlowHandler(config_entries.OptionsFlow):
 
         options = self.config_entry.options
 
+        # default="" is intentional to prevent voluptuous from reverting cleared
+        # fields to their previous values. Pre-population is handled via
+        # add_suggested_values_to_schema.
+        schema = vol.Schema(
+            {
+                vol.Optional(CONF_GRID, default=""): OptionalEntitySelector(
+                    EntitySelectorConfig(domain="sensor")
+                ),
+                vol.Optional(CONF_SOLAR, default=""): OptionalEntitySelector(
+                    EntitySelectorConfig(domain="sensor")
+                ),
+                vol.Optional(CONF_VOLTAGE, default=""): OptionalEntitySelector(
+                    EntitySelectorConfig(domain="sensor")
+                ),
+                vol.Optional(CONF_SHAPER, default=""): OptionalEntitySelector(
+                    EntitySelectorConfig(domain="sensor")
+                ),
+                vol.Optional(CONF_VEHICLE_SOC, default=""): OptionalEntitySelector(
+                    EntitySelectorConfig(domain="sensor")
+                ),
+                vol.Optional(CONF_VEHICLE_RANGE, default=""): OptionalEntitySelector(
+                    EntitySelectorConfig(domain="sensor")
+                ),
+                vol.Optional(CONF_VEHICLE_ETA, default=""): OptionalEntitySelector(
+                    EntitySelectorConfig(domain="sensor")
+                ),
+                vol.Optional(CONF_HOME_BATTERY_SOC, default=""): OptionalEntitySelector(
+                    EntitySelectorConfig(domain="sensor")
+                ),
+                vol.Optional(
+                    CONF_HOME_BATTERY_POWER, default=""
+                ): OptionalEntitySelector(EntitySelectorConfig(domain="sensor")),
+                vol.Optional(CONF_INVERT, default=False): bool,
+            }
+        )
+
         return self.async_show_form(
             step_id="init",
-            data_schema=vol.Schema(
-                {
-                    vol.Optional(
-                        CONF_GRID, default=options.get(CONF_GRID, "")
-                    ): OptionalEntitySelector(EntitySelectorConfig(domain="sensor")),
-                    vol.Optional(
-                        CONF_SOLAR, default=options.get(CONF_SOLAR, "")
-                    ): OptionalEntitySelector(EntitySelectorConfig(domain="sensor")),
-                    vol.Optional(
-                        CONF_VOLTAGE, default=options.get(CONF_VOLTAGE, "")
-                    ): OptionalEntitySelector(EntitySelectorConfig(domain="sensor")),
-                    vol.Optional(
-                        CONF_SHAPER, default=options.get(CONF_SHAPER, "")
-                    ): OptionalEntitySelector(EntitySelectorConfig(domain="sensor")),
-                    vol.Optional(
-                        CONF_VEHICLE_SOC, default=options.get(CONF_VEHICLE_SOC, "")
-                    ): OptionalEntitySelector(EntitySelectorConfig(domain="sensor")),
-                    vol.Optional(
-                        CONF_VEHICLE_RANGE,
-                        default=options.get(CONF_VEHICLE_RANGE, ""),
-                    ): OptionalEntitySelector(EntitySelectorConfig(domain="sensor")),
-                    vol.Optional(
-                        CONF_VEHICLE_ETA, default=options.get(CONF_VEHICLE_ETA, "")
-                    ): OptionalEntitySelector(EntitySelectorConfig(domain="sensor")),
-                    vol.Optional(
-                        CONF_HOME_BATTERY_SOC,
-                        default=options.get(CONF_HOME_BATTERY_SOC, ""),
-                    ): OptionalEntitySelector(EntitySelectorConfig(domain="sensor")),
-                    vol.Optional(
-                        CONF_HOME_BATTERY_POWER,
-                        default=options.get(CONF_HOME_BATTERY_POWER, ""),
-                    ): OptionalEntitySelector(EntitySelectorConfig(domain="sensor")),
-                    vol.Optional(
-                        CONF_INVERT, default=options.get(CONF_INVERT, False)
-                    ): bool,
-                },
-            ),
+            data_schema=self.add_suggested_values_to_schema(schema, options),
         )
 
 

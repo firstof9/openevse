@@ -489,6 +489,10 @@ async def test_options_flow(hass, test_charger, mock_ws_start):
         "invert_grid": False,
     }
 
+    await hass.async_block_till_done()
+    await hass.config_entries.async_unload(entry.entry_id)
+    await hass.async_block_till_done()
+
 
 async def test_options_flow_defaults(hass, test_charger, mock_ws_start):
     """Test options flow shows existing values as defaults."""
@@ -526,6 +530,10 @@ async def test_options_flow_defaults(hass, test_charger, mock_ws_start):
     )
     assert result["type"] is FlowResultType.CREATE_ENTRY
     assert result["data"]["solar"] == "sensor.solar_production"
+
+    await hass.async_block_till_done()
+    await hass.config_entries.async_unload(entry.entry_id)
+    await hass.async_block_till_done()
 
 
 async def test_options_flow_all_empty_entities(hass, test_charger, mock_ws_start):
@@ -576,6 +584,10 @@ async def test_options_flow_all_empty_entities(hass, test_charger, mock_ws_start
         "invert_grid": False,
     }
 
+    await hass.async_block_till_done()
+    await hass.config_entries.async_unload(entry.entry_id)
+    await hass.async_block_till_done()
+
 
 async def test_migrate_from_v1(hass, test_charger, mock_ws_start):
     """Test migration from config version 1 to version 2."""
@@ -617,6 +629,10 @@ async def test_migrate_from_v1(hass, test_charger, mock_ws_start):
     # Verify connection data is preserved
     assert entry.data.get("host") == "openevse.test.tld"
     assert entry.data.get("name") == "openevse"
+
+    await hass.async_block_till_done()
+    await hass.config_entries.async_unload(entry.entry_id)
+    await hass.async_block_till_done()
 
 
 async def test_form_user_invalid_auth(hass):

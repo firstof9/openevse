@@ -3,16 +3,18 @@
 import contextlib
 import logging
 from datetime import datetime
-from unittest.mock import patch
+from unittest.mock import MagicMock, PropertyMock, patch
 
 import pytest
 from aiohttp import ClientError
 from homeassistant.components.sensor import DOMAIN as SENSOR_DOMAIN
+from homeassistant.const import UnitOfLength
 from homeassistant.helpers import entity_registry as er
 from homeassistant.util import dt as dt_util
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.openevse.const import DOMAIN
+from custom_components.openevse.sensor import OpenEVSESensor
 
 from .const import CONFIG_DATA
 
@@ -323,8 +325,8 @@ async def test_sensor_availability_aioclient(
     }
 
     for url in urls:
-        mock_aioclient.get(url, status=200, payload=valid_response, repeat=True)
-        mock_aioclient.post(url, status=200, payload=valid_response, repeat=True)
+        mock_aioclient.get(url, status=200, json=valid_response)
+        mock_aioclient.post(url, status=200, json=valid_response)
 
     entry = MockConfigEntry(
         domain=DOMAIN,
@@ -337,11 +339,11 @@ async def test_sensor_availability_aioclient(
     await hass.async_block_till_done()
 
     coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
-    mock_aioclient.clear()
+    mock_aioclient.clear_requests()
 
     for url in urls:
-        mock_aioclient.get(url, exception=ClientError("Network Down"), repeat=True)
-        mock_aioclient.post(url, exception=ClientError("Network Down"), repeat=True)
+        mock_aioclient.get(url, exc=ClientError("Network Down"))
+        mock_aioclient.post(url, exc=ClientError("Network Down"))
 
     with contextlib.suppress(ClientError):
         await coordinator.async_refresh()
@@ -351,13 +353,132 @@ async def test_sensor_availability_aioclient(
     state = hass.states.get("sensor.openevse_charging_status")
     assert state.state == "unavailable"
 
-    mock_aioclient.clear()
+    mock_aioclient.clear_requests()
     for url in urls:
-        mock_aioclient.get(url, status=200, payload=valid_response, repeat=True)
-        mock_aioclient.post(url, status=200, payload=valid_response, repeat=True)
+        mock_aioclient.get(url, status=200, json=valid_response)
+        mock_aioclient.post(url, status=200, json=valid_response)
 
     await coordinator.async_refresh()
     await hass.async_block_till_done()
 
     state = hass.states.get("sensor.openevse_charging_status")
     assert state.state != "unavailable"
+
+
+async def test_vehicle_range_sensor_miles(
+    hass,
+    test_charger,
+    mock_ws_start,
+    mock_aioclient,
+    entity_registry: er.EntityRegistry,
+):
+    """Test vehicle range sensor with miles unit and async parsing logic."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA,
+    )
+    entry.add_to_hass(hass)
+
+    with patch(
+        "custom_components.openevse.OpenEVSE.vehicle_range_with_unit",
+        new_callable=PropertyMock,
+        return_value=(150, "miles"),
+    ):
+        assert await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+
+        # Enable vehicle range sensor (disabled by default)
+        entity_id = "sensor.openevse_vehicle_range"
+        entity_entry = entity_registry.async_get(entity_id)
+        assert entity_entry
+        entity_registry.async_update_entity(entity_id, disabled_by=None)
+
+        # reload the integration sensor platform
+        assert await hass.config_entries.async_forward_entry_unload(entry, "sensor")
+        await hass.config_entries.async_forward_entry_setups(entry, ["sensor"])
+        await hass.async_block_till_done()
+
+        entity = hass.data["entity_components"]["sensor"].get_entity(entity_id)
+        assert entity
+        assert entity.native_unit_of_measurement == UnitOfLength.MILES
+
+        # Test async_parse_sensors unpacking
+        coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
+        with patch.object(
+            coordinator,
+            "_collect_async_values",
+            return_value={"vehicle_range": (100, "miles")},
+        ):
+            res = await coordinator.async_parse_sensors()
+            assert res["vehicle_range"] == 100
+
+
+async def test_vehicle_range_sensor_km(
+    hass,
+    test_charger,
+    mock_ws_start,
+    mock_aioclient,
+    entity_registry: er.EntityRegistry,
+):
+    """Test vehicle range sensor with km and kilometers unit mapping."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA,
+    )
+    entry.add_to_hass(hass)
+
+    with patch(
+        "custom_components.openevse.OpenEVSE.vehicle_range_with_unit",
+        new_callable=PropertyMock,
+        return_value=(240, "km"),
+    ):
+        assert await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+
+        entity_id = "sensor.openevse_vehicle_range"
+        entity_entry = entity_registry.async_get(entity_id)
+        assert entity_entry
+        entity_registry.async_update_entity(entity_id, disabled_by=None)
+
+        assert await hass.config_entries.async_forward_entry_unload(entry, "sensor")
+        await hass.config_entries.async_forward_entry_setups(entry, ["sensor"])
+        await hass.async_block_till_done()
+
+        entity = hass.data["entity_components"]["sensor"].get_entity(entity_id)
+        assert entity
+        assert entity.native_unit_of_measurement == UnitOfLength.KILOMETERS
+
+    # Reload and test with "kilometers"
+    with patch(
+        "custom_components.openevse.OpenEVSE.vehicle_range_with_unit",
+        new_callable=PropertyMock,
+        return_value=(240, "kilometers"),
+    ):
+        # Trigger dynamic update check
+        entity = hass.data["entity_components"]["sensor"].get_entity(entity_id)
+        assert entity
+        assert entity.native_unit_of_measurement == UnitOfLength.KILOMETERS
+
+
+async def test_sensor_coverage_gaps(hass, test_charger, mock_ws_start):
+    """Test sensor coverage gaps."""
+    entry = MockConfigEntry(domain=DOMAIN, data=CONFIG_DATA)
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
+
+    description_no_val_fn = MagicMock(
+        key="test_sensor_key",
+        name="Test Sensor",
+        min_version=None,
+        value_fn=None,
+        native_unit_of_measurement=None,
+        icon=None,
+    )
+    entity = OpenEVSESensor(description_no_val_fn, "test_unique_id", coordinator, entry)
+    coordinator.data = {"test_sensor_key": "some_value"}
+    assert entity.native_value == "some_value"

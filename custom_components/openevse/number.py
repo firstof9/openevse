@@ -24,7 +24,7 @@ from .const import (
     MANAGER,
     NUMBER_TYPES,
 )
-from .entity import OpenEVSENumberEntityDescription
+from .entity import OpenEVSEEntity, OpenEVSENumberEntityDescription
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -34,22 +34,20 @@ async def async_setup_entry(
     config_entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Set up OpenEVSE Number entity from Config Entry."""
+    """Set up the OpenEVSE number entities."""
     coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
     manager = hass.data[DOMAIN][config_entry.entry_id][MANAGER]
 
     entities: list[NumberEntity] = []
 
-    for number in NUMBER_TYPES:
+    for description in NUMBER_TYPES:
         entities.append(
-            OpenEVSENumberEntity(
-                config_entry, coordinator, NUMBER_TYPES[number], manager
-            )
+            OpenEVSENumberEntity(config_entry, coordinator, description, manager)
         )
     async_add_entities(entities)
 
 
-class OpenEVSENumberEntity(CoordinatorEntity, NumberEntity):
+class OpenEVSENumberEntity(CoordinatorEntity, OpenEVSEEntity, NumberEntity):
     """Representation of a OpenEVSE number entity."""
 
     def __init__(
@@ -62,6 +60,7 @@ class OpenEVSENumberEntity(CoordinatorEntity, NumberEntity):
         """Initialize an OpenEVSE number entity."""
         super().__init__(coordinator)
         self._description = description
+        self.entity_description = description
         self._unique_id = config_entry.entry_id
         self._config = config_entry
         self._name = description.name
@@ -76,16 +75,6 @@ class OpenEVSENumberEntity(CoordinatorEntity, NumberEntity):
         self._attr_name = f"{config_entry.data[CONF_NAME]} {self._name}"
         self._attr_unique_id = f"{self._name}_{self._unique_id}"
         self._attr_native_step = 1.0
-
-    @property
-    def device_info(self):
-        """Return a port description for device registry."""
-        info = {
-            "manufacturer": "OpenEVSE",
-            "name": self._config.data[CONF_NAME],
-            "connections": {(DOMAIN, self._config.entry_id)},
-        }
-        return info
 
     @property
     def available(self) -> bool:
@@ -127,9 +116,12 @@ class OpenEVSENumberEntity(CoordinatorEntity, NumberEntity):
     @property
     def native_value(self) -> float | None:
         """Return the entity value."""
-        data = self.coordinator.data
+        data = self.coordinator.data if isinstance(self.coordinator.data, dict) else {}
+        if getattr(self._description, "value_fn", None) is not None:
+            value = self._description.value_fn(data)
+            return None if value is None else float(value)
         value = None
-        if isinstance(data, dict) and self._type in data:
+        if self._type in data:
             value = data[self._type]
         self.coordinator.logger.debug(
             "Number [%s] updated value: %s", self._type, value

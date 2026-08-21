@@ -28,6 +28,7 @@ async def test_switches(
     test_charger,
     mock_ws_start,
     mock_aioclient,
+    entity_registry: er.EntityRegistry,
 ):
     """Test standard switches."""
     entry = MockConfigEntry(
@@ -39,8 +40,18 @@ async def test_switches(
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
 
+    # Enable disabled switches
+    for entity_id in ("switch.openevse_sleep_mode", "switch.openevse_sleep_mode_new"):
+        entity_entry = entity_registry.async_get(entity_id)
+        entity_registry.async_update_entity(entity_entry.entity_id, disabled_by=None)
+
+    # Reload to apply enabled state
+    await hass.config_entries.async_forward_entry_unload(entry, SWITCH_DOMAIN)
+    await hass.config_entries.async_forward_entry_setups(entry, [SWITCH_DOMAIN])
+    await hass.async_block_till_done()
+
     # Ensure all switches are created
-    assert len(hass.states.async_entity_ids(SWITCH_DOMAIN)) == 5
+    assert len(hass.states.async_entity_ids(SWITCH_DOMAIN)) == 6
 
     # Get the coordinator to simulate data updates
     coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
@@ -58,7 +69,7 @@ async def test_switches(
     mock_aioclient.post(
         TEST_URL_OVERRIDE,
         status=200,
-        body='{"msg": "OK"}',
+        text='{"msg": "OK"}',
     )
 
     await hass.services.async_call(
@@ -87,7 +98,7 @@ async def test_switches(
     mock_aioclient.post(
         TEST_URL_CONFIG,
         status=200,
-        body='{"msg": "OK"}',
+        text='{"msg": "OK"}',
     )
 
     # Action: Turn On
@@ -115,7 +126,7 @@ async def test_switches(
     mock_aioclient.post(
         TEST_URL_DIVERT,
         status=200,
-        body='{"msg": "OK"}',
+        text='{"msg": "OK"}',
     )
 
     # Action: Turn On
@@ -143,8 +154,7 @@ async def test_switches(
     mock_aioclient.post(
         TEST_URL_SHAPER,
         status=200,
-        body='{"msg": "Current Shaper state changed"}',
-        repeat=True,
+        text='{"msg": "Current Shaper state changed"}',
     )
 
     # Action: Turn Off
@@ -175,6 +185,50 @@ async def test_switches(
     state = hass.states.get(entity_id)
     assert state.state == "on"
 
+    # -------------------------------------------------------------------------
+    # 5. Test Vehicle Range Miles Switch
+    # -------------------------------------------------------------------------
+    # Initial State: In CHARGER_DATA, "mqtt_vehicle_range_miles" is
+    # False, so switch is OFF.
+    entity_id = "switch.openevse_vehicle_range_miles"
+    state = hass.states.get(entity_id)
+    assert state
+    assert state.state == "off"
+
+    # Action: Turn On
+    mock_aioclient.post(
+        "http://openevse.test.tld/config",
+        status=200,
+        text='{"msg": "OK"}',
+    )
+
+    await hass.services.async_call(
+        SWITCH_DOMAIN, "turn_on", {"entity_id": entity_id}, blocking=True
+    )
+
+    # Simulate update
+    coordinator._data["mqtt_vehicle_range_miles"] = True
+    coordinator.async_set_updated_data(coordinator._data)
+    await hass.async_block_till_done()
+
+    # Assert: Entity should now be ON
+    state = hass.states.get(entity_id)
+    assert state.state == "on"
+
+    # Action: Turn Off
+    await hass.services.async_call(
+        SWITCH_DOMAIN, "turn_off", {"entity_id": entity_id}, blocking=True
+    )
+
+    # Simulate update
+    coordinator._data["mqtt_vehicle_range_miles"] = False
+    coordinator.async_set_updated_data(coordinator._data)
+    await hass.async_block_till_done()
+
+    # Assert: Entity should now be OFF
+    state = hass.states.get(entity_id)
+    assert state.state == "off"
+
 
 async def test_switches_v2(
     hass,
@@ -195,7 +249,22 @@ async def test_switches_v2(
         assert await hass.config_entries.async_setup(entry.entry_id)
         await hass.async_block_till_done()
 
-        assert len(hass.states.async_entity_ids(SWITCH_DOMAIN)) == 5
+        # Enable disabled switches
+        for entity_id in (
+            "switch.openevse_sleep_mode",
+            "switch.openevse_sleep_mode_new",
+        ):
+            entity_entry = entity_registry.async_get(entity_id)
+            entity_registry.async_update_entity(
+                entity_entry.entity_id, disabled_by=None
+            )
+
+        # Reload to apply enabled state
+        await hass.config_entries.async_forward_entry_unload(entry, SWITCH_DOMAIN)
+        await hass.config_entries.async_forward_entry_setups(entry, [SWITCH_DOMAIN])
+        await hass.async_block_till_done()
+
+        assert len(hass.states.async_entity_ids(SWITCH_DOMAIN)) == 6
         entries = hass.config_entries.async_entries(DOMAIN)
         assert len(entries) == 1
 
@@ -219,14 +288,35 @@ async def test_switch_coverage_gaps(hass, test_charger, mock_ws_start):
 
     # Test is_on when data is missing
     description = MagicMock(
-        key="missing_switch", name="Missing", toggle_command="test", min_version=None
+        key="missing_switch",
+        name="Missing",
+        toggle_command="test",
+        min_version=None,
+        value_fn=None,
     )
     switch = OpenEVSESwitch(hass, entry, coordinator, description, manager)
     assert switch.is_on is None
 
+    # Test is_on when value_fn returns None
+    description_value_fn = MagicMock(
+        key="test_value_fn",
+        name="ValueFnTest",
+        toggle_command="test",
+        min_version=None,
+        value_fn=lambda d: None,
+    )
+    switch_value_fn = OpenEVSESwitch(
+        hass, entry, coordinator, description_value_fn, manager
+    )
+    assert switch_value_fn.is_on is None
+
     # Test toggling of claim-based switches
     description_claim = MagicMock(
-        key="state", name="Claim", toggle_command="claim", min_version=None
+        key="state",
+        name="Claim",
+        toggle_command="claim",
+        min_version=None,
+        value_fn=None,
     )
     switch_claim = OpenEVSESwitch(hass, entry, coordinator, description_claim, manager)
 
@@ -259,6 +349,7 @@ async def test_switch_connection_error(
     test_charger,
     mock_ws_start,
     mock_aioclient,
+    entity_registry: er.EntityRegistry,
     caplog,
 ):
     """Test switch platform with connection error."""
@@ -270,6 +361,15 @@ async def test_switch_connection_error(
 
     entry.add_to_hass(hass)
     assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    # Enable disabled switch
+    entity_entry = entity_registry.async_get("switch.openevse_sleep_mode")
+    entity_registry.async_update_entity(entity_entry.entity_id, disabled_by=None)
+
+    # Reload to apply enabled state
+    await hass.config_entries.async_forward_entry_unload(entry, SWITCH_DOMAIN)
+    await hass.config_entries.async_forward_entry_setups(entry, [SWITCH_DOMAIN])
     await hass.async_block_till_done()
 
     manager = hass.data[DOMAIN][entry.entry_id][MANAGER]

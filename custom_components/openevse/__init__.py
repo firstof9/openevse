@@ -3,10 +3,13 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import functools
 import inspect
 import logging
+import time
 from datetime import timedelta
+from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
@@ -16,6 +19,7 @@ from homeassistant.const import (
     CONF_USERNAME,
     CONF_VERIFY_SSL,
     EVENT_HOMEASSISTANT_STARTED,
+    UnitOfPower,
 )
 from homeassistant.core import (
     CoreState,
@@ -29,6 +33,7 @@ from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.event import async_track_state_change_event
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
+from homeassistant.util.unit_conversion import PowerConverter
 from openevsehttp.__main__ import OpenEVSE
 from openevsehttp.exceptions import (
     AuthenticationError,
@@ -83,6 +88,23 @@ divert_mode = {
 }
 
 
+def _parse_power_state(state) -> int | None:
+    """Parse power sensor state and convert to Watts if necessary."""
+    if not state or state.state in [None, "unavailable", "unknown", ""]:
+        return None
+    try:
+        val = float(state.state)
+    except (ValueError, TypeError):
+        return None
+
+    unit = state.attributes.get("unit_of_measurement")
+    if unit and unit != UnitOfPower.WATT:
+        with contextlib.suppress(Exception):
+            val = PowerConverter.convert(val, unit, UnitOfPower.WATT)
+
+    return round(val)
+
+
 @callback
 async def handle_state_change(
     hass: HomeAssistant,
@@ -109,15 +131,13 @@ async def handle_state_change(
 
     if grid_sensor is not None and changed_entity == grid_sensor:
         state = hass.states.get(grid_sensor)
-        grid = state.state if state else None
-        if grid in [None, "unavailable", "unknown"]:
-            grid = None
-        else:
-            try:
-                grid = round(float(grid))
-            except (ValueError, TypeError):
-                logger.warning("Non-numeric state for grid sensor: %s", grid)
-                grid = None
+        grid = _parse_power_state(state)
+        if (
+            state
+            and state.state not in [None, "unavailable", "unknown", ""]
+            and grid is None
+        ):
+            logger.warning("Non-numeric state for grid sensor: %s", state.state)
 
         logger.debug("Sending sensor data to OpenEVSE: (grid: %s)", grid)
         try:
@@ -127,15 +147,13 @@ async def handle_state_change(
 
     elif solar_sensor is not None and changed_entity == solar_sensor:
         state = hass.states.get(solar_sensor)
-        solar = state.state if state else None
-        if solar in [None, "unavailable", "unknown"]:
-            solar = None
-        else:
-            try:
-                solar = round(float(solar))
-            except (ValueError, TypeError):
-                logger.warning("Non-numeric state for solar sensor: %s", solar)
-                solar = None
+        solar = _parse_power_state(state)
+        if (
+            state
+            and state.state not in [None, "unavailable", "unknown", ""]
+            and solar is None
+        ):
+            logger.warning("Non-numeric state for solar sensor: %s", state.state)
 
         logger.debug("Sending sensor data to OpenEVSE: (solar: %s)", solar)
         try:
@@ -163,15 +181,13 @@ async def handle_state_change(
 
     if shaper_sensor is not None and changed_entity == shaper_sensor:
         state = hass.states.get(shaper_sensor)
-        power = state.state if state else None
-        if power in [None, "unavailable", "unknown", ""]:
-            power = None
-        else:
-            try:
-                power = round(float(power))
-            except (ValueError, TypeError):
-                logger.warning("Non-numeric state for shaper sensor: %s", power)
-                power = None
+        power = _parse_power_state(state)
+        if (
+            state
+            and state.state not in [None, "unavailable", "unknown", ""]
+            and power is None
+        ):
+            logger.warning("Non-numeric state for shaper sensor: %s", state.state)
 
         logger.debug("Sending sensor data to OpenEVSE: (shaper: %s)", power)
         try:
@@ -269,17 +285,15 @@ async def handle_state_change(
         and changed_entity == home_battery_power_sensor
     ):
         state = hass.states.get(home_battery_power_sensor)
-        hb_power = state.state if state else None
-        if hb_power in [None, "unavailable", "unknown", ""]:
-            hb_power = None
-        else:
-            try:
-                hb_power = round(float(hb_power))
-            except (ValueError, TypeError):
-                logger.warning(
-                    "Non-numeric state for home battery power sensor: %s", hb_power
-                )
-                hb_power = None
+        hb_power = _parse_power_state(state)
+        if (
+            state
+            and state.state not in [None, "unavailable", "unknown", ""]
+            and hb_power is None
+        ):
+            logger.warning(
+                "Non-numeric state for home battery power sensor: %s", state.state
+            )
 
         logger.debug(
             "Sending sensor data to OpenEVSE: (home_battery_power: %s)", hb_power
@@ -564,6 +578,7 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
         self._data = {}
         self._update_lock = asyncio.Lock()
         self._manager.callback = self.websocket_update
+        self._last_async_update = 0.0
 
         self.logger = OpenEVSELoggerAdapter(
             _LOGGER, {"device_name": config.data.get(CONF_NAME, "OpenEVSE")}
@@ -578,6 +593,23 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
             name=self.name,
             update_interval=self.interval,
         )
+
+    @property
+    def async_update_cooldown(self) -> float:
+        """Return the cooldown period based on connection type and hardware firmware."""
+        if getattr(self._manager, "using_ethernet", False):
+            return 2.0
+
+        # Check if ESP32 firmware (v5.x or newer) is running
+        fw = getattr(self._manager, "wifi_firmware", "") or ""
+        if fw.startswith("v"):
+            parts = fw[1:].split(".")
+            if parts and parts[0].isdigit():
+                major_version = int(parts[0])
+                if major_version >= 5:
+                    return 5.0  # ESP32 on Wi-Fi
+
+        return 15.0  # ESP8266 or fallback on Wi-Fi
 
     async def _async_update_data(self):
         """Return data."""
@@ -636,7 +668,7 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
         self.logger.debug("Websocket update!")
         try:
             async with self._update_lock:
-                await self._update_data_snapshot()
+                await self._update_data_snapshot(skip_async=True)
         except CONNECTION_ERRORS as error:
             self.logger.warning(
                 "Connection error updating data from websocket [%s]: %s",
@@ -664,11 +696,31 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
         except KeyError as err:
             self.logger.error("Error locating configuration: %s", err)
 
-    async def _update_data_snapshot(self) -> None:
+    async def _update_data_snapshot(self, skip_async: bool = False) -> None:
         """Update the data snapshot."""
         new_data = self.parse_sensors()
-        new_data.update(await self.async_parse_sensors())
+
+        now = time.monotonic()
+        should_fetch_async = not skip_async or (
+            now - self._last_async_update > self.async_update_cooldown
+        )
+
+        if should_fetch_async:
+            self._last_async_update = now
+            new_data.update(await self.async_parse_sensors())
+        else:
+            # Retain existing async values from the previous snapshot
+            for key, value in self._data.items():
+                if key not in new_data:
+                    new_data[key] = value
+
         self._data = new_data
+
+    def _normalize_descriptors(self, descriptors) -> list[tuple[str, Any]]:
+        """Normalize descriptors to a list of (key, descriptor) tuples."""
+        if isinstance(descriptors, dict):
+            return list(descriptors.items())
+        return [(desc.key, desc) for desc in descriptors]
 
     def _collect_values(
         self, descriptors, label, value_cast=None, skip_async=True
@@ -676,10 +728,12 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
         """Collect values from descriptors."""
         data = {}
         manager_dir = dir(self._manager)
-        for key, descriptor in descriptors.items():
+        for key, descriptor in self._normalize_descriptors(descriptors):
             if skip_async and getattr(descriptor, "is_async_value", False):
                 continue
             sensor_property = descriptor.key
+            if sensor_property == "vehicle_range":
+                sensor_property = "vehicle_range_with_unit"
             if sensor_property not in manager_dir:
                 self.logger.debug("Could not update status for %s", key)
                 continue
@@ -709,7 +763,7 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
         if seen_results is None:
             seen_results = {}
         manager_dir = dir(self._manager)
-        for key, descriptor in descriptors.items():
+        for key, descriptor in self._normalize_descriptors(descriptors):
             if not getattr(descriptor, "is_async_value", False):
                 continue
             sensor_property = descriptor.key
@@ -760,6 +814,8 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
         data.update(self._collect_values(SELECT_TYPES, "select"))
         data.update(self._collect_values(NUMBER_TYPES, "number"))
         data.update(self._collect_values(LIGHT_TYPES, "light"))
+        if "vehicle_range" in data and isinstance(data["vehicle_range"], tuple):
+            data["vehicle_range"] = data["vehicle_range"][0]
         self.logger.debug("Parsed data: %s", data)
         return data
 
@@ -776,6 +832,8 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
         data.update(
             await self._collect_async_values(SENSOR_TYPES, "sensor", seen_results)
         )
+        if "vehicle_range" in data and isinstance(data["vehicle_range"], tuple):
+            data["vehicle_range"] = data["vehicle_range"][0]
         self.logger.debug("Parsed async data: %s", data)
         return data
 

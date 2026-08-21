@@ -65,8 +65,8 @@ async def test_setup_entry(hass, test_charger, mock_ws_start):
 
     assert len(hass.states.async_entity_ids(BINARY_SENSOR_DOMAIN)) == 4
     assert len(hass.states.async_entity_ids(SENSOR_DOMAIN)) == 23
-    assert len(hass.states.async_entity_ids(SWITCH_DOMAIN)) == 5
-    assert len(hass.states.async_entity_ids(SELECT_DOMAIN)) == 3
+    assert len(hass.states.async_entity_ids(SWITCH_DOMAIN)) == 4
+    assert len(hass.states.async_entity_ids(SELECT_DOMAIN)) == 2
     entries = hass.config_entries.async_entries(DOMAIN)
     assert len(entries) == 1
 
@@ -86,8 +86,8 @@ async def test_setup_entry_bad_serial(hass, test_charger_bad_serial, mock_ws_sta
 
     assert len(hass.states.async_entity_ids(BINARY_SENSOR_DOMAIN)) == 4
     assert len(hass.states.async_entity_ids(SENSOR_DOMAIN)) == 23
-    assert len(hass.states.async_entity_ids(SWITCH_DOMAIN)) == 5
-    assert len(hass.states.async_entity_ids(SELECT_DOMAIN)) == 3
+    assert len(hass.states.async_entity_ids(SWITCH_DOMAIN)) == 4
+    assert len(hass.states.async_entity_ids(SELECT_DOMAIN)) == 2
     entries = hass.config_entries.async_entries(DOMAIN)
     assert len(entries) == 1
 
@@ -138,13 +138,44 @@ async def test_setup_entry_state_change(hass, test_charger, mock_ws_start, caplo
 
     assert len(hass.states.async_entity_ids(BINARY_SENSOR_DOMAIN)) == 4
     assert len(hass.states.async_entity_ids(SENSOR_DOMAIN)) == 24
-    assert len(hass.states.async_entity_ids(SWITCH_DOMAIN)) == 5
-    assert len(hass.states.async_entity_ids(SELECT_DOMAIN)) == 3
+    assert len(hass.states.async_entity_ids(SWITCH_DOMAIN)) == 4
+    assert len(hass.states.async_entity_ids(SELECT_DOMAIN)) == 2
     entries = hass.config_entries.async_entries(DOMAIN)
     assert len(entries) == 1
     await hass.async_block_till_done()
 
     hass.states.async_set(grid_entity, "-200")
+    await hass.async_block_till_done()
+
+    assert "Sending sensor data to OpenEVSE: (grid: -200)" in caplog.text
+
+
+async def test_setup_entry_state_change_unit_conversion(
+    hass, test_charger, mock_ws_start, caplog
+):
+    """Test state change with grid sensor in kW converted to W."""
+    grid_entity = "sensor.grid_usage"
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA_GRID,
+        options=OPTIONS_DATA_GRID,
+        version=2,
+    )
+    # set a fake sensor for grid usage initially
+    hass.states.async_set(grid_entity, "0", attributes={"unit_of_measurement": "W"})
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    # Change to a kW value to trigger state change listener
+    hass.states.async_set(grid_entity, "4.1", attributes={"unit_of_measurement": "kW"})
+    await hass.async_block_till_done()
+
+    assert "Sending sensor data to OpenEVSE: (grid: 4100)" in caplog.text
+
+    # Change value to another kW value
+    hass.states.async_set(grid_entity, "-0.2", attributes={"unit_of_measurement": "kW"})
     await hass.async_block_till_done()
 
     assert "Sending sensor data to OpenEVSE: (grid: -200)" in caplog.text
@@ -170,8 +201,8 @@ async def test_setup_entry_state_change_timeout(
 
     assert len(hass.states.async_entity_ids(BINARY_SENSOR_DOMAIN)) == 4
     assert len(hass.states.async_entity_ids(SENSOR_DOMAIN)) == 24
-    assert len(hass.states.async_entity_ids(SWITCH_DOMAIN)) == 5
-    assert len(hass.states.async_entity_ids(SELECT_DOMAIN)) == 3
+    assert len(hass.states.async_entity_ids(SWITCH_DOMAIN)) == 4
+    assert len(hass.states.async_entity_ids(SELECT_DOMAIN)) == 2
     entries = hass.config_entries.async_entries(DOMAIN)
     assert len(entries) == 1
     await hass.async_block_till_done()
@@ -202,8 +233,8 @@ async def test_setup_entry_state_change_2(hass, test_charger, mock_ws_start, cap
 
     assert len(hass.states.async_entity_ids(BINARY_SENSOR_DOMAIN)) == 4
     assert len(hass.states.async_entity_ids(SENSOR_DOMAIN)) == 25
-    assert len(hass.states.async_entity_ids(SWITCH_DOMAIN)) == 5
-    assert len(hass.states.async_entity_ids(SELECT_DOMAIN)) == 3
+    assert len(hass.states.async_entity_ids(SWITCH_DOMAIN)) == 4
+    assert len(hass.states.async_entity_ids(SELECT_DOMAIN)) == 2
     entries = hass.config_entries.async_entries(DOMAIN)
     assert len(entries) == 1
     await hass.async_block_till_done()
@@ -239,8 +270,8 @@ async def test_setup_entry_state_change_2_bad_post(
 
     assert len(hass.states.async_entity_ids(BINARY_SENSOR_DOMAIN)) == 4
     assert len(hass.states.async_entity_ids(SENSOR_DOMAIN)) == 25
-    assert len(hass.states.async_entity_ids(SWITCH_DOMAIN)) == 5
-    assert len(hass.states.async_entity_ids(SELECT_DOMAIN)) == 3
+    assert len(hass.states.async_entity_ids(SWITCH_DOMAIN)) == 4
+    assert len(hass.states.async_entity_ids(SELECT_DOMAIN)) == 2
     entries = hass.config_entries.async_entries(DOMAIN)
     assert len(entries) == 1
     await hass.async_block_till_done()
@@ -305,8 +336,8 @@ async def test_setup_entry_v2(hass, test_charger_v2, mock_ws_start):
 
     assert len(hass.states.async_entity_ids(BINARY_SENSOR_DOMAIN)) == 4
     assert len(hass.states.async_entity_ids(SENSOR_DOMAIN)) == 23
-    assert len(hass.states.async_entity_ids(SWITCH_DOMAIN)) == 5
-    assert len(hass.states.async_entity_ids(SELECT_DOMAIN)) == 3
+    assert len(hass.states.async_entity_ids(SWITCH_DOMAIN)) == 4
+    assert len(hass.states.async_entity_ids(SELECT_DOMAIN)) == 2
     entries = hass.config_entries.async_entries(DOMAIN)
     assert len(entries) == 1
 
@@ -1297,3 +1328,46 @@ async def test_setup_entry_state_change_home_battery(
         hass.states.async_set(power_entity, "-501")
         await hass.async_block_till_done()
     assert "Error connecting to device:" in caplog.text
+
+
+async def test_async_update_cooldown(hass, test_charger, mock_ws_start):
+    """Test async_update_cooldown property of OpenEVSEUpdateCoordinator."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA,
+        version=2,
+    )
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
+    manager = coordinator._manager
+
+    # Save original state to restore later
+    orig_status = manager._status.copy()
+    orig_config = manager._config.copy()
+
+    try:
+        # Case 1: using_ethernet is True
+        manager._status["eth_connected"] = True
+        assert coordinator.async_update_cooldown == 2.0
+
+        # Case 2: using_ethernet is False, wifi_firmware is v4.1.2
+        manager._status["eth_connected"] = False
+        manager._config["version"] = "v4.1.2"
+        assert coordinator.async_update_cooldown == 15.0
+
+        # Case 3: using_ethernet is False, wifi_firmware is v5.1.5
+        manager._status["eth_connected"] = False
+        manager._config["version"] = "v5.1.5"
+        assert coordinator.async_update_cooldown == 5.0
+
+        # Case 4: wifi_firmware is invalid or None
+        manager._status["eth_connected"] = False
+        manager._config["version"] = None
+        assert coordinator.async_update_cooldown == 15.0
+    finally:
+        manager._status = orig_status
+        manager._config = orig_config

@@ -10,9 +10,11 @@ from homeassistant.components.sensor import (
     SensorEntityDescription,
 )
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import UnitOfLength
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import CONF_NAME, COORDINATOR, DOMAIN, MANAGER, SENSOR_TYPES
+from .entity import OpenEVSEEntity
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -32,15 +34,13 @@ async def async_setup_entry(hass, entry, async_add_entities):
     unique_id = entry.entry_id
 
     sensors = []
-    for sensor in SENSOR_TYPES:
-        sensors.append(
-            OpenEVSESensor(SENSOR_TYPES[sensor], unique_id, coordinator, entry)
-        )
+    for description in SENSOR_TYPES:
+        sensors.append(OpenEVSESensor(description, unique_id, coordinator, entry))
 
     async_add_entities(sensors, False)
 
 
-class OpenEVSESensor(CoordinatorEntity, SensorEntity):
+class OpenEVSESensor(CoordinatorEntity, OpenEVSEEntity, SensorEntity):
     """Implementation of an OpenEVSE sensor."""
 
     def __init__(
@@ -67,20 +67,26 @@ class OpenEVSESensor(CoordinatorEntity, SensorEntity):
         self._attr_unique_id = f"{self._name}_{self._unique_id}"
 
     @property
-    def device_info(self) -> dict:
-        """Return a port description for device registry."""
-        info = {
-            "manufacturer": "OpenEVSE",
-            "name": self._config.data[CONF_NAME],
-            "connections": {(DOMAIN, self._unique_id)},
-        }
-
-        return info
-
-    @property
     def native_value(self) -> Any:
         """Return the state of the sensor."""
-        return self.coordinator.data.get(self._type)
+        data = self.coordinator.data if isinstance(self.coordinator.data, dict) else {}
+        if getattr(self.entity_description, "value_fn", None) is not None:
+            return self.entity_description.value_fn(data)
+        return data.get(self._type)
+
+    @property
+    def native_unit_of_measurement(self) -> str | None:
+        """Return the unit of measurement."""
+        if self._type == "vehicle_range":
+            manager = self.hass.data[DOMAIN][self._unique_id][MANAGER]
+            range_data = getattr(manager, "vehicle_range_with_unit", None)
+            if range_data is not None:
+                unit = range_data[1]
+                if unit == "miles":
+                    return UnitOfLength.MILES
+                if unit in ("km", "kilometers"):
+                    return UnitOfLength.KILOMETERS
+        return self.entity_description.native_unit_of_measurement
 
     @property
     def icon(self) -> str | None:
