@@ -86,40 +86,40 @@ categories:
 autolabeler:
   - label: "breaking-change"
     title:
-      - '/^[a-z]+\([^)]+\)?:/i'
+      - '/^[^\\s!]+!(\\( [^)]+ \\))?:/i'
   - label: "feature"
     title:
-      - '/^feat\([^)]+\):/i'
+      - '/^feat\\([^)]+\\):/i'
   - label: "bugfix"
     title:
-      - '/^fix\([^)]+\):/i'
+      - '/^fix\\([^)]+\\):/i'
   - label: "refactor"
     title:
-      - '/^refactor\([^)]+\):/i'
+      - '/^refactor\\([^)]+\\):/i'
   - label: "code-quality"
     title:
-      - '/^test\([^)]+\):/i'
+      - '/^test\\([^)]+\\):/i'
   - label: "CI"
     title:
-      - '/^ci\([^)]+\):/i'
+      - '/^ci\\([^)]+\\):/i'
   - label: "chore"
     title:
-      - '/^chore\([^)]+\):/i'
+      - '/^chore\\([^)]+\\):/i'
   - label: "documentation"
     title:
-      - '/^docs\([^)]+\):/i'
+      - '/^docs\\([^)]+\\):/i'
   - label: "style"
     title:
-      - '/^style\([^)]+\):/i'
+      - '/^style\\([^)]+\\):/i'
   - label: "performance"
     title:
-      - '/^perf\([^)]+\):/i'
+      - '/^perf\\([^)]+\\):/i'
   - label: "revert"
     title:
-      - '/^revert\([^)]+\):/i'
+      - '/^revert\\([^)]+\\):/i'
   - label: "build"
     title:
-      - '/^build\([^)]+\):/i'
+      - '/^build\\([^)]+\\):/i'
   - label: "dependencies"
     title:
       - "/^build\\(deps\\):/i"
