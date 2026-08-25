@@ -22,7 +22,7 @@ jobs:
           ignore: brands
 
       - name: Hassfest validation
-        uses: home-assistant/actions/hassfest@f6f29a7ee3fa0eccadf3620a7b9ee00ab54ec03b # master
+        uses: home-assistant/actions/hassfest@a7c616ce81ccda50150bf1595786c71b1883fabb # master
 
   prek:
     runs-on: ubuntu-latest
