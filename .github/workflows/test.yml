@@ -33,7 +33,7 @@ jobs:
       - name: 🛠️ Set up Python
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
-          python-version: "3.13"
+          python-version: "3.14"
           cache: "pip"
       - name: 📦 Install prek
         run: pip install prek==0.3.13
@@ -47,8 +47,8 @@ jobs:
     strategy:
       matrix:
         python-version:
-          - "3.13"
           - "3.14"
+          - "3.13"
 
     steps:
       - name: 📥 Checkout the repository
@@ -63,9 +63,9 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: 📦 Install requirements
         run: |
-          uv pip install --system tox tox-gh-actions tox-uv
+          uv pip install --system tox tox-gh tox-uv
       - name: 🏃 Test with tox
-        run: tox
+        run: tox -v
       - name: 📤 Upload coverage data
         if: matrix.python-version == '3.14'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1

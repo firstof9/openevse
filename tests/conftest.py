@@ -34,36 +34,43 @@ from .typing import (
 
 pytest_plugins = "pytest_homeassistant_custom_component"
 
-# Patch AiohttpClientMockResponse to have request_info and history
+# Patch AiohttpClientMockResponse to have request_info, history, and connection
 # for Python 3.14 / aiohttp compatibility
 if not hasattr(AiohttpClientMockResponse, "request_info"):
 
-    @property
-    def request_info(self):
-        """Return request info."""
-        return Mock(real_url=self.url)
+    def _get_request_info(self):
+        return getattr(self, "_request_info", Mock(real_url=self.url))
 
-    AiohttpClientMockResponse.request_info = request_info
+    def _set_request_info(self, value):
+        self._request_info = value
+
+    AiohttpClientMockResponse.request_info = property(
+        _get_request_info, _set_request_info
+    )
 
 if not hasattr(AiohttpClientMockResponse, "history"):
 
-    @property
-    def history(self):
-        """Return history."""
-        return ()
+    def _get_history(self):
+        return getattr(self, "_history", ())
 
-    AiohttpClientMockResponse.history = history
+    def _set_history(self, value):
+        self._history = value
+
+    AiohttpClientMockResponse.history = property(_get_history, _set_history)
 
 if not hasattr(AiohttpClientMockResponse, "connection"):
 
-    @property
-    def connection(self):
-        """Return connection mock."""
-        conn = Mock()
-        conn._connector._timeout_ceil_threshold = 5
-        return conn
+    def _get_connection(self):
+        if not hasattr(self, "_connection"):
+            conn = Mock()
+            conn._connector._timeout_ceil_threshold = 5
+            self._connection = conn
+        return self._connection
 
-    AiohttpClientMockResponse.connection = connection
+    def _set_connection(self, value):
+        self._connection = value
+
+    AiohttpClientMockResponse.connection = property(_get_connection, _set_connection)
 
 # Patch AiohttpClientMocker to calculate challenge response for websocket handshakes
 orig_match_request = AiohttpClientMocker.match_request
