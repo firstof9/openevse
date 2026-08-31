@@ -1,7 +1,7 @@
 -r requirements.txt
 pytest-homeassistant-custom-component
 mypy==2.3.1
-ruff==0.16.4
+ruff==0.16.5
 tox==4.60.1
 pytest<10
 aiohttp_cors
