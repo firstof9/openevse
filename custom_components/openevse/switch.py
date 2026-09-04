@@ -115,6 +115,8 @@ class OpenEVSESwitch(CoordinatorEntity, OpenEVSEEntity, SwitchEntity):
                 await self._manager.set_shaper(True)
             elif self.toggle_command == "set_mqtt_vehicle_range_miles":
                 await self._manager.set_mqtt_vehicle_range_miles(True)
+            elif self.toggle_command == "set_rfid_enabled":
+                await self._manager.set_rfid_enabled(True)
             else:
                 await getattr(self._manager, self.toggle_command)()
         except CONNECTION_ERRORS as err:
@@ -135,6 +137,8 @@ class OpenEVSESwitch(CoordinatorEntity, OpenEVSEEntity, SwitchEntity):
                 await self._manager.set_shaper(False)
             elif self.toggle_command == "set_mqtt_vehicle_range_miles":
                 await self._manager.set_mqtt_vehicle_range_miles(False)
+            elif self.toggle_command == "set_rfid_enabled":
+                await self._manager.set_rfid_enabled(False)
             else:
                 await getattr(self._manager, self.toggle_command)()
         except CONNECTION_ERRORS as err:

@@ -10,6 +10,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_NAME
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
+from openevsehttp.exceptions import CommandFailedError as OpenEVSECommandFailedError
 
 from . import (
     CONNECTION_ERRORS,
@@ -104,7 +105,7 @@ class OpenEVSESelect(CoordinatorEntity, OpenEVSEEntity, SelectEntity):
                         self.coordinator.logger.debug(
                             "Select Auto response: %s", response
                         )
-                    except RuntimeError as err:
+                    except (RuntimeError, OpenEVSECommandFailedError) as err:
                         if "Failed to release manual override" in str(err):
                             self.coordinator.logger.debug(
                                 "No active override to clear."
