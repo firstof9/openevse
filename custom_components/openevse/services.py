@@ -14,6 +14,7 @@ from homeassistant.core import (
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import device_registry as dr
+from openevsehttp.exceptions import CommandFailedError
 
 from .const import (
     ATTR_AUTO_RELEASE,
@@ -277,7 +278,7 @@ class OpenEVSEServices:
                     logger.debug("Override clear command sent.")
                 except CONNECTION_ERRORS as err:
                     logger.error(CONNECTION_ERROR, err)
-                except RuntimeError as err:
+                except (RuntimeError, CommandFailedError) as err:
                     if "Failed to release manual override" in str(err):
                         logger.debug("No active override to clear.")
                     else:

@@ -529,6 +529,15 @@ SWITCH_TYPES: Final[tuple[OpenEVSESwitchEntityDescription, ...]] = (
         device_class=SwitchDeviceClass.SWITCH,
         value_fn=lambda data: data.get("mqtt_vehicle_range_miles"),
     ),
+    OpenEVSESwitchEntityDescription(
+        name="RFID Access",
+        key="rfid_enabled",
+        toggle_command="set_rfid_enabled",
+        device_class=SwitchDeviceClass.SWITCH,
+        entity_category=EntityCategory.CONFIG,
+        min_version="4.1.4",
+        value_fn=lambda data: data.get("rfid_enabled"),
+    ),
 )
 
 # Name, options, command, entity category

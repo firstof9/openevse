@@ -47,6 +47,7 @@ CHARGER_DATA = {
     "using_ethernet": False,
     "shaper_active": False,
     "mqtt_vehicle_range_miles": False,
+    "rfid_enabled": False,
     "max_current_soft": 48,
     "led_brightness": 128,
 }
@@ -114,6 +115,7 @@ DIAG_DEVICE_RESULTS = {
     "ota_update": False,
     "override_state": "auto",
     "protocol_version": None,
+    "rfid_enabled": False,
     "rtc_temperature": 50.3,
     "service_level": "2",
     "shaper_active": True,

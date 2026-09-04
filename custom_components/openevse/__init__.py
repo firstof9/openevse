@@ -67,6 +67,7 @@ from .const import (
     SELECT_TYPES,
     SENSOR_FIELDS,
     SENSOR_TYPES,
+    SWITCH_TYPES,
     UNSUB_LISTENERS,
     VERSION,
 )
@@ -814,6 +815,7 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
         data.update(self._collect_values(SELECT_TYPES, "select"))
         data.update(self._collect_values(NUMBER_TYPES, "number"))
         data.update(self._collect_values(LIGHT_TYPES, "light"))
+        data.update(self._collect_values(SWITCH_TYPES, "switch"))
         if "vehicle_range" in data and isinstance(data["vehicle_range"], tuple):
             data["vehicle_range"] = data["vehicle_range"][0]
         self.logger.debug("Parsed data: %s", data)
