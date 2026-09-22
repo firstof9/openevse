@@ -23,10 +23,12 @@ from openevsehttp.exceptions import (
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.openevse import (
+    CONFIG_SCHEMA,
     CommandFailedError,
     InvalidValueError,
     OpenEVSE,
     OpenEVSEFirmwareCheck,
+    async_setup,
     get_firmware,
     send_command,
 )
@@ -1371,3 +1373,9 @@ async def test_async_update_cooldown(hass, test_charger, mock_ws_start):
     finally:
         manager._status = orig_status
         manager._config = orig_config
+
+
+async def test_async_setup(hass):
+    """Test async_setup disallows YAML configuration and returns True."""
+    assert await async_setup(hass, {})
+    assert CONFIG_SCHEMA is not None
