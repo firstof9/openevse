@@ -4,6 +4,7 @@ import logging
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import ATTR_ENTITY_ID
 from homeassistant.core import (
     HomeAssistant,
     ServiceCall,
@@ -14,6 +15,7 @@ from homeassistant.core import (
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers import entity_registry as er
 from openevsehttp.exceptions import CommandFailedError
 
 from .const import (
@@ -74,9 +76,8 @@ class OpenEVSEServices:
             DOMAIN,
             SERVICE_SET_OVERRIDE,
             self._set_override,
-            schema=vol.Schema(
+            schema=cv.make_entity_service_schema(
                 {
-                    vol.Required(ATTR_DEVICE_ID): vol.All(cv.ensure_list, [cv.string]),
                     vol.Optional(ATTR_STATE): vol.Coerce(str),
                     vol.Optional(ATTR_CHARGE_CURRENT): vol.All(
                         vol.Coerce(int), vol.Range(min=1, max=48)
@@ -99,9 +100,8 @@ class OpenEVSEServices:
             DOMAIN,
             SERVICE_SET_LIMIT,
             self._set_limit,
-            schema=vol.Schema(
+            schema=cv.make_entity_service_schema(
                 {
-                    vol.Required(ATTR_DEVICE_ID): vol.All(cv.ensure_list, [cv.string]),
                     vol.Required(ATTR_TYPE): vol.Coerce(str),
                     vol.Required(ATTR_VALUE): vol.Coerce(int),
                     vol.Optional(ATTR_AUTO_RELEASE): vol.Coerce(bool),
@@ -113,33 +113,21 @@ class OpenEVSEServices:
             DOMAIN,
             SERVICE_CLEAR_OVERRIDE,
             self._clear_override,
-            schema=vol.Schema(
-                {
-                    vol.Required(ATTR_DEVICE_ID): vol.All(cv.ensure_list, [cv.string]),
-                }
-            ),
+            schema=cv.make_entity_service_schema({}),
         )
 
         self.hass.services.async_register(
             DOMAIN,
             SERVICE_CLEAR_LIMIT,
             self._clear_limit,
-            schema=vol.Schema(
-                {
-                    vol.Required(ATTR_DEVICE_ID): vol.All(cv.ensure_list, [cv.string]),
-                }
-            ),
+            schema=cv.make_entity_service_schema({}),
         )
 
         self.hass.services.async_register(
             DOMAIN,
             SERVICE_GET_LIMIT,
             self._get_limit,
-            schema=vol.Schema(
-                {
-                    vol.Required(ATTR_DEVICE_ID): vol.All(cv.ensure_list, [cv.string]),
-                }
-            ),
+            schema=cv.make_entity_service_schema({}),
             supports_response=SupportsResponse.ONLY,
         )
 
@@ -147,9 +135,8 @@ class OpenEVSEServices:
             DOMAIN,
             SERVICE_MAKE_CLAIM,
             self._make_claim,
-            schema=vol.Schema(
+            schema=cv.make_entity_service_schema(
                 {
-                    vol.Required(ATTR_DEVICE_ID): vol.All(cv.ensure_list, [cv.string]),
                     vol.Optional(ATTR_STATE): vol.Coerce(str),
                     vol.Optional(ATTR_CHARGE_CURRENT): vol.All(
                         vol.Coerce(int), vol.Range(min=1, max=48)
@@ -166,11 +153,7 @@ class OpenEVSEServices:
             DOMAIN,
             SERVICE_LIST_CLAIMS,
             self._list_claims,
-            schema=vol.Schema(
-                {
-                    vol.Required(ATTR_DEVICE_ID): vol.All(cv.ensure_list, [cv.string]),
-                }
-            ),
+            schema=cv.make_entity_service_schema({}),
             supports_response=SupportsResponse.ONLY,
         )
 
@@ -178,22 +161,14 @@ class OpenEVSEServices:
             DOMAIN,
             SERVICE_RELEASE_CLAIM,
             self._release_claim,
-            schema=vol.Schema(
-                {
-                    vol.Required(ATTR_DEVICE_ID): vol.All(cv.ensure_list, [cv.string]),
-                }
-            ),
+            schema=cv.make_entity_service_schema({}),
         )
 
         self.hass.services.async_register(
             DOMAIN,
             SERVICE_LIST_OVERRIDES,
             self._list_overrides,
-            schema=vol.Schema(
-                {
-                    vol.Required(ATTR_DEVICE_ID): vol.All(cv.ensure_list, [cv.string]),
-                }
-            ),
+            schema=cv.make_entity_service_schema({}),
             supports_response=SupportsResponse.ONLY,
         )
 
@@ -207,6 +182,33 @@ class OpenEVSEServices:
                     _LOGGER, {"device_name": device_entry.name}
                 )
         return self.logger
+
+    def _resolve_target_device_ids(self, service: ServiceCall) -> list[str]:
+        """Resolve target device IDs from service call data."""
+        data = service.data
+        device_ids: set[str] = set()
+
+        if ATTR_DEVICE_ID in data:
+            raw_devices = data[ATTR_DEVICE_ID]
+            if isinstance(raw_devices, list):
+                device_ids.update(raw_devices)
+            elif raw_devices:
+                device_ids.add(raw_devices)
+
+        if ATTR_ENTITY_ID in data:
+            raw_entities = data[ATTR_ENTITY_ID]
+            entity_list = (
+                raw_entities if isinstance(raw_entities, list) else [raw_entities]
+            )
+            ent_reg = er.async_get(self.hass)
+            for entity_id in entity_list:
+                entity_entry = ent_reg.async_get(entity_id)
+                if entity_entry and entity_entry.device_id:
+                    device_ids.add(entity_entry.device_id)
+                elif not entity_entry:
+                    raise ValueError(f"Entity ID {entity_id} is not valid")
+
+        return list(device_ids)
 
     def _resolve_device_config(self, device_id: str) -> str:
         """Resolve a device ID to a configuration ID."""
@@ -228,8 +230,7 @@ class OpenEVSEServices:
     async def _set_override(self, service: ServiceCall) -> None:
         """Set the override."""
         data = service.data
-        for device in data[ATTR_DEVICE_ID]:
-            device_id = device
+        for device_id in self._resolve_target_device_ids(service):
             logger = self._get_logger(device_id)
             logger.debug("Device ID: %s", device_id)
 
@@ -262,10 +263,8 @@ class OpenEVSEServices:
 
     async def _clear_override(self, service: ServiceCall) -> None:
         """Clear the manual override."""
-        data = service.data
-        self.logger.debug("Data: %s", data)
-        for device in data[ATTR_DEVICE_ID]:
-            device_id = device
+        self.logger.debug("Data: %s", service.data)
+        for device_id in self._resolve_target_device_ids(service):
             logger = self._get_logger(device_id)
             logger.debug("Device ID: %s", device_id)
 
@@ -291,8 +290,7 @@ class OpenEVSEServices:
     async def _set_limit(self, service: ServiceCall) -> None:
         """Set the limit."""
         data = service.data
-        for device in data[ATTR_DEVICE_ID]:
-            device_id = device
+        for device_id in self._resolve_target_device_ids(service):
             logger = self._get_logger(device_id)
             logger.debug("Device ID: %s", device_id)
 
@@ -323,10 +321,8 @@ class OpenEVSEServices:
 
     async def _clear_limit(self, service: ServiceCall) -> None:
         """Clear the limit."""
-        data = service.data
-        self.logger.debug("Data: %s", data)
-        for device in data[ATTR_DEVICE_ID]:
-            device_id = device
+        self.logger.debug("Data: %s", service.data)
+        for device_id in self._resolve_target_device_ids(service):
             logger = self._get_logger(device_id)
             logger.debug("Device ID: %s", device_id)
 
@@ -344,10 +340,8 @@ class OpenEVSEServices:
 
     async def _get_limit(self, service: ServiceCall) -> ServiceResponse:
         """Get the limit."""
-        data = service.data
-        self.logger.debug("Data: %s", data)
-        for device in data[ATTR_DEVICE_ID]:
-            device_id = device
+        self.logger.debug("Data: %s", service.data)
+        for device_id in self._resolve_target_device_ids(service):
             logger = self._get_logger(device_id)
             logger.debug("Device ID: %s", device_id)
 
@@ -365,12 +359,12 @@ class OpenEVSEServices:
             except KeyError as err:
                 logger.error("Error locating configuration: %s", err)
                 return {}
+        return {}
 
     async def _make_claim(self, service: ServiceCall) -> None:
         """Make a claim."""
         data = service.data
-        for device in data[ATTR_DEVICE_ID]:
-            device_id = device
+        for device_id in self._resolve_target_device_ids(service):
             logger = self._get_logger(device_id)
             logger.debug("Device ID: %s", device_id)
 
@@ -398,10 +392,8 @@ class OpenEVSEServices:
 
     async def _release_claim(self, service: ServiceCall) -> None:
         """Release a claim."""
-        data = service.data
-        self.logger.debug("Data: %s", data)
-        for device in data[ATTR_DEVICE_ID]:
-            device_id = device
+        self.logger.debug("Data: %s", service.data)
+        for device_id in self._resolve_target_device_ids(service):
             logger = self._get_logger(device_id)
             logger.debug("Device ID: %s", device_id)
 
@@ -419,10 +411,8 @@ class OpenEVSEServices:
 
     async def _list_claims(self, service: ServiceCall) -> ServiceResponse:
         """Get the claims."""
-        data = service.data
-        self.logger.debug("Data: %s", data)
-        for device in data[ATTR_DEVICE_ID]:
-            device_id = device
+        self.logger.debug("Data: %s", service.data)
+        for device_id in self._resolve_target_device_ids(service):
             logger = self._get_logger(device_id)
             logger.debug("Device ID: %s", device_id)
 
@@ -444,13 +434,12 @@ class OpenEVSEServices:
             except KeyError as err:
                 logger.error("Error locating configuration: %s", err)
                 return {}
+        return {}
 
     async def _list_overrides(self, service: ServiceCall) -> ServiceResponse:
         """Get the overrides."""
-        data = service.data
-        self.logger.debug("Data: %s", data)
-        for device in data[ATTR_DEVICE_ID]:
-            device_id = device
+        self.logger.debug("Data: %s", service.data)
+        for device_id in self._resolve_target_device_ids(service):
             logger = self._get_logger(device_id)
             logger.debug("Device ID: %s", device_id)
 
@@ -468,3 +457,4 @@ class OpenEVSEServices:
             except KeyError as err:
                 logger.error("Error locating configuration: %s", err)
                 return {}
+        return {}

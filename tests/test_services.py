@@ -965,3 +965,245 @@ async def test_services_connection_errors(
             assert "Error connecting to device" in caplog.text
             if return_response:
                 assert result == {}
+
+
+async def test_services_with_entity_id(
+    hass,
+    test_charger_services,
+    mock_aioclient,
+    mock_ws_start,
+    entity_registry: er.EntityRegistry,
+    caplog,
+):
+    """Test calling services targeting entity_id."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA,
+    )
+    mock_aioclient.post(
+        TEST_URL_OVERRIDE,
+        status=200,
+        text='{"msg": "OK"}',
+    )
+    mock_aioclient.get(
+        TEST_URL_OVERRIDE,
+        status=200,
+        text="{}",
+    )
+    mock_aioclient.delete(
+        TEST_URL_OVERRIDE,
+        status=200,
+        text='{"msg": "OK"}',
+    )
+    mock_aioclient.post(
+        TEST_URL_LIMIT,
+        status=200,
+        text='{"msg": "OK"}',
+    )
+    mock_aioclient.get(
+        TEST_URL_LIMIT,
+        status=200,
+        text='{"type": "energy", "value": 10}',
+    )
+    mock_aioclient.delete(
+        TEST_URL_LIMIT,
+        status=200,
+        text='{"msg": "Deleted"}',
+    )
+    mock_aioclient.post(
+        f"{TEST_URL_CLAIMS}/20",
+        status=200,
+        text='[{"msg":"done"}]',
+    )
+    mock_aioclient.delete(
+        f"{TEST_URL_CLAIMS}/20",
+        status=200,
+        text='[{"msg":"done"}]',
+    )
+    mock_aioclient.get(
+        TEST_URL_CLAIMS,
+        status=200,
+        text='[{"client": 4, "priority": 500, "state": "disabled", "auto_release": true}]',  # noqa: E501
+    )
+
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    target_entity = "sensor.openevse_charging_status"
+    assert entity_registry.async_get(target_entity)
+
+    # 1. Set override via entity_id
+    with caplog.at_level(logging.DEBUG):
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_SET_OVERRIDE,
+            {
+                "entity_id": target_entity,
+                ATTR_STATE: "active",
+                ATTR_CHARGE_CURRENT: 24,
+                ATTR_AUTO_RELEASE: True,
+            },
+            blocking=True,
+        )
+        assert "Set Override response:" in caplog.text
+
+    # 2. Clear override via entity_id
+    with caplog.at_level(logging.DEBUG):
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_CLEAR_OVERRIDE,
+            {"entity_id": target_entity},
+            blocking=True,
+        )
+        assert "Override clear command sent." in caplog.text
+
+    # 3. Set limit via entity_id
+    with caplog.at_level(logging.DEBUG):
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_SET_LIMIT,
+            {
+                "entity_id": target_entity,
+                ATTR_TYPE: "soc",
+                ATTR_VALUE: 80,
+                ATTR_AUTO_RELEASE: True,
+            },
+            blocking=True,
+        )
+        assert "Set Limit response:" in caplog.text
+
+    # 4. Clear limit via entity_id
+    with caplog.at_level(logging.DEBUG):
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_CLEAR_LIMIT,
+            {"entity_id": target_entity},
+            blocking=True,
+        )
+        assert "Limit clear command sent." in caplog.text
+
+    # 5. Get limit via entity_id
+    response = await hass.services.async_call(
+        DOMAIN,
+        SERVICE_GET_LIMIT,
+        {"entity_id": target_entity},
+        blocking=True,
+        return_response=True,
+    )
+    assert response == {"type": "energy", "value": 10}
+
+    # 6. Make claim via entity_id
+    with caplog.at_level(logging.DEBUG):
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_MAKE_CLAIM,
+            {
+                "entity_id": target_entity,
+                ATTR_STATE: "active",
+            },
+            blocking=True,
+        )
+        assert "Make claim response:" in caplog.text
+
+    # 7. Release claim via entity_id
+    with caplog.at_level(logging.DEBUG):
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_RELEASE_CLAIM,
+            {"entity_id": target_entity},
+            blocking=True,
+        )
+        assert "Release claim command sent." in caplog.text
+
+    # 8. List claims via entity_id
+    response = await hass.services.async_call(
+        DOMAIN,
+        SERVICE_LIST_CLAIMS,
+        {"entity_id": target_entity},
+        blocking=True,
+        return_response=True,
+    )
+    assert response == {
+        0: {
+            "client": 4,
+            "priority": 500,
+            "state": "disabled",
+            "auto_release": True,
+        }
+    }
+
+    # 9. List overrides via entity_id
+    response = await hass.services.async_call(
+        DOMAIN,
+        SERVICE_LIST_OVERRIDES,
+        {"entity_id": target_entity},
+        blocking=True,
+        return_response=True,
+    )
+    assert response == {}
+
+
+async def test_service_invalid_entity_id(
+    hass,
+    test_charger_services,
+    mock_aioclient,
+    mock_ws_start,
+):
+    """Test services with an invalid entity ID."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA,
+    )
+    mock_aioclient.get(TEST_URL_OVERRIDE, status=200, text="{}")
+
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    with pytest.raises(ValueError, match="Entity ID sensor.nonexistent is not valid"):
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_SET_OVERRIDE,
+            {"entity_id": "sensor.nonexistent", ATTR_STATE: "active"},
+            blocking=True,
+        )
+
+
+async def test_service_entity_without_device_id(
+    hass,
+    test_charger_services,
+    mock_aioclient,
+    mock_ws_start,
+    entity_registry: er.EntityRegistry,
+):
+    """Test services with an entity ID that has no associated device ID."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA,
+    )
+    mock_aioclient.get(TEST_URL_OVERRIDE, status=200, text="{}")
+
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    # Create a dummy entity with no device_id
+    entity_registry.async_get_or_create(
+        domain="sensor",
+        platform="openevse",
+        unique_id="no_device_entity",
+        suggested_object_id="no_device_entity",
+        device_id=None,
+    )
+
+    # Calling service should gracefully do nothing because no device_id is found
+    await hass.services.async_call(
+        DOMAIN,
+        SERVICE_SET_OVERRIDE,
+        {"entity_id": "sensor.no_device_entity", ATTR_STATE: "active"},
+        blocking=True,
+    )

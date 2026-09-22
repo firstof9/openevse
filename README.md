@@ -143,14 +143,28 @@ Claims allow multiple automations or external apps to request different charger 
 
 ### Service Call Examples
 
-Here are some examples of how to invoke these services in your Home Assistant automations or scripts:
+Here are some examples of how to invoke these services in your Home Assistant automations or scripts (services support targeting either an OpenEVSE entity like `sensor.openevse_charging_status` or the OpenEVSE `device_id` directly):
+
+> [!NOTE]
+> The examples below use the modern Home Assistant `action:` syntax. The older `service:` key is also supported by Home Assistant automations.
 
 #### Set Manual Override
 Start charging immediately at `24 Amps` and release the override once the vehicle is disconnected:
 ```yaml
-service: openevse.set_override
+action: openevse.set_override
 target:
   entity_id: sensor.openevse_charging_status
+data:
+  state: active
+  charge_current: 24
+  auto_release: true
+```
+
+Alternatively, you can target the charger device directly:
+```yaml
+action: openevse.set_override
+target:
+  device_id: <OPENEVSE_DEVICE_ID>
 data:
   state: active
   charge_current: 24
@@ -160,7 +174,7 @@ data:
 #### Set Charge Limit (SoC)
 Stop charging once the vehicle's battery level reaches `80%`:
 ```yaml
-service: openevse.set_limit
+action: openevse.set_limit
 target:
   entity_id: sensor.openevse_charging_status
 data:
@@ -172,7 +186,7 @@ data:
 #### Clear Active Limit
 Remove any active time, energy, SoC, or range limit on the charger:
 ```yaml
-service: openevse.clear_limit
+action: openevse.clear_limit
 target:
   entity_id: sensor.openevse_charging_status
 ```
