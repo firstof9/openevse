@@ -188,15 +188,10 @@ class OpenEVSEServices:
         data = service.data
         device_ids: set[str] = set()
 
-        if ATTR_DEVICE_ID in data:
-            raw_devices = data[ATTR_DEVICE_ID]
-            if isinstance(raw_devices, list):
-                device_ids.update(raw_devices)
-            elif raw_devices:
-                device_ids.add(raw_devices)
+        if ATTR_DEVICE_ID in data and (raw_devices := data[ATTR_DEVICE_ID]):
+            device_ids.update(raw_devices)
 
-        if ATTR_ENTITY_ID in data:
-            raw_entities = data[ATTR_ENTITY_ID]
+        if ATTR_ENTITY_ID in data and (raw_entities := data[ATTR_ENTITY_ID]):
             entity_list = (
                 raw_entities if isinstance(raw_entities, list) else [raw_entities]
             )

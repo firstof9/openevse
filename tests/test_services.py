@@ -1207,3 +1207,18 @@ async def test_service_entity_without_device_id(
         {"entity_id": "sensor.no_device_entity", ATTR_STATE: "active"},
         blocking=True,
     )
+
+    # Calling services that return responses with no device resolved returns {}
+    for service_name in [
+        SERVICE_GET_LIMIT,
+        SERVICE_LIST_CLAIMS,
+        SERVICE_LIST_OVERRIDES,
+    ]:
+        res = await hass.services.async_call(
+            DOMAIN,
+            service_name,
+            {"entity_id": "sensor.no_device_entity"},
+            blocking=True,
+            return_response=True,
+        )
+        assert res == {}
