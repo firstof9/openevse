@@ -29,9 +29,11 @@ from homeassistant.core import (
     callback,
 )
 from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
+from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.event import async_track_state_change_event
+from homeassistant.helpers.typing import ConfigType
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util.unit_conversion import PowerConverter
 from openevsehttp.__main__ import OpenEVSE
@@ -75,6 +77,8 @@ from .logger import OpenEVSELoggerAdapter
 from .services import OpenEVSEServices
 
 _LOGGER = logging.getLogger(__name__)
+
+CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
 # NOTE FOR DEVELOPERS:
 # Always use the custom OpenEVSELoggerAdapter (e.g., self.logger or
@@ -324,7 +328,7 @@ async def homeassistant_started_listener(
     )
 
 
-async def async_setup(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:
+async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Disallow configuration via YAML."""
     return True
 
