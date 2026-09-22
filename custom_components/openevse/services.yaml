@@ -4,8 +4,6 @@ set_override:
   target:
     entity:
       integration: openevse
-    device:
-      integration: openevse
   fields:
     state:
       name: State
@@ -75,8 +73,6 @@ clear_override:
   target:
     entity:
       integration: openevse
-    device:
-      integration: openevse
 
 
 set_limit:
@@ -84,8 +80,6 @@ set_limit:
   description: This will set the limit type, value and auto release.
   target:
     entity:
-      integration: openevse
-    device:
       integration: openevse
   fields:
     type:
@@ -125,8 +119,6 @@ clear_limit:
   target:
     entity:
       integration: openevse
-    device:
-      integration: openevse
 
 get_limit:
   name: Get limit
@@ -134,16 +126,12 @@ get_limit:
   target:
     entity:
       integration: openevse
-    device:
-      integration: openevse
 
 make_claim:
   name: Make Claim
   description: Make/Update a claim.
   target:
     entity:
-      integration: openevse
-    device:
       integration: openevse
   fields:
     state:
@@ -193,21 +181,15 @@ release_claim:
   target:
     entity:
       integration: openevse
-    device:
-      integration: openevse
 list_claims:
   name: List claims
   description: Lists claims on an EVSE.
   target:
     entity:
       integration: openevse
-    device:
-      integration: openevse
 list_overrides:
   name: List overrides
   description: Lists overrides on an EVSE.
   target:
     entity:
-      integration: openevse
-    device:
       integration: openevse
