@@ -8,6 +8,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
+from openevsehttp.exceptions import CommandFailedError
 
 from . import CONNECTION_ERRORS, OpenEVSEManager
 from .const import (
@@ -77,3 +78,8 @@ class OpenEVSEButton(CoordinatorEntity, OpenEVSEEntity, ButtonEntity):
                 f"Error connecting to device: {err}, "
                 "please check your network connection."
             ) from err
+        except CommandFailedError as err:
+            self.coordinator.logger.error(
+                "Command failed for button [%s]: %s", self._key, err
+            )
+            raise HomeAssistantError(f"Command failed for {self._name}: {err}") from err

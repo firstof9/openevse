@@ -6,6 +6,7 @@ import pytest
 from homeassistant.components.button import DOMAIN as BUTTON_DOMAIN
 from homeassistant.components.button import SERVICE_PRESS
 from homeassistant.exceptions import HomeAssistantError
+from openevsehttp.exceptions import CommandFailedError
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.openevse.const import DOMAIN
@@ -113,6 +114,38 @@ async def test_buttons_connection_error(
         )
 
     assert "Error connecting to device" in caplog.text
+
+
+async def test_buttons_command_failed_error(
+    hass,
+    test_charger,
+    mock_ws_start,
+    mock_aioclient,
+    caplog,
+):
+    """Test button press raises HomeAssistantError on CommandFailedError."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA,
+    )
+
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    manager = hass.data[DOMAIN][entry.entry_id]["manager"]
+    manager.restart_wifi = AsyncMock(
+        side_effect=CommandFailedError("Failed to restart WiFi: restart gateway")
+    )
+
+    entity_id = "button.openevse_restart_wifi"
+    with pytest.raises(HomeAssistantError, match="Command failed for Restart WiFi"):
+        await hass.services.async_call(
+            BUTTON_DOMAIN, SERVICE_PRESS, {"entity_id": entity_id}, blocking=True
+        )
+
+    assert "Command failed for button [restart_wifi]" in caplog.text
 
 
 async def test_button_version_availability(
