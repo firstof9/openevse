@@ -247,7 +247,7 @@ If you like this integration, consider supporting the project:
 
 ## Roadmap
 
-- [ ] Add Wiki
+- [x] Add Wiki
 - [ ] Expand documentation
 - [x] Add Schedule Support
 - [x] Add tests
