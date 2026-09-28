@@ -18,6 +18,9 @@ from custom_components.openevse.const import (
     ATTR_DEVICE_ID,
     ATTR_ENERGY_LIMIT,
     ATTR_MAX_CURRENT,
+    ATTR_NAME,
+    ATTR_PERSON,
+    ATTR_RFID,
     ATTR_SNTP,
     ATTR_STATE,
     ATTR_TIME,
@@ -27,9 +30,12 @@ from custom_components.openevse.const import (
     ATTR_VALUE,
     DOMAIN,
     MANAGER,
+    SERVICE_ADD_RFID_TAG,
     SERVICE_CLEAR_LIMIT,
     SERVICE_CLEAR_OVERRIDE,
+    SERVICE_DELETE_RFID_USER,
     SERVICE_GET_LIMIT,
+    SERVICE_GET_RFID_USERS,
     SERVICE_GET_TIME,
     SERVICE_LIST_CLAIMS,
     SERVICE_LIST_OVERRIDES,
@@ -37,6 +43,7 @@ from custom_components.openevse.const import (
     SERVICE_RELEASE_CLAIM,
     SERVICE_SET_LIMIT,
     SERVICE_SET_OVERRIDE,
+    SERVICE_SET_RFID_USER,
     SERVICE_SET_TIME,
     SERVICE_SYNC_TIME,
 )
@@ -50,6 +57,8 @@ TEST_URL_CLAIMS = "http://openevse.test.tld/claims"
 TEST_URL_LIMIT = "http://openevse.test.tld/limit"
 TEST_URL_OVERRIDE = "http://openevse.test.tld/override"
 TEST_URL_TIME = "http://openevse.test.tld/time"
+TEST_URL_RFID_ADD = "http://openevse.test.tld/rfid/add"
+TEST_URL_RFID_USERS = "http://openevse.test.tld/rfid/users"
 
 
 async def test_list_claims(
@@ -878,6 +887,303 @@ async def test_sync_time(
         assert "Sync time command sent successfully." in caplog.text
 
 
+async def test_add_rfid_tag(
+    hass,
+    test_charger_services,
+    mock_aioclient,
+    mock_ws_start,
+    entity_registry: er.EntityRegistry,
+    caplog,
+):
+    """Test add_rfid_tag service."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA,
+    )
+    mock_aioclient.post(
+        TEST_URL_RFID_ADD,
+        status=200,
+        text='{"msg": "OK"}',
+    )
+    mock_aioclient.get(
+        TEST_URL_OVERRIDE,
+        status=200,
+        text="{}",
+    )
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    entry = entity_registry.async_get("sensor.openevse_station_status")
+    assert entry
+    assert entry.device_id
+
+    with caplog.at_level(logging.DEBUG):
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_ADD_RFID_TAG,
+            {ATTR_DEVICE_ID: entry.device_id},
+            blocking=True,
+        )
+        assert "Add RFID tag command sent successfully." in caplog.text
+
+
+async def test_set_rfid_user_with_name(
+    hass,
+    test_charger_services,
+    mock_aioclient,
+    mock_ws_start,
+    entity_registry: er.EntityRegistry,
+    caplog,
+):
+    """Test set_rfid_user service with a name string."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA,
+    )
+    mock_aioclient.post(
+        TEST_URL_RFID_USERS,
+        status=200,
+        text='{"msg": "OK"}',
+    )
+    mock_aioclient.get(
+        TEST_URL_OVERRIDE,
+        status=200,
+        text="{}",
+    )
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    entry = entity_registry.async_get("sensor.openevse_station_status")
+    assert entry
+    assert entry.device_id
+
+    with caplog.at_level(logging.DEBUG):
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_SET_RFID_USER,
+            {
+                ATTR_DEVICE_ID: entry.device_id,
+                ATTR_RFID: "01020304",
+                ATTR_NAME: "Alice",
+            },
+            blocking=True,
+        )
+        assert "Set RFID user command sent successfully." in caplog.text
+
+
+async def test_set_rfid_user_with_person(
+    hass,
+    test_charger_services,
+    mock_aioclient,
+    mock_ws_start,
+    entity_registry: er.EntityRegistry,
+    caplog,
+):
+    """Test set_rfid_user service resolving person entity name."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA,
+    )
+    mock_aioclient.post(
+        TEST_URL_RFID_USERS,
+        status=200,
+        text='{"msg": "OK"}',
+    )
+    mock_aioclient.get(
+        TEST_URL_OVERRIDE,
+        status=200,
+        text="{}",
+    )
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    # Create a person state in hass
+    hass.states.async_set("person.john_doe", "home", {"friendly_name": "John Doe"})
+
+    entry = entity_registry.async_get("sensor.openevse_station_status")
+    assert entry
+    assert entry.device_id
+
+    with caplog.at_level(logging.DEBUG):
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_SET_RFID_USER,
+            {
+                ATTR_DEVICE_ID: entry.device_id,
+                ATTR_RFID: "DEADBEEF",
+                ATTR_PERSON: "person.john_doe",
+            },
+            blocking=True,
+        )
+        assert "Set RFID user command sent successfully." in caplog.text
+
+    # Test with a person state having no friendly_name
+    hass.states.async_set("person.jane_doe", "home", {})
+    with caplog.at_level(logging.DEBUG):
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_SET_RFID_USER,
+            {
+                ATTR_DEVICE_ID: entry.device_id,
+                ATTR_RFID: "CAFEBABE",
+                ATTR_PERSON: "person.jane_doe",
+            },
+            blocking=True,
+        )
+        assert "Set RFID user command sent successfully." in caplog.text
+
+    # Test with a person entity that doesn't exist in states (falls back to entity_id)
+    with caplog.at_level(logging.DEBUG):
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_SET_RFID_USER,
+            {
+                ATTR_DEVICE_ID: entry.device_id,
+                ATTR_RFID: "12345678",
+                ATTR_PERSON: "person.unknown",
+            },
+            blocking=True,
+        )
+        assert "Set RFID user command sent successfully." in caplog.text
+
+
+async def test_set_rfid_user_no_name_or_person(
+    hass,
+    test_charger_services,
+    mock_aioclient,
+    mock_ws_start,
+    entity_registry: er.EntityRegistry,
+):
+    """Test set_rfid_user fails validation when neither name nor person is given."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA,
+    )
+    mock_aioclient.get(
+        TEST_URL_OVERRIDE,
+        status=200,
+        text="{}",
+    )
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    entry = entity_registry.async_get("sensor.openevse_station_status")
+    assert entry
+    assert entry.device_id
+
+    with pytest.raises(vol.Invalid, match="must contain at least one of"):
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_SET_RFID_USER,
+            {
+                ATTR_DEVICE_ID: entry.device_id,
+                ATTR_RFID: "01020304",
+            },
+            blocking=True,
+        )
+
+
+async def test_delete_rfid_user(
+    hass,
+    test_charger_services,
+    mock_aioclient,
+    mock_ws_start,
+    entity_registry: er.EntityRegistry,
+    caplog,
+):
+    """Test delete_rfid_user service."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA,
+    )
+    mock_aioclient.delete(
+        f"{TEST_URL_RFID_USERS}?rfid=01020304",
+        status=200,
+        text='{"msg": "OK"}',
+    )
+    mock_aioclient.get(
+        TEST_URL_OVERRIDE,
+        status=200,
+        text="{}",
+    )
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    entry = entity_registry.async_get("sensor.openevse_station_status")
+    assert entry
+    assert entry.device_id
+
+    with caplog.at_level(logging.DEBUG):
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_DELETE_RFID_USER,
+            {
+                ATTR_DEVICE_ID: entry.device_id,
+                ATTR_RFID: "01020304",
+            },
+            blocking=True,
+        )
+        assert "Delete RFID user command sent successfully." in caplog.text
+
+
+async def test_get_rfid_users(
+    hass,
+    test_charger_services,
+    mock_aioclient,
+    mock_ws_start,
+    entity_registry: er.EntityRegistry,
+    caplog,
+):
+    """Test get_rfid_users service."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA,
+    )
+    mock_aioclient.get(
+        TEST_URL_RFID_USERS,
+        status=200,
+        text='{"01020304": "Alice", "DEADBEEF": "Bob"}',
+    )
+    mock_aioclient.get(
+        TEST_URL_OVERRIDE,
+        status=200,
+        text="{}",
+    )
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    entry = entity_registry.async_get("sensor.openevse_station_status")
+    assert entry
+    assert entry.device_id
+
+    with caplog.at_level(logging.DEBUG):
+        response = await hass.services.async_call(
+            DOMAIN,
+            SERVICE_GET_RFID_USERS,
+            {ATTR_DEVICE_ID: entry.device_id},
+            blocking=True,
+            return_response=True,
+        )
+        assert response == {
+            "users": {
+                "01020304": "Alice",
+                "DEADBEEF": "Bob",
+            }
+        }
+
+
 async def test_service_invalid_device_id(
     hass,
     test_charger_services,
@@ -909,6 +1215,10 @@ async def test_service_invalid_device_id(
         (SERVICE_GET_TIME, {}),
         (SERVICE_SET_TIME, {ATTR_SNTP: True}),
         (SERVICE_SYNC_TIME, {}),
+        (SERVICE_ADD_RFID_TAG, {}),
+        (SERVICE_SET_RFID_USER, {ATTR_RFID: "01020304", ATTR_NAME: "Alice"}),
+        (SERVICE_DELETE_RFID_USER, {ATTR_RFID: "01020304"}),
+        (SERVICE_GET_RFID_USERS, {}),
     ]
 
     for service_name, data in services_to_test:
@@ -921,6 +1231,7 @@ async def test_service_invalid_device_id(
             SERVICE_LIST_CLAIMS,
             SERVICE_LIST_OVERRIDES,
             SERVICE_GET_TIME,
+            SERVICE_GET_RFID_USERS,
         ]
 
         with pytest.raises(ValueError, match="Device ID fake_device_id is not valid"):
@@ -970,6 +1281,10 @@ async def test_service_missing_config(
         (SERVICE_GET_TIME, {}),
         (SERVICE_SET_TIME, {ATTR_SNTP: True}),
         (SERVICE_SYNC_TIME, {}),
+        (SERVICE_ADD_RFID_TAG, {}),
+        (SERVICE_SET_RFID_USER, {ATTR_RFID: "01020304", ATTR_NAME: "Alice"}),
+        (SERVICE_DELETE_RFID_USER, {ATTR_RFID: "01020304"}),
+        (SERVICE_GET_RFID_USERS, {}),
     ]
 
     for service_name, data in services_to_test:
@@ -982,6 +1297,7 @@ async def test_service_missing_config(
             SERVICE_LIST_CLAIMS,
             SERVICE_LIST_OVERRIDES,
             SERVICE_GET_TIME,
+            SERVICE_GET_RFID_USERS,
         ]
 
         caplog.clear()
@@ -1130,6 +1446,18 @@ async def test_services_connection_errors(
         (SERVICE_GET_TIME, {}, "get_time"),
         (SERVICE_SET_TIME, {ATTR_SNTP: True}, "set_time"),
         (SERVICE_SYNC_TIME, {}, "sync_time"),
+        (SERVICE_ADD_RFID_TAG, {}, "add_rfid_tag"),
+        (
+            SERVICE_SET_RFID_USER,
+            {ATTR_RFID: "01020304", ATTR_NAME: "Alice"},
+            "set_rfid_user",
+        ),
+        (
+            SERVICE_DELETE_RFID_USER,
+            {ATTR_RFID: "01020304"},
+            "delete_rfid_user",
+        ),
+        (SERVICE_GET_RFID_USERS, {}, "get_rfid_users"),
     ]
 
     for service_name, data, manager_method in services_to_test:
@@ -1144,6 +1472,7 @@ async def test_services_connection_errors(
                 SERVICE_LIST_CLAIMS,
                 SERVICE_LIST_OVERRIDES,
                 SERVICE_GET_TIME,
+                SERVICE_GET_RFID_USERS,
             ]
 
             result = await hass.services.async_call(
@@ -1226,6 +1555,26 @@ async def test_services_with_entity_id(
         TEST_URL_TIME,
         status=200,
         text='{"msg": "OK"}',
+    )
+    mock_aioclient.post(
+        TEST_URL_RFID_ADD,
+        status=200,
+        text='{"msg": "OK"}',
+    )
+    mock_aioclient.post(
+        TEST_URL_RFID_USERS,
+        status=200,
+        text='{"msg": "OK"}',
+    )
+    mock_aioclient.delete(
+        f"{TEST_URL_RFID_USERS}?rfid=01020304",
+        status=200,
+        text='{"msg": "OK"}',
+    )
+    mock_aioclient.get(
+        TEST_URL_RFID_USERS,
+        status=200,
+        text='{"01020304": "Alice"}',
     )
 
     entry.add_to_hass(hass)
@@ -1384,6 +1733,53 @@ async def test_services_with_entity_id(
         )
         assert "Sync time command sent successfully." in caplog.text
 
+    # 13. Add RFID tag via entity_id
+    with caplog.at_level(logging.DEBUG):
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_ADD_RFID_TAG,
+            {"entity_id": target_entity},
+            blocking=True,
+        )
+        assert "Add RFID tag command sent successfully." in caplog.text
+
+    # 14. Set RFID user via entity_id
+    with caplog.at_level(logging.DEBUG):
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_SET_RFID_USER,
+            {
+                "entity_id": target_entity,
+                ATTR_RFID: "01020304",
+                ATTR_NAME: "Alice",
+            },
+            blocking=True,
+        )
+        assert "Set RFID user command sent successfully." in caplog.text
+
+    # 15. Delete RFID user via entity_id
+    with caplog.at_level(logging.DEBUG):
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_DELETE_RFID_USER,
+            {
+                "entity_id": target_entity,
+                ATTR_RFID: "01020304",
+            },
+            blocking=True,
+        )
+        assert "Delete RFID user command sent successfully." in caplog.text
+
+    # 16. Get RFID users via entity_id
+    response = await hass.services.async_call(
+        DOMAIN,
+        SERVICE_GET_RFID_USERS,
+        {"entity_id": target_entity},
+        blocking=True,
+        return_response=True,
+    )
+    assert response == {"users": {"01020304": "Alice"}}
+
 
 async def test_service_invalid_entity_id(
     hass,
@@ -1454,6 +1850,7 @@ async def test_service_entity_without_device_id(
         SERVICE_LIST_CLAIMS,
         SERVICE_LIST_OVERRIDES,
         SERVICE_GET_TIME,
+        SERVICE_GET_RFID_USERS,
     ]:
         res = await hass.services.async_call(
             DOMAIN,

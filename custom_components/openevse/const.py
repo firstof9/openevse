@@ -9,7 +9,7 @@ import aiohttp
 from homeassistant.components.binary_sensor import (
     BinarySensorDeviceClass,
 )
-from homeassistant.components.button import ButtonDeviceClass, ButtonEntityDescription
+from homeassistant.components.button import ButtonDeviceClass
 from homeassistant.components.number import NumberDeviceClass, NumberMode
 from homeassistant.components.sensor import (
     SensorDeviceClass,
@@ -32,6 +32,7 @@ from homeassistant.helpers.entity import EntityCategory
 
 from .entity import (
     OpenEVSEBinarySensorEntityDescription,
+    OpenEVSEButtonEntityDescription,
     OpenEVSELightEntityDescription,
     OpenEVSENumberEntityDescription,
     OpenEVSESelectEntityDescription,
@@ -111,6 +112,10 @@ SERVICE_LIST_OVERRIDES = "list_overrides"
 SERVICE_GET_TIME = "get_time"
 SERVICE_SET_TIME = "set_time"
 SERVICE_SYNC_TIME = "sync_time"
+SERVICE_ADD_RFID_TAG = "add_rfid_tag"
+SERVICE_SET_RFID_USER = "set_rfid_user"
+SERVICE_DELETE_RFID_USER = "delete_rfid_user"
+SERVICE_GET_RFID_USERS = "get_rfid_users"
 
 # attributes
 ATTR_DEVICE_ID = "device_id"
@@ -125,6 +130,9 @@ ATTR_VALUE = "value"
 ATTR_TIME = "time"
 ATTR_TIMEZONE = "timezone"
 ATTR_SNTP = "sntp"
+ATTR_RFID = "rfid"
+ATTR_NAME = "name"
+ATTR_PERSON = "person"
 
 SERVICE_LEVELS = ["1", "2", "A"]
 DIVERT_MODE = ["fast", "eco"]
@@ -653,18 +661,25 @@ BINARY_SENSORS: Final[tuple[OpenEVSEBinarySensorEntityDescription, ...]] = (
     ),
 )
 
-BUTTON_TYPES: Final[tuple[ButtonEntityDescription, ...]] = (
-    ButtonEntityDescription(
+BUTTON_TYPES: Final[tuple[OpenEVSEButtonEntityDescription, ...]] = (
+    OpenEVSEButtonEntityDescription(
         key="restart_wifi",
         name="Restart WiFi",
         device_class=ButtonDeviceClass.RESTART,
         entity_category=EntityCategory.CONFIG,
     ),
-    ButtonEntityDescription(
+    OpenEVSEButtonEntityDescription(
         key="restart_evse",
         name="Restart EVSE",
         device_class=ButtonDeviceClass.RESTART,
         entity_category=EntityCategory.CONFIG,
+    ),
+    OpenEVSEButtonEntityDescription(
+        key="add_rfid_tag",
+        name="Learn RFID Tag",
+        icon="mdi:credit-card-wireless",
+        entity_category=EntityCategory.CONFIG,
+        min_version="4.0.0",
     ),
 )
 

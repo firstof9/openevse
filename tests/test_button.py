@@ -1,6 +1,6 @@
 """Test OpenEVSE button platform."""
 
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from homeassistant.components.button import DOMAIN as BUTTON_DOMAIN
@@ -34,7 +34,7 @@ async def test_buttons(
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
 
-    assert len(hass.states.async_entity_ids(BUTTON_DOMAIN)) == 2
+    assert len(hass.states.async_entity_ids(BUTTON_DOMAIN)) == 3
 
     # 1. Test Restart WiFi Button
     entity_id = "button.openevse_restart_wifi"
@@ -51,6 +51,7 @@ async def test_buttons(
 
     manager.restart_wifi = AsyncMock()
     manager.restart_evse = AsyncMock()
+    manager.add_rfid_tag = AsyncMock()
 
     await hass.services.async_call(
         BUTTON_DOMAIN, SERVICE_PRESS, {"entity_id": entity_id}, blocking=True
@@ -70,6 +71,18 @@ async def test_buttons(
 
     assert manager.restart_evse.called
     assert manager.restart_evse.call_count == 1
+
+    # 3. Test Learn RFID Tag Button
+    entity_id = "button.openevse_learn_rfid_tag"
+    state = hass.states.get(entity_id)
+    assert state
+
+    await hass.services.async_call(
+        BUTTON_DOMAIN, SERVICE_PRESS, {"entity_id": entity_id}, blocking=True
+    )
+
+    assert manager.add_rfid_tag.called
+    assert manager.add_rfid_tag.call_count == 1
 
 
 async def test_buttons_connection_error(
@@ -100,3 +113,45 @@ async def test_buttons_connection_error(
         )
 
     assert "Error connecting to device" in caplog.text
+
+
+async def test_button_version_availability(
+    hass,
+    test_charger,
+    mock_ws_start,
+    mock_aioclient,
+):
+    """Test button availability based on firmware version."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA,
+    )
+
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    entity_id = "button.openevse_learn_rfid_tag"
+    state = hass.states.get(entity_id)
+    assert state
+    assert state.state != "unavailable"
+
+    manager = hass.data[DOMAIN][entry.entry_id]["manager"]
+    with patch.object(manager, "version_check", return_value=False):
+        coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
+        coordinator.async_update_listeners()
+        await hass.async_block_till_done()
+
+        state = hass.states.get(entity_id)
+        assert state
+        assert state.state == "unavailable"
+
+    with patch.object(manager, "version_check", return_value=True):
+        coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
+        coordinator.async_update_listeners()
+        await hass.async_block_till_done()
+
+        state = hass.states.get(entity_id)
+        assert state
+        assert state.state != "unavailable"
