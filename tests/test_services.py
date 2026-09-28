@@ -10,6 +10,7 @@ import voluptuous as vol
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
+from openevsehttp.exceptions import ParseJSONError
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.openevse.const import (
@@ -885,6 +886,131 @@ async def test_sync_time(
             blocking=True,
         )
         assert "Sync time command sent successfully." in caplog.text
+
+
+async def test_sync_time_parse_json_error(
+    hass,
+    test_charger_services,
+    mock_aioclient,
+    mock_ws_start,
+    entity_registry: er.EntityRegistry,
+    caplog,
+):
+    """Test sync_time logs an error when the charger returns a non-JSON 400 response."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA,
+    )
+    mock_aioclient.get(
+        TEST_URL_OVERRIDE,
+        status=200,
+        text="{}",
+    )
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    entry = entity_registry.async_get("sensor.openevse_station_status")
+    assert entry
+    assert entry.device_id
+
+    manager = hass.data[DOMAIN][entry.config_entry_id][MANAGER]
+    with (
+        patch.object(manager, "sync_time", side_effect=ParseJSONError),
+        caplog.at_level(logging.ERROR),
+    ):
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_SYNC_TIME,
+            {ATTR_DEVICE_ID: entry.device_id},
+            blocking=True,
+        )
+        assert "Error parsing response from charger for sync_time" in caplog.text
+
+
+async def test_set_time_parse_json_error(
+    hass,
+    test_charger_services,
+    mock_aioclient,
+    mock_ws_start,
+    entity_registry: er.EntityRegistry,
+    caplog,
+):
+    """Test set_time logs an error when the charger returns a non-JSON response."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA,
+    )
+    mock_aioclient.get(
+        TEST_URL_OVERRIDE,
+        status=200,
+        text="{}",
+    )
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    entry = entity_registry.async_get("sensor.openevse_station_status")
+    assert entry
+    assert entry.device_id
+
+    manager = hass.data[DOMAIN][entry.config_entry_id][MANAGER]
+    with (
+        patch.object(manager, "set_time", side_effect=ParseJSONError),
+        caplog.at_level(logging.ERROR),
+    ):
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_SET_TIME,
+            {ATTR_DEVICE_ID: entry.device_id, ATTR_SNTP: True},
+            blocking=True,
+        )
+        assert "Error parsing response from charger for set_time" in caplog.text
+
+
+async def test_get_time_parse_json_error(
+    hass,
+    test_charger_services,
+    mock_aioclient,
+    mock_ws_start,
+    entity_registry: er.EntityRegistry,
+    caplog,
+):
+    """Test get_time returns empty dict and logs an error on ParseJSONError."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA,
+    )
+    mock_aioclient.get(
+        TEST_URL_OVERRIDE,
+        status=200,
+        text="{}",
+    )
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    entry = entity_registry.async_get("sensor.openevse_station_status")
+    assert entry
+    assert entry.device_id
+
+    manager = hass.data[DOMAIN][entry.config_entry_id][MANAGER]
+    with (
+        patch.object(manager, "get_time", side_effect=ParseJSONError),
+        caplog.at_level(logging.ERROR),
+    ):
+        response = await hass.services.async_call(
+            DOMAIN,
+            SERVICE_GET_TIME,
+            {ATTR_DEVICE_ID: entry.device_id},
+            blocking=True,
+            return_response=True,
+        )
+        assert response == {}
+        assert "Error parsing response from charger for get_time" in caplog.text
 
 
 async def test_add_rfid_tag(
