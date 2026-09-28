@@ -193,3 +193,45 @@ list_overrides:
   target:
     entity:
       integration: openevse
+
+get_time:
+  name: Get time
+  description: Gets time and NTP synchronization status from a charger.
+  target:
+    entity:
+      integration: openevse
+
+set_time:
+  name: Set time
+  description: Sets charger date, time, timezone, and NTP configuration.
+  target:
+    entity:
+      integration: openevse
+  fields:
+    time:
+      name: Time
+      description: Target date and time in ISO-8601 format (e.g. 2026-03-25T15:30:00Z).
+      required: false
+      example: "2026-03-25T15:30:00Z"
+      selector:
+        text:
+    timezone:
+      name: Timezone
+      description: POSIX timezone string or location (e.g. Europe/London or America/New_York|EST5EDT,M3.2.0,M11.1.0).
+      required: false
+      example: "America/New_York|EST5EDT,M3.2.0,M11.1.0"
+      selector:
+        text:
+    sntp:
+      name: SNTP enabled
+      description: Enable or disable SNTP/NTP time synchronization.
+      required: false
+      selector:
+        boolean:
+
+sync_time:
+  name: Sync time
+  description: Triggers an immediate NTP time synchronization on the charger.
+  target:
+    entity:
+      integration: openevse
