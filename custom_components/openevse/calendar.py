@@ -104,6 +104,11 @@ class OpenEVSECalendarEntity(CoordinatorEntity, OpenEVSEEntity, CalendarEntity):
         self._last_schedule_version: int | None = None
 
     @property
+    def _local_tz(self) -> datetime.tzinfo:
+        """Return the configured Home Assistant local timezone."""
+        return dt_util.get_time_zone(self.hass.config.time_zone)
+
+    @property
     def event(self) -> CalendarEvent | None:
         """Return the next upcoming or currently active event."""
         now = dt_util.now()
@@ -134,7 +139,11 @@ class OpenEVSECalendarEntity(CoordinatorEntity, OpenEVSEEntity, CalendarEntity):
             self.logger.debug("get_schedule is not supported on this firmware version")
             return []
         except Exception as err:
-            self.logger.warning("Error fetching schedule from OpenEVSE: %s", err)
+            self.logger.warning(
+                "Error fetching schedule from OpenEVSE (%s): %s",
+                type(err).__name__,
+                err,
+            )
             return self._events_cache
 
         if isinstance(raw_schedule, list):
@@ -156,7 +165,7 @@ class OpenEVSECalendarEntity(CoordinatorEntity, OpenEVSEEntity, CalendarEntity):
     ) -> list[CalendarEvent]:
         """Expand weekly schedule items into concrete CalendarEvents."""
         events: list[CalendarEvent] = []
-        local_tz = dt_util.get_time_zone(self.hass.config.time_zone)
+        local_tz = self._local_tz
 
         # Convert query range boundaries to local date
         start_local = start_date.astimezone(local_tz)
@@ -236,15 +245,14 @@ class OpenEVSECalendarEntity(CoordinatorEntity, OpenEVSEEntity, CalendarEntity):
         if not start_dt:
             raise HomeAssistantError("Event start time is required")
 
+        local_tz = self._local_tz
         if isinstance(start_dt, datetime.date) and not isinstance(
             start_dt, datetime.datetime
         ):
-            local_tz = dt_util.get_time_zone(self.hass.config.time_zone)
             start_dt = datetime.datetime.combine(
                 start_dt, datetime.time.min, tzinfo=local_tz
             )
 
-        local_tz = dt_util.get_time_zone(self.hass.config.time_zone)
         start_local = start_dt.astimezone(local_tz)
         weekday_name = WEEKDAYS[start_local.weekday()]
 
@@ -291,7 +299,11 @@ class OpenEVSECalendarEntity(CoordinatorEntity, OpenEVSEEntity, CalendarEntity):
         try:
             await self.manager.set_schedule(event_payload)
         except (CommandFailedError, Exception) as err:
-            self.logger.error("Failed to create OpenEVSE schedule: %s", err)
+            self.logger.error(
+                "Failed to create OpenEVSE schedule (%s): %s",
+                type(err).__name__,
+                err,
+            )
             raise HomeAssistantError(f"Failed to create schedule: {err}") from err
 
         self._events_cache.clear()
@@ -315,7 +327,10 @@ class OpenEVSECalendarEntity(CoordinatorEntity, OpenEVSEEntity, CalendarEntity):
             await self.manager.delete_schedule(event_id)
         except (CommandFailedError, Exception) as err:
             self.logger.error(
-                "Failed to delete OpenEVSE schedule %s: %s", event_id, err
+                "Failed to delete OpenEVSE schedule %s (%s): %s",
+                event_id,
+                type(err).__name__,
+                err,
             )
             raise HomeAssistantError(f"Failed to delete schedule: {err}") from err
 
@@ -341,7 +356,7 @@ class OpenEVSECalendarEntity(CoordinatorEntity, OpenEVSEEntity, CalendarEntity):
         if not start_dt:
             raise HomeAssistantError("Event start time is required")
 
-        local_tz = dt_util.get_time_zone(self.hass.config.time_zone)
+        local_tz = self._local_tz
         if isinstance(start_dt, datetime.date) and not isinstance(
             start_dt, datetime.datetime
         ):
@@ -395,7 +410,10 @@ class OpenEVSECalendarEntity(CoordinatorEntity, OpenEVSEEntity, CalendarEntity):
             await self.manager.set_schedule(event_payload, event_id=event_id)
         except (CommandFailedError, Exception) as err:
             self.logger.error(
-                "Failed to update OpenEVSE schedule %s: %s", event_id, err
+                "Failed to update OpenEVSE schedule %s (%s): %s",
+                event_id,
+                type(err).__name__,
+                err,
             )
             raise HomeAssistantError(f"Failed to update schedule: {err}") from err
 
