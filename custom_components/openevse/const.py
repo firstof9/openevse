@@ -56,6 +56,7 @@ CONF_VEHICLE_RANGE = "vehicle_range"
 CONF_VEHICLE_ETA = "vehicle_eta"
 CONF_HOME_BATTERY_SOC = "home_battery_soc"
 CONF_HOME_BATTERY_POWER = "home_battery_power"
+CONF_GITHUB_TOKEN = "github_token"
 DEFAULT_HOST = "openevse.local"
 DEFAULT_NAME = "OpenEVSE"
 

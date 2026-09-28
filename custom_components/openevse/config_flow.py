@@ -22,11 +22,15 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.selector import (
     EntitySelector,
     EntitySelectorConfig,
+    TextSelector,
+    TextSelectorConfig,
+    TextSelectorType,
 )
 from openevsehttp.__main__ import OpenEVSE
 from openevsehttp.exceptions import AuthenticationError
 
 from .const import (
+    CONF_GITHUB_TOKEN,
     CONF_GRID,
     CONF_HOME_BATTERY_POWER,
     CONF_HOME_BATTERY_SOC,
@@ -366,6 +370,9 @@ class OpenEVSEOptionsFlowHandler(config_entries.OptionsFlow):
                     CONF_HOME_BATTERY_POWER, default=""
                 ): OptionalEntitySelector(EntitySelectorConfig(domain="sensor")),
                 vol.Optional(CONF_INVERT, default=False): bool,
+                vol.Optional(CONF_GITHUB_TOKEN, default=""): TextSelector(
+                    TextSelectorConfig(type=TextSelectorType.PASSWORD)
+                ),
             }
         )
 

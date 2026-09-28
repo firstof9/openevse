@@ -11,7 +11,7 @@ from homeassistant.helpers.service_info.zeroconf import ZeroconfServiceInfo
 from openevsehttp.exceptions import AuthenticationError
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.openevse.const import DOMAIN
+from custom_components.openevse.const import DOMAIN, MANAGER
 from tests.const import CONFIG_DATA
 
 CHARGER_NAME = "openevse"
@@ -487,6 +487,7 @@ async def test_options_flow(hass, test_charger, mock_ws_start):
         "home_battery_soc": "",
         "home_battery_power": "",
         "invert_grid": False,
+        "github_token": "",
     }
 
     await hass.async_block_till_done()
@@ -582,9 +583,55 @@ async def test_options_flow_all_empty_entities(hass, test_charger, mock_ws_start
         "home_battery_soc": "",
         "home_battery_power": "",
         "invert_grid": False,
+        "github_token": "",
     }
 
     await hass.async_block_till_done()
+    await hass.config_entries.async_unload(entry.entry_id)
+    await hass.async_block_till_done()
+
+
+async def test_options_flow_github_token(hass, test_charger, mock_ws_start):
+    """Test options flow saves and loads github_token."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA,
+        options={
+            "github_token": "ghp_initialtoken123",
+        },
+        version=2,
+    )
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    manager = hass.data[DOMAIN][entry.entry_id][MANAGER]
+    assert manager.github_token == "ghp_initialtoken123"
+
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    assert result["type"] is FlowResultType.FORM
+    assert result["step_id"] == "init"
+
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        user_input={
+            "grid": "",
+            "solar": "",
+            "voltage": "",
+            "shaper": "",
+            "invert_grid": False,
+            "github_token": "ghp_updatedtoken456",
+        },
+    )
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    assert result["data"]["github_token"] == "ghp_updatedtoken456"
+
+    await hass.async_block_till_done()
+    # After options update, update_listener reloads entry
+    new_manager = hass.data[DOMAIN][entry.entry_id][MANAGER]
+    assert new_manager.github_token == "ghp_updatedtoken456"
+
     await hass.config_entries.async_unload(entry.entry_id)
     await hass.async_block_till_done()
 
