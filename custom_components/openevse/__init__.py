@@ -45,6 +45,7 @@ from openevsehttp.exceptions import (
 
 from .const import (
     BINARY_SENSORS,
+    CONF_GITHUB_TOKEN,
     CONF_GRID,
     CONF_HOME_BATTERY_POWER,
     CONF_HOME_BATTERY_SOC,
@@ -867,6 +868,9 @@ class OpenEVSEManager:
         self._password = config_entry.data.get(CONF_PASSWORD)
         self._ssl = config_entry.data.get(CONF_SSL, False)
         self._ssl_verify = config_entry.data.get(CONF_VERIFY_SSL, True)
+        self._github_token = config_entry.options.get(
+            CONF_GITHUB_TOKEN, config_entry.data.get(CONF_GITHUB_TOKEN)
+        )
         self.charger = OpenEVSE(
             self._host,
             user=self._username,
@@ -874,6 +878,7 @@ class OpenEVSEManager:
             ssl=self._ssl,
             ssl_verify=self._ssl_verify,
             session=async_get_clientsession(hass),
+            github_token=self._github_token or None,
         )
 
 

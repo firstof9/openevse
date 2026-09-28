@@ -10,9 +10,9 @@ from homeassistant.const import CONF_PASSWORD
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceEntry
 
-from .const import COORDINATOR, DOMAIN
+from .const import CONF_GITHUB_TOKEN, COORDINATOR, DOMAIN
 
-REDACT_KEYS = {CONF_PASSWORD}
+REDACT_KEYS = {CONF_PASSWORD, CONF_GITHUB_TOKEN}
 
 
 async def async_get_config_entry_diagnostics(

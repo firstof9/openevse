@@ -19,6 +19,7 @@ async def test_config_entry_diagnostics(hass, test_charger, mock_ws_start):
         domain=DOMAIN,
         title="imap.test.email",
         data=DIAG_CONFIG_DATA,
+        options={"github_token": "ghp_secrettoken"},
     )
 
     entry.add_to_hass(hass)
@@ -28,6 +29,7 @@ async def test_config_entry_diagnostics(hass, test_charger, mock_ws_start):
     assert result["config"]["data"][CONF_HOST] == "openevse.test.tld"
     assert result["config"]["data"][CONF_PASSWORD] == "**REDACTED**"
     assert result["config"]["data"][CONF_USERNAME] == "testuser"
+    assert result["config"]["options"]["github_token"] == "**REDACTED**"
 
 
 @pytest.mark.asyncio
