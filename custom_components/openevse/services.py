@@ -38,6 +38,7 @@ from .const import (
     CONNECTION_ERROR,
     CONNECTION_ERRORS,
     DOMAIN,
+    FW_VERSION_WARN,
     MANAGER,
     SERVICE_ADD_RFID_TAG,
     SERVICE_CLEAR_LIMIT,
@@ -619,9 +620,7 @@ class OpenEVSEServices:
             try:
                 manager = self.hass.data[DOMAIN][config_id][MANAGER]
                 if not manager.version_check("4.0.0"):
-                    logger.warning(
-                        "RFID tag learning requires firmware version 4.0.0 or higher."
-                    )
+                    logger.warning(FW_VERSION_WARN, "RFID tag learning", "4.0.0")
                     continue
                 try:
                     await manager.add_rfid_tag()
@@ -654,9 +653,7 @@ class OpenEVSEServices:
             try:
                 manager = self.hass.data[DOMAIN][config_id][MANAGER]
                 if not manager.version_check("5.0.0"):
-                    logger.warning(
-                        "Managing RFID users requires firmware version 5.0.0 or higher."
-                    )
+                    logger.warning(FW_VERSION_WARN, "Managing RFID users", "5.0.0")
                     continue
                 try:
                     await manager.set_rfid_user(rfid=rfid, name=name)
@@ -678,9 +675,7 @@ class OpenEVSEServices:
             try:
                 manager = self.hass.data[DOMAIN][config_id][MANAGER]
                 if not manager.version_check("5.0.0"):
-                    logger.warning(
-                        "Managing RFID users requires firmware version 5.0.0 or higher."
-                    )
+                    logger.warning(FW_VERSION_WARN, "Managing RFID users", "5.0.0")
                     continue
                 try:
                     await manager.delete_rfid_user(rfid=rfid)
@@ -701,9 +696,7 @@ class OpenEVSEServices:
             try:
                 manager = self.hass.data[DOMAIN][config_id][MANAGER]
                 if not manager.version_check("5.0.0"):
-                    logger.warning(
-                        "Managing RFID users requires firmware version 5.0.0 or higher."
-                    )
+                    logger.warning(FW_VERSION_WARN, "Managing RFID users", "5.0.0")
                     return {}
                 try:
                     users = await manager.get_rfid_users()

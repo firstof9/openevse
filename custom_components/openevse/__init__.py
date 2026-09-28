@@ -65,6 +65,7 @@ from .const import (
     ISSUE_URL,
     LIGHT_TYPES,
     MANAGER,
+    NON_NUMERIC_WARN,
     NUMBER_TYPES,
     PLATFORMS,
     SELECT_TYPES,
@@ -143,7 +144,7 @@ async def handle_state_change(
             and state.state not in [None, "unavailable", "unknown", ""]
             and grid is None
         ):
-            logger.warning("Non-numeric state for grid sensor: %s", state.state)
+            logger.warning(NON_NUMERIC_WARN, "grid", state.state)
 
         logger.debug("Sending sensor data to OpenEVSE: (grid: %s)", grid)
         try:
@@ -159,7 +160,7 @@ async def handle_state_change(
             and state.state not in [None, "unavailable", "unknown", ""]
             and solar is None
         ):
-            logger.warning("Non-numeric state for solar sensor: %s", state.state)
+            logger.warning(NON_NUMERIC_WARN, "solar", state.state)
 
         logger.debug("Sending sensor data to OpenEVSE: (solar: %s)", solar)
         try:
@@ -176,7 +177,7 @@ async def handle_state_change(
             try:
                 voltage = round(float(voltage))
             except (ValueError, TypeError):
-                logger.warning("Non-numeric state for voltage sensor: %s", voltage)
+                logger.warning(NON_NUMERIC_WARN, "voltage", voltage)
                 voltage = None
 
         logger.debug("Sending sensor data to OpenEVSE: (voltage: %s)", voltage)
@@ -193,7 +194,7 @@ async def handle_state_change(
             and state.state not in [None, "unavailable", "unknown", ""]
             and power is None
         ):
-            logger.warning("Non-numeric state for shaper sensor: %s", state.state)
+            logger.warning(NON_NUMERIC_WARN, "shaper", state.state)
 
         logger.debug("Sending sensor data to OpenEVSE: (shaper: %s)", power)
         try:
@@ -210,7 +211,7 @@ async def handle_state_change(
             try:
                 soc = round(float(soc))
             except (ValueError, TypeError):
-                logger.warning("Non-numeric state for vehicle SoC sensor: %s", soc)
+                logger.warning(NON_NUMERIC_WARN, "vehicle SoC", soc)
                 soc = None
 
         logger.debug("Sending sensor data to OpenEVSE: (vehicle_soc: %s)", soc)
@@ -230,7 +231,7 @@ async def handle_state_change(
             try:
                 vrange = round(float(vrange))
             except (ValueError, TypeError):
-                logger.warning("Non-numeric state for vehicle range sensor: %s", vrange)
+                logger.warning(NON_NUMERIC_WARN, "vehicle range", vrange)
                 vrange = None
 
         logger.debug("Sending sensor data to OpenEVSE: (vehicle_range: %s)", vrange)
@@ -250,7 +251,7 @@ async def handle_state_change(
             try:
                 eta = round(float(eta))
             except (ValueError, TypeError):
-                logger.warning("Non-numeric state for vehicle ETA sensor: %s", eta)
+                logger.warning(NON_NUMERIC_WARN, "vehicle ETA", eta)
                 eta = None
 
         logger.debug("Sending sensor data to OpenEVSE: (vehicle_eta: %s)", eta)
@@ -273,9 +274,7 @@ async def handle_state_change(
             try:
                 hb_soc = round(float(hb_soc))
             except (ValueError, TypeError):
-                logger.warning(
-                    "Non-numeric state for home battery SoC sensor: %s", hb_soc
-                )
+                logger.warning(NON_NUMERIC_WARN, "home battery SoC", hb_soc)
                 hb_soc = None
 
         logger.debug("Sending sensor data to OpenEVSE: (home_battery_soc: %s)", hb_soc)
@@ -297,9 +296,7 @@ async def handle_state_change(
             and state.state not in [None, "unavailable", "unknown", ""]
             and hb_power is None
         ):
-            logger.warning(
-                "Non-numeric state for home battery power sensor: %s", state.state
-            )
+            logger.warning(NON_NUMERIC_WARN, "home battery power", state.state)
 
         logger.debug(
             "Sending sensor data to OpenEVSE: (home_battery_power: %s)", hb_power
