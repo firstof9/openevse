@@ -190,12 +190,15 @@ class OpenEVSEServices:
             DOMAIN,
             SERVICE_SET_TIME,
             self._set_time,
-            schema=cv.make_entity_service_schema(
-                {
-                    vol.Optional(ATTR_TIME): vol.Coerce(str),
-                    vol.Optional(ATTR_TIMEZONE): vol.Coerce(str),
-                    vol.Optional(ATTR_SNTP): vol.Coerce(bool),
-                }
+            schema=vol.All(
+                cv.make_entity_service_schema(
+                    {
+                        vol.Optional(ATTR_TIME): vol.Coerce(str),
+                        vol.Optional(ATTR_TIMEZONE): vol.Coerce(str),
+                        vol.Optional(ATTR_SNTP): vol.Coerce(bool),
+                    }
+                ),
+                cv.has_at_least_one_key(ATTR_TIME, ATTR_TIMEZONE, ATTR_SNTP),
             ),
         )
 

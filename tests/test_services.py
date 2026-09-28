@@ -6,6 +6,7 @@ import logging
 from unittest.mock import MagicMock, patch
 
 import pytest
+import voluptuous as vol
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
@@ -800,6 +801,41 @@ async def test_set_time(
         assert "Set time command sent successfully." in caplog.text
 
 
+async def test_set_time_no_parameters(
+    hass,
+    test_charger_services,
+    mock_aioclient,
+    mock_ws_start,
+    entity_registry: er.EntityRegistry,
+):
+    """Test set_time service fails validation when no parameters are provided."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA,
+    )
+    mock_aioclient.get(
+        TEST_URL_OVERRIDE,
+        status=200,
+        text="{}",
+    )
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    entry = entity_registry.async_get("sensor.openevse_station_status")
+    assert entry
+    assert entry.device_id
+
+    with pytest.raises(vol.Invalid, match="must contain at least one of"):
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_SET_TIME,
+            {ATTR_DEVICE_ID: entry.device_id},
+            blocking=True,
+        )
+
+
 async def test_sync_time(
     hass,
     test_charger_services,
@@ -871,7 +907,7 @@ async def test_service_invalid_device_id(
         (SERVICE_LIST_CLAIMS, {}),
         (SERVICE_LIST_OVERRIDES, {}),
         (SERVICE_GET_TIME, {}),
-        (SERVICE_SET_TIME, {}),
+        (SERVICE_SET_TIME, {ATTR_SNTP: True}),
         (SERVICE_SYNC_TIME, {}),
     ]
 
@@ -932,7 +968,7 @@ async def test_service_missing_config(
         (SERVICE_LIST_CLAIMS, {}),
         (SERVICE_LIST_OVERRIDES, {}),
         (SERVICE_GET_TIME, {}),
-        (SERVICE_SET_TIME, {}),
+        (SERVICE_SET_TIME, {ATTR_SNTP: True}),
         (SERVICE_SYNC_TIME, {}),
     ]
 
@@ -1092,7 +1128,7 @@ async def test_services_connection_errors(
         (SERVICE_LIST_CLAIMS, {}, "list_claims"),
         (SERVICE_LIST_OVERRIDES, {}, "get_override"),
         (SERVICE_GET_TIME, {}, "get_time"),
-        (SERVICE_SET_TIME, {}, "set_time"),
+        (SERVICE_SET_TIME, {ATTR_SNTP: True}, "set_time"),
         (SERVICE_SYNC_TIME, {}, "sync_time"),
     ]
 
