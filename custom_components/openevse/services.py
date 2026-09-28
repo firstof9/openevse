@@ -24,6 +24,9 @@ from .const import (
     ATTR_DEVICE_ID,
     ATTR_ENERGY_LIMIT,
     ATTR_MAX_CURRENT,
+    ATTR_NAME,
+    ATTR_PERSON,
+    ATTR_RFID,
     ATTR_SNTP,
     ATTR_STATE,
     ATTR_TIME,
@@ -36,9 +39,12 @@ from .const import (
     CONNECTION_ERRORS,
     DOMAIN,
     MANAGER,
+    SERVICE_ADD_RFID_TAG,
     SERVICE_CLEAR_LIMIT,
     SERVICE_CLEAR_OVERRIDE,
+    SERVICE_DELETE_RFID_USER,
     SERVICE_GET_LIMIT,
+    SERVICE_GET_RFID_USERS,
     SERVICE_GET_TIME,
     SERVICE_LIST_CLAIMS,
     SERVICE_LIST_OVERRIDES,
@@ -46,6 +52,7 @@ from .const import (
     SERVICE_RELEASE_CLAIM,
     SERVICE_SET_LIMIT,
     SERVICE_SET_OVERRIDE,
+    SERVICE_SET_RFID_USER,
     SERVICE_SET_TIME,
     SERVICE_SYNC_TIME,
 )
@@ -207,6 +214,48 @@ class OpenEVSEServices:
             SERVICE_SYNC_TIME,
             self._sync_time,
             schema=cv.make_entity_service_schema({}),
+        )
+
+        self.hass.services.async_register(
+            DOMAIN,
+            SERVICE_ADD_RFID_TAG,
+            self._add_rfid_tag,
+            schema=cv.make_entity_service_schema({}),
+        )
+
+        self.hass.services.async_register(
+            DOMAIN,
+            SERVICE_SET_RFID_USER,
+            self._set_rfid_user,
+            schema=vol.All(
+                cv.make_entity_service_schema(
+                    {
+                        vol.Required(ATTR_RFID): vol.Coerce(str),
+                        vol.Optional(ATTR_NAME): vol.Coerce(str),
+                        vol.Optional(ATTR_PERSON): cv.entity_id,
+                    }
+                ),
+                cv.has_at_least_one_key(ATTR_NAME, ATTR_PERSON),
+            ),
+        )
+
+        self.hass.services.async_register(
+            DOMAIN,
+            SERVICE_DELETE_RFID_USER,
+            self._delete_rfid_user,
+            schema=cv.make_entity_service_schema(
+                {
+                    vol.Required(ATTR_RFID): vol.Coerce(str),
+                }
+            ),
+        )
+
+        self.hass.services.async_register(
+            DOMAIN,
+            SERVICE_GET_RFID_USERS,
+            self._get_rfid_users,
+            schema=cv.make_entity_service_schema({}),
+            supports_response=SupportsResponse.ONLY,
         )
 
     def _get_logger(self, device_id: str | None = None) -> OpenEVSELoggerAdapter:
@@ -558,3 +607,112 @@ class OpenEVSEServices:
                     logger.error(CONNECTION_ERROR, err)
             except KeyError as err:
                 logger.error("Error locating configuration: %s", err)
+
+    async def _add_rfid_tag(self, service: ServiceCall) -> None:
+        """Put the charger into RFID learning/pairing mode."""
+        for device_id in self._resolve_target_device_ids(service):
+            logger = self._get_logger(device_id)
+            logger.debug("Device ID: %s", device_id)
+
+            config_id = self._resolve_device_config(device_id)
+            logger.debug("Config ID: %s", config_id)
+            try:
+                manager = self.hass.data[DOMAIN][config_id][MANAGER]
+                if not manager.version_check("4.0.0"):
+                    logger.warning(
+                        "RFID tag learning requires firmware version 4.0.0 or higher."
+                    )
+                    continue
+                try:
+                    await manager.add_rfid_tag()
+                    logger.debug("Add RFID tag command sent successfully.")
+                except CONNECTION_ERRORS as err:
+                    logger.error(CONNECTION_ERROR, err)
+            except KeyError as err:
+                logger.error("Error locating configuration: %s", err)
+
+    async def _set_rfid_user(self, service: ServiceCall) -> None:
+        """Assign or update a user name for an RFID tag."""
+        data = service.data
+        rfid = data[ATTR_RFID]
+        name = data.get(ATTR_NAME)
+        person_entity_id = data.get(ATTR_PERSON)
+
+        if not name and person_entity_id:
+            person_state = self.hass.states.get(person_entity_id)
+            if person_state:
+                name = person_state.name or person_state.attributes.get("friendly_name")
+            if not name:
+                name = person_entity_id
+
+        for device_id in self._resolve_target_device_ids(service):
+            logger = self._get_logger(device_id)
+            logger.debug("Device ID: %s", device_id)
+
+            config_id = self._resolve_device_config(device_id)
+            logger.debug("Config ID: %s", config_id)
+            try:
+                manager = self.hass.data[DOMAIN][config_id][MANAGER]
+                if not manager.version_check("5.0.0"):
+                    logger.warning(
+                        "Managing RFID users requires firmware version 5.0.0 or higher."
+                    )
+                    continue
+                try:
+                    await manager.set_rfid_user(rfid=rfid, name=name)
+                    logger.debug("Set RFID user command sent successfully.")
+                except CONNECTION_ERRORS as err:
+                    logger.error(CONNECTION_ERROR, err)
+            except KeyError as err:
+                logger.error("Error locating configuration: %s", err)
+
+    async def _delete_rfid_user(self, service: ServiceCall) -> None:
+        """Delete an RFID tag mapping."""
+        rfid = service.data[ATTR_RFID]
+        for device_id in self._resolve_target_device_ids(service):
+            logger = self._get_logger(device_id)
+            logger.debug("Device ID: %s", device_id)
+
+            config_id = self._resolve_device_config(device_id)
+            logger.debug("Config ID: %s", config_id)
+            try:
+                manager = self.hass.data[DOMAIN][config_id][MANAGER]
+                if not manager.version_check("5.0.0"):
+                    logger.warning(
+                        "Managing RFID users requires firmware version 5.0.0 or higher."
+                    )
+                    continue
+                try:
+                    await manager.delete_rfid_user(rfid=rfid)
+                    logger.debug("Delete RFID user command sent successfully.")
+                except CONNECTION_ERRORS as err:
+                    logger.error(CONNECTION_ERROR, err)
+            except KeyError as err:
+                logger.error("Error locating configuration: %s", err)
+
+    async def _get_rfid_users(self, service: ServiceCall) -> ServiceResponse:
+        """Get the mapping of RFID tags to user names."""
+        for device_id in self._resolve_target_device_ids(service):
+            logger = self._get_logger(device_id)
+            logger.debug("Device ID: %s", device_id)
+
+            config_id = self._resolve_device_config(device_id)
+            logger.debug("Config ID: %s", config_id)
+            try:
+                manager = self.hass.data[DOMAIN][config_id][MANAGER]
+                if not manager.version_check("5.0.0"):
+                    logger.warning(
+                        "Managing RFID users requires firmware version 5.0.0 or higher."
+                    )
+                    return {}
+                try:
+                    users = await manager.get_rfid_users()
+                    logger.debug("Get RFID users response: %s", users)
+                    return {"users": users}
+                except CONNECTION_ERRORS as err:
+                    logger.error(CONNECTION_ERROR, err)
+                    return {}
+            except KeyError as err:
+                logger.error("Error locating configuration: %s", err)
+                return {}
+        return {}

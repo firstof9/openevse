@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from homeassistant.components.binary_sensor import BinarySensorEntityDescription
+from homeassistant.components.button import ButtonEntityDescription
 from homeassistant.components.light import LightEntityDescription
 from homeassistant.components.number import NumberEntityDescription
 from homeassistant.components.select import SelectEntityDescription
@@ -30,6 +31,13 @@ class OpenEVSEEntity:
             name=self._config.data.get(CONF_NAME),
             connections={("openevse", self._config.entry_id)},
         )
+
+
+@dataclass
+class OpenEVSEButtonEntityDescription(ButtonEntityDescription):
+    """Class describing OpenEVSE button entities."""
+
+    min_version: str | None = None
 
 
 @dataclass

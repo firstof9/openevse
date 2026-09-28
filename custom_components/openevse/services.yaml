@@ -235,3 +235,62 @@ sync_time:
   target:
     entity:
       integration: openevse
+
+add_rfid_tag:
+  name: Learn RFID tag
+  description: Puts the charger into RFID learning/pairing mode to add the next scanned RFID tag (requires firmware v4.0.0+).
+  target:
+    entity:
+      integration: openevse
+
+set_rfid_user:
+  name: Set RFID user
+  description: Assigns or updates a user name or Home Assistant person for an RFID tag (requires firmware v5.0.0+).
+  target:
+    entity:
+      integration: openevse
+  fields:
+    rfid:
+      name: RFID tag ID
+      description: The unique RFID tag identifier.
+      required: true
+      example: "01020304"
+      selector:
+        text:
+    person:
+      name: Person
+      description: The Home Assistant person to associate with this RFID tag.
+      required: false
+      example: "person.john_doe"
+      selector:
+        entity:
+          domain: person
+    name:
+      name: User name
+      description: Friendly user name string to associate with the RFID tag (optional if person is selected).
+      required: false
+      example: "John Doe"
+      selector:
+        text:
+
+delete_rfid_user:
+  name: Delete RFID user
+  description: Deletes an RFID tag mapping from the charger (requires firmware v5.0.0+).
+  target:
+    entity:
+      integration: openevse
+  fields:
+    rfid:
+      name: RFID tag ID
+      description: The unique RFID tag identifier to delete.
+      required: true
+      example: "01020304"
+      selector:
+        text:
+
+get_rfid_users:
+  name: Get RFID users
+  description: Retrieves the mapping of RFID tags to user names from the charger (requires firmware v5.0.0+).
+  target:
+    entity:
+      integration: openevse

@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
-from homeassistant.components.button import ButtonEntity, ButtonEntityDescription
+from homeassistant.components.button import ButtonEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from . import CONNECTION_ERRORS, OpenEVSEManager
 from .const import (
@@ -17,7 +18,7 @@ from .const import (
     DOMAIN,
     MANAGER,
 )
-from .entity import OpenEVSEEntity
+from .entity import OpenEVSEButtonEntityDescription, OpenEVSEEntity
 
 
 async def async_setup_entry(
@@ -35,17 +36,18 @@ async def async_setup_entry(
     async_add_entities(buttons, False)
 
 
-class OpenEVSEButton(OpenEVSEEntity, ButtonEntity):
-    """OpenEVSE restart button."""
+class OpenEVSEButton(CoordinatorEntity, OpenEVSEEntity, ButtonEntity):
+    """OpenEVSE button."""
 
     def __init__(
         self,
-        button_description: ButtonEntityDescription,
+        button_description: OpenEVSEButtonEntityDescription,
         manager: OpenEVSEManager,
         config_entry: ConfigEntry,
         coordinator,
     ) -> None:
         """Initialise a OpenEVSE button."""
+        super().__init__(coordinator)
         self.coordinator = coordinator
         self.entity_description = button_description
         self.config = config_entry
@@ -53,9 +55,17 @@ class OpenEVSEButton(OpenEVSEEntity, ButtonEntity):
         self.manager = manager
         self._key = button_description.key
         self._name = button_description.name
+        self._min_version = button_description.min_version
         self._base_unique_id = config_entry.entry_id
         self._attr_name = f"{config_entry.data[CONF_NAME]} {self._name}"
         self._attr_unique_id = f"{self._base_unique_id}.{self._key}"
+
+    @property
+    def available(self) -> bool:
+        """Return if entity is available."""
+        if not self._min_version:
+            return True
+        return self.manager.version_check(self._min_version)
 
     async def async_press(self) -> None:
         """Handle the button press."""
