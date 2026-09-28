@@ -254,15 +254,36 @@ async def test_calendar_edge_cases_and_caching(hass, test_charger, mock_ws_start
 
     manager = hass.data[DOMAIN][entry.entry_id][MANAGER]
 
-    # 1. Single mapping response + malformed time + date dtstart / dtend
+    # 1. Missing time or non-list days, malformed time
+    manager.get_schedule = AsyncMock(
+        return_value=[
+            {"id": 10, "state": "active", "days": ["Monday"]},  # missing time
+            {
+                "id": 11,
+                "state": "active",
+                "time": "08:00:00",
+                "days": "Monday",
+            },  # days not list
+            {"id": 12, "state": "active", "time": "invalid_time", "days": ["Monday"]},
+        ]
+    )
+    events = await calendar_entity.async_get_events(
+        hass,
+        datetime.datetime(2026, 9, 21, 0, 0, tzinfo=datetime.UTC),
+        datetime.datetime(2026, 9, 28, 0, 0, tzinfo=datetime.UTC),
+    )
+    assert events == []
+
+    # Single mapping response (triggers line 145)
     manager.get_schedule = AsyncMock(
         return_value={
-            "id": 10,
+            "id": 13,
             "state": "active",
             "time": "invalid_time",
             "days": ["Monday"],
         }
     )
+    calendar_entity._events_cache.clear()
     events = await calendar_entity.async_get_events(
         hass,
         datetime.datetime(2026, 9, 21, 0, 0, tzinfo=datetime.UTC),
