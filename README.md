@@ -82,15 +82,21 @@ Alternatively, add it manually within HACS:
 
 
 ### Advanced Options (Integration Configuration)
-To unlock smart features like **Solar PV Divert** and **Current Shaper**, you must bind external sensors.
+To unlock smart features like **Solar PV Divert**, **Current Shaper**, or vehicle and home battery push, configure external sensors in integration options.
 1. Go to **Settings** -> **Devices & Services** -> **OpenEVSE**.
 2. Click **Configure** on the OpenEVSE integration card.
-3. Configure the following sensors as needed:
+3. Configure the following options as needed:
    - **Grid Sensor**: The sensor measuring net grid power (in Watts).
    - **Solar Sensor**: The sensor measuring solar generation power (in Watts).
    - **Voltage Sensor**: The sensor measuring grid voltage (in Volts).
    - **Shaper Sensor**: The sensor measuring live power used by other household appliances (in Watts) for overload protection.
+   - **Vehicle State of Charge Sensor**: Sensor providing vehicle battery percentage (%).
+   - **Vehicle Range Sensor**: Sensor providing vehicle range remaining.
+   - **Vehicle Time-to-Full-Charge Sensor**: Sensor providing vehicle ETA to complete charging.
+   - **Home Battery State of Charge Sensor**: Sensor providing home storage battery percentage (%).
+   - **Home Battery Power Sensor**: Sensor providing home storage battery power (in Watts).
    - **Invert Grid**: Toggle this if your grid sensor uses negative values for export.
+   - **GitHub Personal Access Token**: Optional token for higher GitHub API rate limits when checking firmware releases.
 
 ---
 
@@ -101,12 +107,13 @@ The integration sets up the following platforms and entities:
 | Platform | Key Entities | Description |
 | :--- | :--- | :--- |
 | `binary_sensor` | • Vehicle Connected<br>• Manual Override<br>• Divert Active<br>• Shaper Active<br>• Limit Active<br>• OTA Update<br>• MQTT Connected | Real-time binary states and diagnostics. |
-| `button` | • Restart WiFi<br>• Restart EVSE | Triggers to restart hardware components. |
+| `button` | • Restart WiFi<br>• Restart EVSE<br>• Learn RFID Tag (v4.0.0+) | Triggers to restart hardware components or pair new RFID tags. |
+| `calendar` | • Schedule (v4.0.0+) | View and manage scheduled charging events with start/stop times and charge limits. |
 | `light` | • LED Brightness | Control charger screen/LED brightness (v4.1.0+). |
 | `number` | • Charge Rate | Soft-limit current capacity adjustments (in Amps). |
 | `select` | • Charge Rate<br>• Divert Mode (`fast` / `eco`) | Select charge limits, divert types, or override status. |
 | `sensor` | • Station Status<br>• Charging Status<br>• Charging Voltage / Current<br>• Current Power Usage (Actual & Calc)<br>• Usage this Session (Energy)<br>• Total Usage (Energy)<br>• WiFi Signal Strength<br>• Temperatures (Ambient, ESP32, RTC, IR)<br>• Vehicle Battery Level (SOC) (v4.1.0+) | Sensor telemetry, stats, and diagnostic measurements. |
-| `switch` | • Sleep Mode<br>• Manual Override (v4.1.0+)<br>• Solar PV Divert (v4.1.0+)<br>• Current Shaper (v4.1.0+) | Controls to toggle operational modes of the EVSE. |
+| `switch` | • Sleep Mode<br>• Manual Override (v4.1.0+)<br>• Solar PV Divert (v4.1.0+)<br>• Current Shaper (v4.1.0+)<br>• RFID Access (v4.0.0+) | Controls to toggle operational modes and RFID access on the EVSE. |
 | `update` | • OpenEVSE Update | Detects controller firmware updates, provides release notes, and installs updates. |
 
 ---
@@ -140,6 +147,28 @@ Claims allow multiple automations or external apps to request different charger 
 * **`openevse.clear_limit`**: Clear any active session limit.
 * **`openevse.get_limit`** *(Returns Response Data)*: Retrieve current session limits from the charger.
 * **`openevse.list_overrides`** *(Returns Response Data)*: List active overrides on the EVSE.
+
+### Time & NTP Synchronization
+* **`openevse.get_time`** *(Returns Response Data)*: Retrieves current date, time, timezone, and SNTP enabled status from the charger.
+* **`openevse.set_time`**: Configures date, time, timezone, or SNTP synchronization on the charger.
+  - Parameters:
+    - `time` (optional): Target date/time in ISO-8601 format (e.g., `2026-03-25T15:30:00Z`).
+    - `timezone` (optional): POSIX timezone string or location (e.g., `America/New_York|EST5EDT,M3.2.0,M11.1.0` or `Europe/London`).
+    - `sntp` (optional, boolean): Enable or disable SNTP/NTP time synchronization.
+* **`openevse.sync_time`**: Triggers an immediate NTP time synchronization on the charger.
+
+### RFID Management
+* **`openevse.add_rfid_tag`**: Puts the charger into RFID learning/pairing mode to register the next scanned card/tag (firmware v4.0.0+).
+* **`openevse.set_rfid_user`**: Maps an RFID tag ID to a Home Assistant person entity or friendly user name (firmware v5.0.0+).
+  - Parameters:
+    - `rfid` (required): RFID tag identifier (e.g., `01020304`).
+    - `person` (optional): Entity ID of a Home Assistant `person` (e.g., `person.john_doe`).
+    - `name` (optional): Friendly user name string (e.g., `John Doe`).
+* **`openevse.delete_rfid_user`**: Deletes an RFID tag mapping from the charger (firmware v5.0.0+).
+  - Parameters:
+    - `rfid` (required): RFID tag identifier to delete.
+* **`openevse.get_rfid_users`** *(Returns Response Data)*: Retrieves all registered RFID tag mappings from the charger (firmware v5.0.0+).
+
 
 ### Service Call Examples
 
@@ -220,7 +249,7 @@ If you like this integration, consider supporting the project:
 
 - [ ] Add Wiki
 - [ ] Expand documentation
-- [ ] Add Schedule Support
+- [x] Add Schedule Support
 - [x] Add tests
 - [x] Current / Voltage / Power sensors
 - [x] Session & Total Energy sensors
