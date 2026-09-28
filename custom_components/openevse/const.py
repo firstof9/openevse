@@ -83,6 +83,7 @@ ISSUE_URL = "http://github.com/firstof9/openevse/"
 PLATFORMS = [
     Platform.BINARY_SENSOR,
     Platform.BUTTON,
+    Platform.CALENDAR,
     Platform.LIGHT,
     Platform.NUMBER,
     Platform.SENSOR,
