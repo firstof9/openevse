@@ -100,6 +100,7 @@ CONNECTION_ERROR = (
     "Error connecting to device: %s, please check your network connection."
 )
 FW_VERSION_WARN = "%s requires firmware version %s or higher."
+NON_NUMERIC_WARN = "Non-numeric state for %s sensor: %s"
 
 SERVICE_SET_OVERRIDE = "set_override"
 SERVICE_CLEAR_OVERRIDE = "clear_override"

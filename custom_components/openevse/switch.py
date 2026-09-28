@@ -80,23 +80,17 @@ class OpenEVSESwitch(CoordinatorEntity, OpenEVSEEntity, SwitchEntity):
         data = self.coordinator.data if isinstance(self.coordinator.data, dict) else {}
         if getattr(self.entity_description, "value_fn", None) is not None:
             val = self.entity_description.value_fn(data)
-            if val is None:
-                self.coordinator.logger.warning(
-                    "switch [%s] not supported.", self._type
-                )
-                return None
-            if self._type == ATTR_STATE:
-                return val == SLEEP_STATE
-            return cast(bool, val == 1)
-        if self._type not in data:
+        else:
+            val = data.get(self._type)
+
+        if val is None:
             self.coordinator.logger.warning("switch [%s] not supported.", self._type)
             return None
-        self.coordinator.logger.debug(
-            "switch [%s]: %s", self._attr_name, data[self._type]
-        )
+
+        self.coordinator.logger.debug("switch [%s]: %s", self._attr_name, val)
         if self._type == ATTR_STATE:
-            return data[self._type] == SLEEP_STATE
-        return cast(bool, data[self._type] == 1)
+            return val == SLEEP_STATE
+        return cast(bool, val == 1)
 
     @property
     def available(self) -> bool:
