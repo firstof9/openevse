@@ -16,7 +16,7 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
-from openevsehttp.exceptions import CommandFailedError
+from openevsehttp.exceptions import CommandFailedError, ParseJSONError
 
 from .const import (
     ATTR_AUTO_RELEASE,
@@ -559,6 +559,11 @@ class OpenEVSEServices:
                 except CONNECTION_ERRORS as err:
                     logger.error(CONNECTION_ERROR, err)
                     return {}
+                except ParseJSONError as err:
+                    logger.error(
+                        "Error parsing response from charger for get_time: %s", err
+                    )
+                    return {}
             except KeyError as err:
                 logger.error("Error locating configuration: %s", err)
                 return {}
@@ -588,6 +593,10 @@ class OpenEVSEServices:
                     logger.debug("Set time command sent successfully.")
                 except CONNECTION_ERRORS as err:
                     logger.error(CONNECTION_ERROR, err)
+                except ParseJSONError as err:
+                    logger.error(
+                        "Error parsing response from charger for set_time: %s", err
+                    )
             except KeyError as err:
                 logger.error("Error locating configuration: %s", err)
 
@@ -606,6 +615,10 @@ class OpenEVSEServices:
                     logger.debug("Sync time command sent successfully.")
                 except CONNECTION_ERRORS as err:
                     logger.error(CONNECTION_ERROR, err)
+                except ParseJSONError as err:
+                    logger.error(
+                        "Error parsing response from charger for sync_time: %s", err
+                    )
             except KeyError as err:
                 logger.error("Error locating configuration: %s", err)
 
