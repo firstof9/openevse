@@ -107,6 +107,9 @@ SERVICE_MAKE_CLAIM = "make_claim"
 SERVICE_LIST_CLAIMS = "list_claims"
 SERVICE_RELEASE_CLAIM = "release_claim"
 SERVICE_LIST_OVERRIDES = "list_overrides"
+SERVICE_GET_TIME = "get_time"
+SERVICE_SET_TIME = "set_time"
+SERVICE_SYNC_TIME = "sync_time"
 
 # attributes
 ATTR_DEVICE_ID = "device_id"
@@ -118,6 +121,9 @@ ATTR_TIME_LIMIT = "time_limit"
 ATTR_AUTO_RELEASE = "auto_release"
 ATTR_TYPE = "type"
 ATTR_VALUE = "value"
+ATTR_TIME = "time"
+ATTR_TIMEZONE = "timezone"
+ATTR_SNTP = "sntp"
 
 SERVICE_LEVELS = ["1", "2", "A"]
 DIVERT_MODE = ["fast", "eco"]

@@ -24,8 +24,11 @@ from .const import (
     ATTR_DEVICE_ID,
     ATTR_ENERGY_LIMIT,
     ATTR_MAX_CURRENT,
+    ATTR_SNTP,
     ATTR_STATE,
+    ATTR_TIME,
     ATTR_TIME_LIMIT,
+    ATTR_TIMEZONE,
     ATTR_TYPE,
     ATTR_VALUE,
     CONF_NAME,
@@ -36,12 +39,15 @@ from .const import (
     SERVICE_CLEAR_LIMIT,
     SERVICE_CLEAR_OVERRIDE,
     SERVICE_GET_LIMIT,
+    SERVICE_GET_TIME,
     SERVICE_LIST_CLAIMS,
     SERVICE_LIST_OVERRIDES,
     SERVICE_MAKE_CLAIM,
     SERVICE_RELEASE_CLAIM,
     SERVICE_SET_LIMIT,
     SERVICE_SET_OVERRIDE,
+    SERVICE_SET_TIME,
+    SERVICE_SYNC_TIME,
 )
 from .logger import OpenEVSELoggerAdapter
 
@@ -170,6 +176,34 @@ class OpenEVSEServices:
             self._list_overrides,
             schema=cv.make_entity_service_schema({}),
             supports_response=SupportsResponse.ONLY,
+        )
+
+        self.hass.services.async_register(
+            DOMAIN,
+            SERVICE_GET_TIME,
+            self._get_time,
+            schema=cv.make_entity_service_schema({}),
+            supports_response=SupportsResponse.ONLY,
+        )
+
+        self.hass.services.async_register(
+            DOMAIN,
+            SERVICE_SET_TIME,
+            self._set_time,
+            schema=cv.make_entity_service_schema(
+                {
+                    vol.Optional(ATTR_TIME): vol.Coerce(str),
+                    vol.Optional(ATTR_TIMEZONE): vol.Coerce(str),
+                    vol.Optional(ATTR_SNTP): vol.Coerce(bool),
+                }
+            ),
+        )
+
+        self.hass.services.async_register(
+            DOMAIN,
+            SERVICE_SYNC_TIME,
+            self._sync_time,
+            schema=cv.make_entity_service_schema({}),
         )
 
     def _get_logger(self, device_id: str | None = None) -> OpenEVSELoggerAdapter:
@@ -453,3 +487,71 @@ class OpenEVSEServices:
                 logger.error("Error locating configuration: %s", err)
                 return {}
         return {}
+
+    async def _get_time(self, service: ServiceCall) -> ServiceResponse:
+        """Get the charger time and NTP synchronization status."""
+        self.logger.debug("Data: %s", service.data)
+        for device_id in self._resolve_target_device_ids(service):
+            logger = self._get_logger(device_id)
+            logger.debug("Device ID: %s", device_id)
+
+            config_id = self._resolve_device_config(device_id)
+            logger.debug("Config ID: %s Type: %s", config_id, type(config_id))
+            try:
+                manager = self.hass.data[DOMAIN][config_id][MANAGER]
+                try:
+                    response = await manager.get_time()
+                    logger.debug("Get time response %s.", response)
+                    return response
+                except CONNECTION_ERRORS as err:
+                    logger.error(CONNECTION_ERROR, err)
+                    return {}
+            except KeyError as err:
+                logger.error("Error locating configuration: %s", err)
+                return {}
+        return {}
+
+    async def _set_time(self, service: ServiceCall) -> None:
+        """Set charger date, time, and timezone."""
+        data = service.data
+        target_time = data.get(ATTR_TIME)
+        timezone_str = data.get(ATTR_TIMEZONE)
+        sntp = data.get(ATTR_SNTP)
+
+        for device_id in self._resolve_target_device_ids(service):
+            logger = self._get_logger(device_id)
+            logger.debug("Device ID: %s", device_id)
+
+            config_id = self._resolve_device_config(device_id)
+            logger.debug("Config ID: %s", config_id)
+            try:
+                manager = self.hass.data[DOMAIN][config_id][MANAGER]
+                try:
+                    await manager.set_time(
+                        target_time=target_time,
+                        timezone_str=timezone_str,
+                        sntp=sntp,
+                    )
+                    logger.debug("Set time command sent successfully.")
+                except CONNECTION_ERRORS as err:
+                    logger.error(CONNECTION_ERROR, err)
+            except KeyError as err:
+                logger.error("Error locating configuration: %s", err)
+
+    async def _sync_time(self, service: ServiceCall) -> None:
+        """Trigger an immediate NTP time synchronization on the charger."""
+        for device_id in self._resolve_target_device_ids(service):
+            logger = self._get_logger(device_id)
+            logger.debug("Device ID: %s", device_id)
+
+            config_id = self._resolve_device_config(device_id)
+            logger.debug("Config ID: %s", config_id)
+            try:
+                manager = self.hass.data[DOMAIN][config_id][MANAGER]
+                try:
+                    await manager.sync_time()
+                    logger.debug("Sync time command sent successfully.")
+                except CONNECTION_ERRORS as err:
+                    logger.error(CONNECTION_ERROR, err)
+            except KeyError as err:
+                logger.error("Error locating configuration: %s", err)

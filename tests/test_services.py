@@ -17,8 +17,11 @@ from custom_components.openevse.const import (
     ATTR_DEVICE_ID,
     ATTR_ENERGY_LIMIT,
     ATTR_MAX_CURRENT,
+    ATTR_SNTP,
     ATTR_STATE,
+    ATTR_TIME,
     ATTR_TIME_LIMIT,
+    ATTR_TIMEZONE,
     ATTR_TYPE,
     ATTR_VALUE,
     DOMAIN,
@@ -26,12 +29,15 @@ from custom_components.openevse.const import (
     SERVICE_CLEAR_LIMIT,
     SERVICE_CLEAR_OVERRIDE,
     SERVICE_GET_LIMIT,
+    SERVICE_GET_TIME,
     SERVICE_LIST_CLAIMS,
     SERVICE_LIST_OVERRIDES,
     SERVICE_MAKE_CLAIM,
     SERVICE_RELEASE_CLAIM,
     SERVICE_SET_LIMIT,
     SERVICE_SET_OVERRIDE,
+    SERVICE_SET_TIME,
+    SERVICE_SYNC_TIME,
 )
 
 from .const import CONFIG_DATA
@@ -42,6 +48,7 @@ CHARGER_NAME = "openevse"
 TEST_URL_CLAIMS = "http://openevse.test.tld/claims"
 TEST_URL_LIMIT = "http://openevse.test.tld/limit"
 TEST_URL_OVERRIDE = "http://openevse.test.tld/override"
+TEST_URL_TIME = "http://openevse.test.tld/time"
 
 
 async def test_list_claims(
@@ -699,6 +706,142 @@ async def test_set_limit_auto_release(
         assert "Set Limit response:" in caplog.text
 
 
+async def test_get_time(
+    hass,
+    test_charger_services,
+    mock_aioclient,
+    mock_ws_start,
+    entity_registry: er.EntityRegistry,
+    caplog,
+):
+    """Test get_time service."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA,
+    )
+    mock_aioclient.get(
+        TEST_URL_TIME,
+        status=200,
+        text='{"time": "2026-03-25T15:30:00Z", "timezone": "UTC", "sntp": true}',
+    )
+    mock_aioclient.get(
+        TEST_URL_OVERRIDE,
+        status=200,
+        text="{}",
+    )
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    entry = entity_registry.async_get("sensor.openevse_station_status")
+    assert entry
+    assert entry.device_id
+
+    with caplog.at_level(logging.DEBUG):
+        response = await hass.services.async_call(
+            DOMAIN,
+            SERVICE_GET_TIME,
+            {ATTR_DEVICE_ID: entry.device_id},
+            blocking=True,
+            return_response=True,
+        )
+        assert response == {
+            "time": "2026-03-25T15:30:00Z",
+            "timezone": "UTC",
+            "sntp": True,
+        }
+
+
+async def test_set_time(
+    hass,
+    test_charger_services,
+    mock_aioclient,
+    mock_ws_start,
+    entity_registry: er.EntityRegistry,
+    caplog,
+):
+    """Test set_time service."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA,
+    )
+    mock_aioclient.post(
+        TEST_URL_TIME,
+        status=200,
+        text='{"msg": "OK"}',
+    )
+    mock_aioclient.get(
+        TEST_URL_OVERRIDE,
+        status=200,
+        text="{}",
+    )
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    entry = entity_registry.async_get("sensor.openevse_station_status")
+    assert entry
+    assert entry.device_id
+
+    with caplog.at_level(logging.DEBUG):
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_SET_TIME,
+            {
+                ATTR_DEVICE_ID: entry.device_id,
+                ATTR_TIME: "2026-03-25T15:30:00Z",
+                ATTR_TIMEZONE: "Europe/London",
+                ATTR_SNTP: False,
+            },
+            blocking=True,
+        )
+        assert "Set time command sent successfully." in caplog.text
+
+
+async def test_sync_time(
+    hass,
+    test_charger_services,
+    mock_aioclient,
+    mock_ws_start,
+    entity_registry: er.EntityRegistry,
+    caplog,
+):
+    """Test sync_time service."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA,
+    )
+    mock_aioclient.post(
+        TEST_URL_TIME,
+        status=200,
+        text='{"msg": "OK"}',
+    )
+    mock_aioclient.get(
+        TEST_URL_OVERRIDE,
+        status=200,
+        text="{}",
+    )
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    entry = entity_registry.async_get("sensor.openevse_station_status")
+    assert entry
+    assert entry.device_id
+
+    with caplog.at_level(logging.DEBUG):
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_SYNC_TIME,
+            {ATTR_DEVICE_ID: entry.device_id},
+            blocking=True,
+        )
+        assert "Sync time command sent successfully." in caplog.text
+
+
 async def test_service_invalid_device_id(
     hass,
     test_charger_services,
@@ -727,6 +870,9 @@ async def test_service_invalid_device_id(
         (SERVICE_RELEASE_CLAIM, {}),
         (SERVICE_LIST_CLAIMS, {}),
         (SERVICE_LIST_OVERRIDES, {}),
+        (SERVICE_GET_TIME, {}),
+        (SERVICE_SET_TIME, {}),
+        (SERVICE_SYNC_TIME, {}),
     ]
 
     for service_name, data in services_to_test:
@@ -738,6 +884,7 @@ async def test_service_invalid_device_id(
             SERVICE_GET_LIMIT,
             SERVICE_LIST_CLAIMS,
             SERVICE_LIST_OVERRIDES,
+            SERVICE_GET_TIME,
         ]
 
         with pytest.raises(ValueError, match="Device ID fake_device_id is not valid"):
@@ -784,6 +931,9 @@ async def test_service_missing_config(
         (SERVICE_RELEASE_CLAIM, {}),
         (SERVICE_LIST_CLAIMS, {}),
         (SERVICE_LIST_OVERRIDES, {}),
+        (SERVICE_GET_TIME, {}),
+        (SERVICE_SET_TIME, {}),
+        (SERVICE_SYNC_TIME, {}),
     ]
 
     for service_name, data in services_to_test:
@@ -795,6 +945,7 @@ async def test_service_missing_config(
             SERVICE_GET_LIMIT,
             SERVICE_LIST_CLAIMS,
             SERVICE_LIST_OVERRIDES,
+            SERVICE_GET_TIME,
         ]
 
         caplog.clear()
@@ -940,6 +1091,9 @@ async def test_services_connection_errors(
         (SERVICE_RELEASE_CLAIM, {}, "release_claim"),
         (SERVICE_LIST_CLAIMS, {}, "list_claims"),
         (SERVICE_LIST_OVERRIDES, {}, "get_override"),
+        (SERVICE_GET_TIME, {}, "get_time"),
+        (SERVICE_SET_TIME, {}, "set_time"),
+        (SERVICE_SYNC_TIME, {}, "sync_time"),
     ]
 
     for service_name, data, manager_method in services_to_test:
@@ -953,6 +1107,7 @@ async def test_services_connection_errors(
                 SERVICE_GET_LIMIT,
                 SERVICE_LIST_CLAIMS,
                 SERVICE_LIST_OVERRIDES,
+                SERVICE_GET_TIME,
             ]
 
             result = await hass.services.async_call(
@@ -1025,6 +1180,16 @@ async def test_services_with_entity_id(
         TEST_URL_CLAIMS,
         status=200,
         text='[{"client": 4, "priority": 500, "state": "disabled", "auto_release": true}]',  # noqa: E501
+    )
+    mock_aioclient.get(
+        TEST_URL_TIME,
+        status=200,
+        text='{"time": "2026-03-25T15:30:00Z", "timezone": "UTC", "sntp": true}',
+    )
+    mock_aioclient.post(
+        TEST_URL_TIME,
+        status=200,
+        text='{"msg": "OK"}',
     )
 
     entry.add_to_hass(hass)
@@ -1144,6 +1309,45 @@ async def test_services_with_entity_id(
     )
     assert response == {}
 
+    # 10. Get time via entity_id
+    response = await hass.services.async_call(
+        DOMAIN,
+        SERVICE_GET_TIME,
+        {"entity_id": target_entity},
+        blocking=True,
+        return_response=True,
+    )
+    assert response == {
+        "time": "2026-03-25T15:30:00Z",
+        "timezone": "UTC",
+        "sntp": True,
+    }
+
+    # 11. Set time via entity_id
+    with caplog.at_level(logging.DEBUG):
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_SET_TIME,
+            {
+                "entity_id": target_entity,
+                ATTR_TIME: "2026-03-25T15:30:00Z",
+                ATTR_TIMEZONE: "UTC",
+                ATTR_SNTP: True,
+            },
+            blocking=True,
+        )
+        assert "Set time command sent successfully." in caplog.text
+
+    # 12. Sync time via entity_id
+    with caplog.at_level(logging.DEBUG):
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_SYNC_TIME,
+            {"entity_id": target_entity},
+            blocking=True,
+        )
+        assert "Sync time command sent successfully." in caplog.text
+
 
 async def test_service_invalid_entity_id(
     hass,
@@ -1213,6 +1417,7 @@ async def test_service_entity_without_device_id(
         SERVICE_GET_LIMIT,
         SERVICE_LIST_CLAIMS,
         SERVICE_LIST_OVERRIDES,
+        SERVICE_GET_TIME,
     ]:
         res = await hass.services.async_call(
             DOMAIN,
