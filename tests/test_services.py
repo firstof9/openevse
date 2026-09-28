@@ -1184,6 +1184,105 @@ async def test_get_rfid_users(
         }
 
 
+async def test_rfid_services_version_check_unsupported(
+    hass,
+    test_charger_services,
+    mock_aioclient,
+    mock_ws_start,
+    entity_registry: er.EntityRegistry,
+    caplog,
+):
+    """Test RFID services are properly gated behind minimum firmware versions."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA,
+    )
+    mock_aioclient.get(
+        TEST_URL_OVERRIDE,
+        status=200,
+        text="{}",
+    )
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    entry = entity_registry.async_get("sensor.openevse_station_status")
+    assert entry
+    assert entry.device_id
+
+    manager = hass.data[DOMAIN][entry.config_entry_id][MANAGER]
+
+    # Test when version_check returns False
+    with (
+        patch.object(
+            manager,
+            "version_check",
+            return_value=False,
+        ),
+        caplog.at_level(logging.WARNING),
+    ):
+        # 1. add_rfid_tag (requires 4.0.0+)
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_ADD_RFID_TAG,
+            {ATTR_DEVICE_ID: entry.device_id},
+            blocking=True,
+        )
+        assert (
+            "RFID tag learning requires firmware version 4.0.0 or higher."
+            in caplog.text
+        )
+
+        caplog.clear()
+        # 2. set_rfid_user (requires 5.0.0+)
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_SET_RFID_USER,
+            {
+                ATTR_DEVICE_ID: entry.device_id,
+                ATTR_RFID: "01020304",
+                ATTR_NAME: "Alice",
+            },
+            blocking=True,
+        )
+        assert (
+            "Managing RFID users requires firmware version 5.0.0 or higher."
+            in caplog.text
+        )
+
+        caplog.clear()
+        # 3. delete_rfid_user (requires 5.0.0+)
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_DELETE_RFID_USER,
+            {
+                ATTR_DEVICE_ID: entry.device_id,
+                ATTR_RFID: "01020304",
+            },
+            blocking=True,
+        )
+        assert (
+            "Managing RFID users requires firmware version 5.0.0 or higher."
+            in caplog.text
+        )
+
+        caplog.clear()
+        # 4. get_rfid_users (requires 5.0.0+)
+        response = await hass.services.async_call(
+            DOMAIN,
+            SERVICE_GET_RFID_USERS,
+            {ATTR_DEVICE_ID: entry.device_id},
+            blocking=True,
+            return_response=True,
+        )
+        assert response == {}
+        assert (
+            "Managing RFID users requires firmware version 5.0.0 or higher."
+            in caplog.text
+        )
+
+
 async def test_service_invalid_device_id(
     hass,
     test_charger_services,
