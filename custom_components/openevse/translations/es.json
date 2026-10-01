@@ -46,6 +46,14 @@
   "options": {
     "step": {
       "init": {
+        "menu_options": {
+          "sensors": "Configurar sensores",
+          "certificate": "Instalar certificado TLS/SSL"
+        },
+        "description": "Selecciona una opción para configurar OpenEVSE.",
+        "title": "Opciones de OpenEVSE"
+      },
+      "sensors": {
         "data": {
           "grid": "Sensor de importación/exportación de red (opcional)",
           "solar": "Sensor de producción solar (opcional)",
@@ -56,11 +64,29 @@
           "vehicle_eta": "Sensor de tiempo hasta carga completa del vehículo (opcional)",
           "home_battery_soc": "Sensor de estado de carga de la batería doméstica (opcional)",
           "home_battery_power": "Sensor de potencia de la batería doméstica (opcional)",
-          "invert_grid": "Importación/exportación de cuadrícula inversa"
+          "invert_grid": "Importación/exportación de cuadrícula inversa",
+          "github_token": "Token de acceso personal de GitHub (opcional)"
         },
         "description": "Configure los sensores para enviar datos a OpenEVSE.\n\nNOTA IMPORTANTE: OpenEVSE espera una importación positiva y una exportación negativa.",
         "title": "Opciones de sensor OpenEVSE"
+      },
+      "certificate": {
+        "data": {
+          "name": "Nombre del certificado",
+          "certificate": "Certificado (formato PEM)",
+          "key": "Clave privada (formato PEM, opcional)"
+        },
+        "description": "Subir un certificado TLS/SSL al cargador OpenEVSE.",
+        "title": "Instalar certificado"
       }
+    },
+    "error": {
+      "communication": "No es posible conectar al cargador OpenEVSE. Por favor, revisa los detalles en el registro.",
+      "command_failed": "Error al instalar el certificado en el cargador.",
+      "unknown": "Se produjo un error inesperado."
+    },
+    "abort": {
+      "firmware_version_unsupported": "Instalar certificados requiere la versión 4.0.0 o superior del firmware de OpenEVSE."
     }
   }
 }

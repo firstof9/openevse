@@ -1,14 +1,14 @@
 """Test config flow."""
 
 from ipaddress import ip_address
-from unittest.mock import ANY, AsyncMock, patch
+from unittest.mock import ANY, AsyncMock, MagicMock, patch
 
 import pytest
 from homeassistant import config_entries, setup
 from homeassistant.const import CONF_HOST
 from homeassistant.data_entry_flow import FlowResultType
 from homeassistant.helpers.service_info.zeroconf import ZeroconfServiceInfo
-from openevsehttp.exceptions import AuthenticationError
+from openevsehttp.exceptions import AuthenticationError, CommandFailedError
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.openevse.const import DOMAIN, MANAGER
@@ -462,8 +462,15 @@ async def test_options_flow(hass, test_charger, mock_ws_start):
     await hass.async_block_till_done()
 
     result = await hass.config_entries.options.async_init(entry.entry_id)
-    assert result["type"] is FlowResultType.FORM
+    assert result["type"] is FlowResultType.MENU
     assert result["step_id"] == "init"
+
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        user_input={"next_step_id": "sensors"},
+    )
+    assert result["type"] is FlowResultType.FORM
+    assert result["step_id"] == "sensors"
 
     result = await hass.config_entries.options.async_configure(
         result["flow_id"],
@@ -515,8 +522,15 @@ async def test_options_flow_defaults(hass, test_charger, mock_ws_start):
     await hass.async_block_till_done()
 
     result = await hass.config_entries.options.async_init(entry.entry_id)
-    assert result["type"] is FlowResultType.FORM
+    assert result["type"] is FlowResultType.MENU
     assert result["step_id"] == "init"
+
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        user_input={"next_step_id": "sensors"},
+    )
+    assert result["type"] is FlowResultType.FORM
+    assert result["step_id"] == "sensors"
 
     # Submit with updated values
     result = await hass.config_entries.options.async_configure(
@@ -557,8 +571,15 @@ async def test_options_flow_all_empty_entities(hass, test_charger, mock_ws_start
     await hass.async_block_till_done()
 
     result = await hass.config_entries.options.async_init(entry.entry_id)
-    assert result["type"] is FlowResultType.FORM
+    assert result["type"] is FlowResultType.MENU
     assert result["step_id"] == "init"
+
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        user_input={"next_step_id": "sensors"},
+    )
+    assert result["type"] is FlowResultType.FORM
+    assert result["step_id"] == "sensors"
 
     # Submit all as empty strings
     result = await hass.config_entries.options.async_configure(
@@ -610,8 +631,15 @@ async def test_options_flow_github_token(hass, test_charger, mock_ws_start):
     assert manager.github_token == "ghp_initialtoken123"
 
     result = await hass.config_entries.options.async_init(entry.entry_id)
-    assert result["type"] is FlowResultType.FORM
+    assert result["type"] is FlowResultType.MENU
     assert result["step_id"] == "init"
+
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        user_input={"next_step_id": "sensors"},
+    )
+    assert result["type"] is FlowResultType.FORM
+    assert result["step_id"] == "sensors"
 
     result = await hass.config_entries.options.async_configure(
         result["flow_id"],
@@ -632,6 +660,148 @@ async def test_options_flow_github_token(hass, test_charger, mock_ws_start):
     new_manager = hass.data[DOMAIN][entry.entry_id][MANAGER]
     assert new_manager.github_token == "ghp_updatedtoken456"
 
+    await hass.config_entries.async_unload(entry.entry_id)
+    await hass.async_block_till_done()
+
+
+async def test_options_flow_certificate_success(hass, test_charger, mock_ws_start):
+    """Test options flow uploading certificate successfully."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA,
+        version=2,
+    )
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    manager = hass.data[DOMAIN][entry.entry_id][MANAGER]
+    manager.version_check = MagicMock(return_value=True)
+    manager.add_certificate = AsyncMock(return_value={"msg": "OK", "id": "4b9c"})
+
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    assert result["type"] is FlowResultType.MENU
+    assert result["step_id"] == "init"
+
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        user_input={"next_step_id": "certificate"},
+    )
+    assert result["type"] is FlowResultType.FORM
+    assert result["step_id"] == "certificate"
+
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        user_input={
+            "name": "My Cert",
+            "certificate": (
+                "-----BEGIN CERTIFICATE-----\nMIIC...\n-----END CERTIFICATE-----"
+            ),
+            "key": "-----BEGIN PRIVATE KEY-----\nMIIE...\n-----END PRIVATE KEY-----",
+        },
+    )
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    manager.add_certificate.assert_awaited_once_with(
+        name="My Cert",
+        certificate=("-----BEGIN CERTIFICATE-----\nMIIC...\n-----END CERTIFICATE-----"),
+        key="-----BEGIN PRIVATE KEY-----\nMIIE...\n-----END PRIVATE KEY-----",
+    )
+
+    await hass.async_block_till_done()
+    await hass.config_entries.async_unload(entry.entry_id)
+    await hass.async_block_till_done()
+
+
+async def test_options_flow_certificate_firmware_unsupported(
+    hass, test_charger, mock_ws_start
+):
+    """Test options flow aborts certificate step on unsupported firmware."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA,
+        version=2,
+    )
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    manager = hass.data[DOMAIN][entry.entry_id][MANAGER]
+    manager.version_check = MagicMock(return_value=False)
+
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    assert result["type"] is FlowResultType.MENU
+
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        user_input={"next_step_id": "certificate"},
+    )
+    assert result["type"] is FlowResultType.ABORT
+    assert result["reason"] == "firmware_version_unsupported"
+
+    await hass.async_block_till_done()
+    await hass.config_entries.async_unload(entry.entry_id)
+    await hass.async_block_till_done()
+
+
+async def test_options_flow_certificate_errors(hass, test_charger, mock_ws_start):
+    """Test options flow error handling when uploading certificate."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA,
+        version=2,
+    )
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    manager = hass.data[DOMAIN][entry.entry_id][MANAGER]
+    manager.version_check = MagicMock(return_value=True)
+
+    # 1. Test CONNECTION_ERRORS (TimeoutError)
+    manager.add_certificate = AsyncMock(side_effect=TimeoutError)
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        user_input={"next_step_id": "certificate"},
+    )
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        user_input={
+            "name": "Cert",
+            "certificate": "cert-data",
+        },
+    )
+    assert result["type"] is FlowResultType.FORM
+    assert result["errors"] == {"base": "communication"}
+
+    # 2. Test CommandFailedError
+    manager.add_certificate = AsyncMock(side_effect=CommandFailedError("Upload failed"))
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        user_input={
+            "name": "Cert",
+            "certificate": "cert-data",
+        },
+    )
+    assert result["type"] is FlowResultType.FORM
+    assert result["errors"] == {"base": "command_failed"}
+
+    # 3. Test generic Exception
+    manager.add_certificate = AsyncMock(side_effect=RuntimeError("Boom"))
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        user_input={
+            "name": "Cert",
+            "certificate": "cert-data",
+        },
+    )
+    assert result["type"] is FlowResultType.FORM
+    assert result["errors"] == {"base": "unknown"}
+
+    await hass.async_block_till_done()
     await hass.config_entries.async_unload(entry.entry_id)
     await hass.async_block_till_done()
 
