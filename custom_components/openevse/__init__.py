@@ -31,6 +31,7 @@ from homeassistant.core import (
 from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.event import async_track_state_change_event
 from homeassistant.helpers.typing import ConfigType
@@ -76,6 +77,7 @@ from .const import (
     VERSION,
 )
 from .logger import OpenEVSELoggerAdapter
+from .repairs import async_process_notifications
 from .services import OpenEVSEServices
 
 _LOGGER = logging.getLogger(__name__)
@@ -523,6 +525,13 @@ async def async_unload_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> 
         await manager.ws_disconnect()
 
     if unload_ok:
+        # Clear any active repair issues
+        coordinator = hass.data[DOMAIN][config_entry.entry_id].get(COORDINATOR)
+        if coordinator and hasattr(coordinator, "_active_repair_issues"):
+            for issue_id in coordinator._active_repair_issues:
+                ir.async_delete_issue(hass, DOMAIN, issue_id)
+            coordinator._active_repair_issues.clear()
+
         # Unsubscribe to any listeners
         for unsub_listener in hass.data[DOMAIN][config_entry.entry_id].get(
             UNSUB_LISTENERS, []
@@ -582,6 +591,7 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
         self._update_lock = asyncio.Lock()
         self._manager.callback = self.websocket_update
         self._last_async_update = 0.0
+        self._active_repair_issues: set[str] = set()
 
         self.logger = OpenEVSELoggerAdapter(
             _LOGGER, {"device_name": config.data.get(CONF_NAME, "OpenEVSE")}
@@ -596,6 +606,33 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
             name=self.name,
             update_interval=self.interval,
         )
+
+    async def async_check_repair_issues(self) -> None:
+        """Fetch advisory notifications and synchronize repair issues."""
+        if not self._manager.version_check("5.1.0"):
+            return
+
+        try:
+            notifications_data = await self._manager.get_notifications()
+        except CONNECTION_ERRORS as err:
+            self.logger.debug("Connection error retrieving notifications: %s", err)
+            return
+        except (CommandFailedError, UnsupportedFeature) as err:
+            self.logger.debug("Error checking notifications: %s", err)
+            return
+        except Exception as err:
+            self.logger.warning("Unexpected error checking notifications: %s", err)
+            return
+
+        current_active = async_process_notifications(
+            self.hass, self.config.entry_id, notifications_data
+        )
+
+        # Clear issues that are no longer active or have been acked
+        for issue_id in self._active_repair_issues - current_active:
+            ir.async_delete_issue(self.hass, DOMAIN, issue_id)
+
+        self._active_repair_issues = current_active
 
     @property
     def async_update_cooldown(self) -> float:
@@ -711,6 +748,7 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
         if should_fetch_async:
             self._last_async_update = now
             new_data.update(await self.async_parse_sensors())
+            await self.async_check_repair_issues()
         else:
             # Retain existing async values from the previous snapshot
             for key, value in self._data.items():

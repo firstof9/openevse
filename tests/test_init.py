@@ -1,6 +1,7 @@
 """Test openevse setup process."""
 
 import asyncio
+import json
 import logging
 from unittest import mock
 from unittest.mock import AsyncMock, patch
@@ -14,13 +15,20 @@ from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import EVENT_HOMEASSISTANT_STARTED
 from homeassistant.core import CoreState
 from homeassistant.exceptions import ConfigEntryAuthFailed
+from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.update_coordinator import UpdateFailed
 from openevsehttp.exceptions import (
     AuthenticationError,
     MissingSerial,
     UnsupportedFeature,
 )
+from openevsehttp.exceptions import (
+    CommandFailedError as OpenevseHttpCommandFailedError,
+)
 from pytest_homeassistant_custom_component.common import MockConfigEntry
+from pytest_homeassistant_custom_component.test_util.aiohttp import (
+    AiohttpClientMockResponse,
+)
 
 from custom_components.openevse import (
     CONFIG_SCHEMA,
@@ -36,6 +44,10 @@ from custom_components.openevse.const import COORDINATOR, DOMAIN, MANAGER
 from custom_components.openevse.entity import (
     OpenEVSENumberEntityDescription,
     OpenEVSESensorEntityDescription,
+)
+from custom_components.openevse.repairs import (
+    async_create_fix_flow,
+    async_process_notifications,
 )
 
 from .const import (
@@ -66,7 +78,7 @@ async def test_setup_entry(hass, test_charger, mock_ws_start):
     await hass.async_block_till_done()
 
     assert len(hass.states.async_entity_ids(BINARY_SENSOR_DOMAIN)) == 4
-    assert len(hass.states.async_entity_ids(SENSOR_DOMAIN)) == 26
+    assert len(hass.states.async_entity_ids(SENSOR_DOMAIN)) == 28
     assert len(hass.states.async_entity_ids(SWITCH_DOMAIN)) == 6
     assert len(hass.states.async_entity_ids(SELECT_DOMAIN)) == 2
     entries = hass.config_entries.async_entries(DOMAIN)
@@ -87,7 +99,7 @@ async def test_setup_entry_bad_serial(hass, test_charger_bad_serial, mock_ws_sta
     await hass.async_block_till_done()
 
     assert len(hass.states.async_entity_ids(BINARY_SENSOR_DOMAIN)) == 4
-    assert len(hass.states.async_entity_ids(SENSOR_DOMAIN)) == 26
+    assert len(hass.states.async_entity_ids(SENSOR_DOMAIN)) == 28
     assert len(hass.states.async_entity_ids(SWITCH_DOMAIN)) == 6
     assert len(hass.states.async_entity_ids(SELECT_DOMAIN)) == 2
     entries = hass.config_entries.async_entries(DOMAIN)
@@ -110,7 +122,7 @@ async def test_setup_and_unload_entry(
     await hass.async_block_till_done()
 
     assert len(hass.states.async_entity_ids(BINARY_SENSOR_DOMAIN)) == 4
-    assert len(hass.states.async_entity_ids(SENSOR_DOMAIN)) == 26
+    assert len(hass.states.async_entity_ids(SENSOR_DOMAIN)) == 28
 
     assert await hass.config_entries.async_unload(entry.entry_id)
     await hass.async_block_till_done()
@@ -139,7 +151,7 @@ async def test_setup_entry_state_change(hass, test_charger, mock_ws_start, caplo
     await hass.async_block_till_done()
 
     assert len(hass.states.async_entity_ids(BINARY_SENSOR_DOMAIN)) == 4
-    assert len(hass.states.async_entity_ids(SENSOR_DOMAIN)) == 27
+    assert len(hass.states.async_entity_ids(SENSOR_DOMAIN)) == 29
     assert len(hass.states.async_entity_ids(SWITCH_DOMAIN)) == 6
     assert len(hass.states.async_entity_ids(SELECT_DOMAIN)) == 2
     entries = hass.config_entries.async_entries(DOMAIN)
@@ -202,7 +214,7 @@ async def test_setup_entry_state_change_timeout(
     await hass.async_block_till_done()
 
     assert len(hass.states.async_entity_ids(BINARY_SENSOR_DOMAIN)) == 4
-    assert len(hass.states.async_entity_ids(SENSOR_DOMAIN)) == 27
+    assert len(hass.states.async_entity_ids(SENSOR_DOMAIN)) == 29
     assert len(hass.states.async_entity_ids(SWITCH_DOMAIN)) == 6
     assert len(hass.states.async_entity_ids(SELECT_DOMAIN)) == 2
     entries = hass.config_entries.async_entries(DOMAIN)
@@ -234,7 +246,7 @@ async def test_setup_entry_state_change_2(hass, test_charger, mock_ws_start, cap
     await hass.async_block_till_done()
 
     assert len(hass.states.async_entity_ids(BINARY_SENSOR_DOMAIN)) == 4
-    assert len(hass.states.async_entity_ids(SENSOR_DOMAIN)) == 28
+    assert len(hass.states.async_entity_ids(SENSOR_DOMAIN)) == 30
     assert len(hass.states.async_entity_ids(SWITCH_DOMAIN)) == 6
     assert len(hass.states.async_entity_ids(SELECT_DOMAIN)) == 2
     entries = hass.config_entries.async_entries(DOMAIN)
@@ -271,7 +283,7 @@ async def test_setup_entry_state_change_2_bad_post(
     await hass.async_block_till_done()
 
     assert len(hass.states.async_entity_ids(BINARY_SENSOR_DOMAIN)) == 4
-    assert len(hass.states.async_entity_ids(SENSOR_DOMAIN)) == 28
+    assert len(hass.states.async_entity_ids(SENSOR_DOMAIN)) == 30
     assert len(hass.states.async_entity_ids(SWITCH_DOMAIN)) == 6
     assert len(hass.states.async_entity_ids(SELECT_DOMAIN)) == 2
     entries = hass.config_entries.async_entries(DOMAIN)
@@ -337,7 +349,7 @@ async def test_setup_entry_v2(hass, test_charger_v2, mock_ws_start):
     await hass.async_block_till_done()
 
     assert len(hass.states.async_entity_ids(BINARY_SENSOR_DOMAIN)) == 4
-    assert len(hass.states.async_entity_ids(SENSOR_DOMAIN)) == 26
+    assert len(hass.states.async_entity_ids(SENSOR_DOMAIN)) == 28
     assert len(hass.states.async_entity_ids(SWITCH_DOMAIN)) == 6
     assert len(hass.states.async_entity_ids(SELECT_DOMAIN)) == 2
     entries = hass.config_entries.async_entries(DOMAIN)
@@ -1379,3 +1391,336 @@ async def test_async_setup(hass):
     """Test async_setup disallows YAML configuration and returns True."""
     assert await async_setup(hass, {})
     assert CONFIG_SCHEMA is not None
+
+
+async def test_repair_issues_sync(hass, test_charger, mock_ws_start, mock_aioclient):
+    """Test advisory notifications create and clear repair issues."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA,
+        version=2,
+    )
+    notif_data = {
+        "count": 2,
+        "max_severity": "critical",
+        "notifications": [
+            {
+                "id": "safety.ground_check",
+                "category": "safety",
+                "severity": "critical",
+                "sticky": False,
+                "acked": False,
+            },
+            {
+                "id": "wifi.weak_signal",
+                "category": "connectivity",
+                "severity": "warning",
+                "sticky": False,
+                "acked": False,
+            },
+        ],
+    }
+    notif_data_updated = {
+        "count": 1,
+        "max_severity": "warning",
+        "notifications": [
+            {
+                "id": "safety.ground_check",
+                "category": "safety",
+                "severity": "critical",
+                "sticky": False,
+                "acked": True,
+            },
+            {
+                "id": "wifi.weak_signal",
+                "category": "connectivity",
+                "severity": "warning",
+                "sticky": False,
+                "acked": False,
+            },
+        ],
+    }
+    responses = [
+        json.dumps(notif_data),
+        json.dumps(notif_data_updated),
+    ]
+
+    async def notif_response(method, url, data):
+        text = responses.pop(0) if responses else "{}"
+        return AiohttpClientMockResponse(
+            method=method,
+            url=url,
+            status=200,
+            text=text,
+        )
+
+    mock_aioclient.get(
+        "http://openevse.test.tld/notifications",
+        side_effect=notif_response,
+    )
+
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
+
+    issue_registry = ir.async_get(hass)
+    issue_ground = issue_registry.async_get_issue(
+        DOMAIN, f"advisory_{entry.entry_id}_safety.ground_check"
+    )
+    assert issue_ground is not None
+    assert issue_ground.severity == ir.IssueSeverity.CRITICAL
+    assert issue_ground.is_fixable is True
+
+    issue_wifi = issue_registry.async_get_issue(
+        DOMAIN, f"advisory_{entry.entry_id}_wifi.weak_signal"
+    )
+    assert issue_wifi is not None
+    assert issue_wifi.severity == ir.IssueSeverity.WARNING
+
+    # Next update: ground_check is resolved/acked
+    await coordinator.async_check_repair_issues()
+    await hass.async_block_till_done()
+
+    assert (
+        issue_registry.async_get_issue(
+            DOMAIN, f"advisory_{entry.entry_id}_safety.ground_check"
+        )
+        is None
+    )
+    assert (
+        issue_registry.async_get_issue(
+            DOMAIN, f"advisory_{entry.entry_id}_wifi.weak_signal"
+        )
+        is not None
+    )
+
+
+async def test_repair_fix_flow(hass, test_charger, mock_ws_start, mock_aioclient):
+    """Test fixing an advisory repair issue acknowledges it on the charger."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA,
+        version=2,
+    )
+    mock_aioclient.post(
+        "http://openevse.test.tld/notifications/ack",
+        status=200,
+        text='{"msg": "OK"}',
+    )
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    issue_id = f"advisory_{entry.entry_id}_safety.ground_check"
+    flow = await async_create_fix_flow(
+        hass,
+        issue_id,
+        {"entry_id": entry.entry_id, "notification_id": "safety.ground_check"},
+    )
+    flow.hass = hass
+
+    # Step init shows confirm form
+    step_init = await flow.async_step_init()
+    assert step_init["type"] == "form"
+    assert step_init["step_id"] == "confirm"
+
+    # Step confirm submits and creates entry
+    result = await flow.async_step_confirm(user_input={})
+    assert result["type"] == "create_entry"
+
+    # Test fallback flow when no data is provided
+    fallback_flow = await async_create_fix_flow(hass, "some_issue", None)
+    assert fallback_flow is not None
+
+
+async def test_repair_issues_cleared_on_unload(
+    hass, test_charger, mock_ws_start, mock_aioclient
+):
+    """Test repair issues are cleaned up when the integration entry is unloaded."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA,
+        version=2,
+    )
+    notif_data = {
+        "count": 1,
+        "max_severity": "warning",
+        "notifications": [
+            {
+                "id": "safety.ground_check",
+                "category": "safety",
+                "severity": "warning",
+                "sticky": False,
+                "acked": False,
+            }
+        ],
+    }
+    mock_aioclient.get(
+        "http://openevse.test.tld/notifications",
+        status=200,
+        text=json.dumps(notif_data),
+    )
+
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
+    await coordinator.async_check_repair_issues()
+    await hass.async_block_till_done()
+
+    issue_registry = ir.async_get(hass)
+    issue_id = f"advisory_{entry.entry_id}_safety.ground_check"
+    assert issue_registry.async_get_issue(DOMAIN, issue_id) is not None
+
+    # Unload entry
+    assert await hass.config_entries.async_unload(entry.entry_id)
+    await hass.async_block_till_done()
+
+    assert issue_registry.async_get_issue(DOMAIN, issue_id) is None
+
+
+async def test_repair_fix_flow_error_handling(
+    hass, test_charger, mock_ws_start, mock_aioclient, caplog
+):
+    """Test error handling in repair fix flow."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA,
+        version=2,
+    )
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    manager = hass.data[DOMAIN][entry.entry_id][MANAGER]
+    manager.acknowledge_notification = AsyncMock(
+        side_effect=OpenevseHttpCommandFailedError("Device failed to acknowledge")
+    )
+
+    issue_id = f"advisory_{entry.entry_id}_safety.ground_check"
+    flow = await async_create_fix_flow(
+        hass,
+        issue_id,
+        {"entry_id": entry.entry_id, "notification_id": "safety.ground_check"},
+    )
+    flow.hass = hass
+
+    with caplog.at_level(logging.ERROR):
+        result = await flow.async_step_confirm(user_input={})
+        assert result["type"] == "create_entry"
+        assert "Failed to acknowledge notification" in caplog.text
+
+
+async def test_async_process_notifications_edge_cases(hass):
+    """Test defensive guards and severity parsing in async_process_notifications."""
+    # 1. Non-dict notifications_data
+    assert async_process_notifications(hass, "test_entry", None) == set()
+    assert async_process_notifications(hass, "test_entry", "not_a_dict") == set()
+
+    # 2. Non-list notifications key
+    assert (
+        async_process_notifications(hass, "test_entry", {"notifications": "not_a_list"})
+        == set()
+    )
+
+    # 3. Item is not a dict or missing id
+    result = async_process_notifications(
+        hass,
+        "test_entry",
+        {
+            "notifications": [
+                "not_a_dict",
+                {"id": None},
+                {"no_id": True},
+                {"id": 12345},  # not a string
+                {
+                    "id": "safety.error_item",
+                    "severity": "error",
+                    "category": "safety",
+                    "acked": False,
+                },
+            ]
+        },
+    )
+    assert result == {"advisory_test_entry_safety.error_item"}
+
+    issue_registry = ir.async_get(hass)
+    issue = issue_registry.async_get_issue(
+        DOMAIN, "advisory_test_entry_safety.error_item"
+    )
+    assert issue is not None
+    assert issue.severity == ir.IssueSeverity.ERROR
+
+
+async def test_coordinator_repair_issues_exceptions(
+    hass, test_charger, mock_ws_start, mock_aioclient, caplog
+):
+    """Test coordinator handles exceptions during async_check_repair_issues."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA,
+        version=2,
+    )
+    mock_aioclient.get(
+        "http://openevse.test.tld/notifications",
+        status=200,
+        text="{}",
+    )
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
+    manager = hass.data[DOMAIN][entry.entry_id][MANAGER]
+
+    # Connection error
+    with (
+        patch.object(manager, "get_notifications", side_effect=asyncio.TimeoutError),
+        caplog.at_level(logging.DEBUG),
+    ):
+        await coordinator.async_check_repair_issues()
+        assert "Connection error retrieving notifications" in caplog.text
+
+    # CommandFailedError
+    with (
+        patch.object(
+            manager,
+            "get_notifications",
+            side_effect=CommandFailedError("Command failed"),
+        ),
+        caplog.at_level(logging.DEBUG),
+    ):
+        await coordinator.async_check_repair_issues()
+        assert "Error checking notifications" in caplog.text
+
+    # UnsupportedFeature
+    with (
+        patch.object(
+            manager,
+            "get_notifications",
+            side_effect=UnsupportedFeature("Not supported"),
+        ),
+        caplog.at_level(logging.DEBUG),
+    ):
+        await coordinator.async_check_repair_issues()
+        assert "Error checking notifications" in caplog.text
+
+    # Unexpected Exception
+    with (
+        patch.object(
+            manager,
+            "get_notifications",
+            side_effect=RuntimeError("Unexpected error"),
+        ),
+        caplog.at_level(logging.WARNING),
+    ):
+        await coordinator.async_check_repair_issues()
+        assert "Unexpected error checking notifications" in caplog.text

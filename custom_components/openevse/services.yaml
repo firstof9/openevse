@@ -361,3 +361,25 @@ delete_certificate:
       example: "3a8f"
       selector:
         text:
+
+get_notifications:
+  name: Get advisory notifications
+  description: Retrieves the active advisory notifications list from the gateway (requires firmware v5.1.0+).
+  target:
+    entity:
+      integration: openevse
+
+acknowledge_notification:
+  name: Acknowledge advisory notification
+  description: Acknowledges (mutes) an active advisory notification on the gateway (requires firmware v5.1.0+).
+  target:
+    entity:
+      integration: openevse
+  fields:
+    notification_id:
+      name: Notification ID
+      description: Identifier of the advisory notification to acknowledge (e.g., safety.ground_check).
+      required: true
+      example: "safety.ground_check"
+      selector:
+        text:

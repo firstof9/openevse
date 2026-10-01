@@ -53,6 +53,8 @@ CHARGER_DATA = {
     "gfi_trip_count": 1,
     "no_gnd_trip_count": 0,
     "stuck_relay_trip_count": 0,
+    "notifications_count": 1,
+    "notifications_severity": "warning",
 }
 CONFIG_DATA = {
     "name": "openevse",
@@ -133,6 +135,8 @@ DIAG_DEVICE_RESULTS = {
     "state": "sleeping",
     "status": "sleeping",
     "stuck_relay_trip_count": 0,
+    "notifications_count": 1,
+    "notifications_severity": "warning",
     "total_day": None,
     "total_month": None,
     "total_week": None,

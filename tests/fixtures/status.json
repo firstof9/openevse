@@ -50,5 +50,9 @@
     "vehicle_soc": 75,
     "vehicle_range": 468,
     "vehicle_eta": 18000,
-    "max_current": 48
+    "max_current": 48,
+    "notifications": {
+        "count": 1,
+        "severity": "warning"
+    }
 }
