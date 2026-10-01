@@ -118,6 +118,9 @@ SERVICE_ADD_RFID_TAG = "add_rfid_tag"
 SERVICE_SET_RFID_USER = "set_rfid_user"
 SERVICE_DELETE_RFID_USER = "delete_rfid_user"
 SERVICE_GET_RFID_USERS = "get_rfid_users"
+SERVICE_GET_CERTIFICATES = "get_certificates"
+SERVICE_ADD_CERTIFICATE = "add_certificate"
+SERVICE_DELETE_CERTIFICATE = "delete_certificate"
 
 # attributes
 ATTR_DEVICE_ID = "device_id"
@@ -135,6 +138,9 @@ ATTR_SNTP = "sntp"
 ATTR_RFID = "rfid"
 ATTR_NAME = "name"
 ATTR_PERSON = "person"
+ATTR_CERTIFICATE_ID = "certificate_id"
+ATTR_CERTIFICATE = "certificate"
+ATTR_KEY = "key"
 
 SERVICE_LEVELS = ["1", "2", "A"]
 DIVERT_MODE = ["fast", "eco"]

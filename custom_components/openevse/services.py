@@ -20,9 +20,12 @@ from openevsehttp.exceptions import CommandFailedError, ParseJSONError
 
 from .const import (
     ATTR_AUTO_RELEASE,
+    ATTR_CERTIFICATE,
+    ATTR_CERTIFICATE_ID,
     ATTR_CHARGE_CURRENT,
     ATTR_DEVICE_ID,
     ATTR_ENERGY_LIMIT,
+    ATTR_KEY,
     ATTR_MAX_CURRENT,
     ATTR_NAME,
     ATTR_PERSON,
@@ -40,10 +43,13 @@ from .const import (
     DOMAIN,
     FW_VERSION_WARN,
     MANAGER,
+    SERVICE_ADD_CERTIFICATE,
     SERVICE_ADD_RFID_TAG,
     SERVICE_CLEAR_LIMIT,
     SERVICE_CLEAR_OVERRIDE,
+    SERVICE_DELETE_CERTIFICATE,
     SERVICE_DELETE_RFID_USER,
+    SERVICE_GET_CERTIFICATES,
     SERVICE_GET_LIMIT,
     SERVICE_GET_RFID_USERS,
     SERVICE_GET_TIME,
@@ -257,6 +263,43 @@ class OpenEVSEServices:
             self._get_rfid_users,
             schema=cv.make_entity_service_schema({}),
             supports_response=SupportsResponse.ONLY,
+        )
+
+        self.hass.services.async_register(
+            DOMAIN,
+            SERVICE_GET_CERTIFICATES,
+            self._get_certificates,
+            schema=cv.make_entity_service_schema(
+                {
+                    vol.Optional(ATTR_CERTIFICATE_ID): vol.Coerce(str),
+                }
+            ),
+            supports_response=SupportsResponse.ONLY,
+        )
+
+        self.hass.services.async_register(
+            DOMAIN,
+            SERVICE_ADD_CERTIFICATE,
+            self._add_certificate,
+            schema=cv.make_entity_service_schema(
+                {
+                    vol.Required(ATTR_NAME): vol.Coerce(str),
+                    vol.Required(ATTR_CERTIFICATE): vol.Coerce(str),
+                    vol.Optional(ATTR_KEY): vol.Coerce(str),
+                }
+            ),
+            supports_response=SupportsResponse.OPTIONAL,
+        )
+
+        self.hass.services.async_register(
+            DOMAIN,
+            SERVICE_DELETE_CERTIFICATE,
+            self._delete_certificate,
+            schema=cv.make_entity_service_schema(
+                {
+                    vol.Required(ATTR_CERTIFICATE_ID): vol.Coerce(str),
+                }
+            ),
         )
 
     def _get_logger(self, device_id: str | None = None) -> OpenEVSELoggerAdapter:
@@ -722,3 +765,99 @@ class OpenEVSEServices:
                 logger.error("Error locating configuration: %s", err)
                 return {}
         return {}
+
+    async def _get_certificates(self, service: ServiceCall) -> ServiceResponse:
+        """Retrieve installed certificates from the charger."""
+        certificate_id = service.data.get(ATTR_CERTIFICATE_ID)
+        for device_id in self._resolve_target_device_ids(service):
+            logger = self._get_logger(device_id)
+            logger.debug("Device ID: %s", device_id)
+
+            config_id = self._resolve_device_config(device_id)
+            logger.debug("Config ID: %s", config_id)
+            try:
+                manager = self.hass.data[DOMAIN][config_id][MANAGER]
+                if not manager.version_check("4.0.0"):
+                    logger.warning(FW_VERSION_WARN, "Managing certificates", "4.0.0")
+                    return {}
+                try:
+                    certificates = await manager.get_certificates(
+                        certificate_id=certificate_id
+                    )
+                    logger.debug("Get certificates response: %s", certificates)
+                    return {"certificates": certificates}
+                except CONNECTION_ERRORS as err:
+                    logger.error(CONNECTION_ERROR, err)
+                    return {}
+                except CommandFailedError as err:
+                    logger.error("Error retrieving certificates: %s", err)
+                    raise HomeAssistantError(
+                        f"Error retrieving certificates: {err}"
+                    ) from err
+            except KeyError as err:
+                logger.error("Error locating configuration: %s", err)
+                return {}
+        return {}
+
+    async def _add_certificate(self, service: ServiceCall) -> ServiceResponse:
+        """Add a certificate to the charger."""
+        data = service.data
+        name = data[ATTR_NAME]
+        certificate = data[ATTR_CERTIFICATE]
+        key = data.get(ATTR_KEY)
+
+        for device_id in self._resolve_target_device_ids(service):
+            logger = self._get_logger(device_id)
+            logger.debug("Device ID: %s", device_id)
+
+            config_id = self._resolve_device_config(device_id)
+            logger.debug("Config ID: %s", config_id)
+            try:
+                manager = self.hass.data[DOMAIN][config_id][MANAGER]
+                if not manager.version_check("4.0.0"):
+                    logger.warning(FW_VERSION_WARN, "Managing certificates", "4.0.0")
+                    return None
+                try:
+                    response = await manager.add_certificate(
+                        name=name, certificate=certificate, key=key
+                    )
+                    logger.debug("Add certificate response: %s", response)
+                    return response
+                except CONNECTION_ERRORS as err:
+                    logger.error(CONNECTION_ERROR, err)
+                except CommandFailedError as err:
+                    logger.error("Error adding certificate: %s", err)
+                    raise HomeAssistantError(
+                        f"Error adding certificate: {err}"
+                    ) from err
+            except KeyError as err:
+                logger.error("Error locating configuration: %s", err)
+        return None
+
+    async def _delete_certificate(self, service: ServiceCall) -> None:
+        """Delete a certificate from the charger."""
+        certificate_id = service.data[ATTR_CERTIFICATE_ID]
+
+        for device_id in self._resolve_target_device_ids(service):
+            logger = self._get_logger(device_id)
+            logger.debug("Device ID: %s", device_id)
+
+            config_id = self._resolve_device_config(device_id)
+            logger.debug("Config ID: %s", config_id)
+            try:
+                manager = self.hass.data[DOMAIN][config_id][MANAGER]
+                if not manager.version_check("4.0.0"):
+                    logger.warning(FW_VERSION_WARN, "Managing certificates", "4.0.0")
+                    continue
+                try:
+                    await manager.delete_certificate(certificate_id=certificate_id)
+                    logger.debug("Delete certificate command sent successfully.")
+                except CONNECTION_ERRORS as err:
+                    logger.error(CONNECTION_ERROR, err)
+                except CommandFailedError as err:
+                    logger.error("Error deleting certificate: %s", err)
+                    raise HomeAssistantError(
+                        f"Error deleting certificate: {err}"
+                    ) from err
+            except KeyError as err:
+                logger.error("Error locating configuration: %s", err)
