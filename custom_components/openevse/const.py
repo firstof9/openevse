@@ -502,6 +502,30 @@ SENSOR_TYPES: Final[tuple[OpenEVSESensorEntityDescription, ...]] = (
         min_version="4.2.2",
         value_fn=lambda data: data.get("current_power"),
     ),
+    OpenEVSESensorEntityDescription(
+        key="gfi_trip_count",
+        name="GFCI Trip Count",
+        icon="mdi:counter",
+        state_class=SensorStateClass.TOTAL_INCREASING,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=lambda data: data.get("gfi_trip_count"),
+    ),
+    OpenEVSESensorEntityDescription(
+        key="no_gnd_trip_count",
+        name="No Ground Trip Count",
+        icon="mdi:counter",
+        state_class=SensorStateClass.TOTAL_INCREASING,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=lambda data: data.get("no_gnd_trip_count"),
+    ),
+    OpenEVSESensorEntityDescription(
+        key="stuck_relay_trip_count",
+        name="Stuck Relay Trip Count",
+        icon="mdi:counter",
+        state_class=SensorStateClass.TOTAL_INCREASING,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=lambda data: data.get("stuck_relay_trip_count"),
+    ),
 )
 
 SWITCH_TYPES: Final[tuple[OpenEVSESwitchEntityDescription, ...]] = (
