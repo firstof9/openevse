@@ -820,6 +820,12 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
         data.update(self._collect_values(SWITCH_TYPES, "switch"))
         if "vehicle_range" in data and isinstance(data["vehicle_range"], tuple):
             data["vehicle_range"] = data["vehicle_range"][0]
+        cable_temps = getattr(self._manager, "cable_temperatures", None)
+        if isinstance(cable_temps, dict):
+            for src in ("ev1", "ev2", "in1", "in2"):
+                key = f"cable_temperature_{src}"
+                if src in cable_temps and cable_temps[src] is not None:
+                    data[key] = cable_temps[src]
         self.logger.debug("Parsed data: %s", data)
         return data
 

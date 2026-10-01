@@ -58,6 +58,7 @@ class OpenEVSESwitchEntityDescription(SwitchEntityDescription):
 
     toggle_command: str | None = None
     min_version: str | None = None
+    min_controller_version: str | None = None
     value_fn: Callable[[dict[str, Any]], Any] | None = None
 
 
@@ -90,6 +91,7 @@ class OpenEVSESensorEntityDescription(SensorEntityDescription):
     is_async_value: bool | None = False
     value: str | None = None
     min_version: str | None = None
+    min_controller_version: str | None = None
     value_fn: Callable[[dict[str, Any]], Any] | None = None
 
 

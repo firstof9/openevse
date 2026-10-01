@@ -226,6 +226,15 @@ async def test_sensors_new(
         assert updated_entry != entity_entry
         assert updated_entry.disabled is False
 
+        # enable disabled cable temperature sensor
+        cable_sensor_id = "sensor.openevse_cable_temperature_ev1"
+        cable_entry = entity_registry.async_get(cable_sensor_id)
+        assert cable_entry
+        assert cable_entry.disabled
+        assert cable_entry.disabled_by is er.RegistryEntryDisabler.INTEGRATION
+
+        entity_registry.async_update_entity(cable_entry.entity_id, disabled_by=None)
+
         # reload the integration
         assert await hass.config_entries.async_forward_entry_unload(entry, "sensor")
         await hass.config_entries.async_forward_entry_setups(entry, ["sensor"])
@@ -234,6 +243,69 @@ async def test_sensors_new(
         state = hass.states.get("sensor.openevse_vehicle_charge_completion")
         assert state
         assert state.state == "unknown"
+
+        # Cable temperature sensor should be unavailable without controller 9.4.0+
+        state = hass.states.get(cable_sensor_id)
+        assert state
+        assert state.state == "unavailable"
+
+        # With controller 9.4.0+ and sensor data in coordinator, show value
+        manager = hass.data[DOMAIN][entry.entry_id]["manager"]
+        coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
+        with patch.object(manager, "controller_version_check", return_value=True):
+            coordinator.data["cable_temperature_ev1"] = 42.5
+            coordinator.async_set_updated_data(coordinator.data)
+            await hass.async_block_till_done()
+
+            state = hass.states.get(cable_sensor_id)
+            assert state
+            assert state.state == "42.5"
+
+
+async def test_sensors_controller_v9(
+    hass,
+    test_charger_controller_v9,
+    mock_ws_start,
+    mock_aioclient,
+    entity_registry: er.EntityRegistry,
+    caplog,
+):
+    """Test sensors setup and cable temperatures with controller v9.4.0 fixture."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA,
+    )
+    with caplog.at_level(logging.DEBUG):
+        entry.add_to_hass(hass)
+        assert await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+
+        assert len(hass.states.async_entity_ids(SENSOR_DOMAIN)) == 23
+
+        # enable disabled cable temperature sensors
+        for sensor_id in (
+            "sensor.openevse_cable_temperature_ev1",
+            "sensor.openevse_cable_temperature_inlet_1",
+        ):
+            cable_entry = entity_registry.async_get(sensor_id)
+            assert cable_entry
+            assert cable_entry.disabled
+            entity_registry.async_update_entity(cable_entry.entity_id, disabled_by=None)
+
+        # reload sensor platform to load enabled sensors
+        assert await hass.config_entries.async_forward_entry_unload(entry, "sensor")
+        await hass.config_entries.async_forward_entry_setups(entry, ["sensor"])
+        await hass.async_block_till_done()
+
+        # Decoded from fixture status-controller-v9 (425 -> 42.5, 380 -> 38.0)
+        state_ev1 = hass.states.get("sensor.openevse_cable_temperature_ev1")
+        assert state_ev1
+        assert state_ev1.state == "42.5"
+
+        state_in1 = hass.states.get("sensor.openevse_cable_temperature_inlet_1")
+        assert state_in1
+        assert state_in1.state == "38.0"
 
 
 async def test_sensor_coverage_icon_and_version(
@@ -482,3 +554,44 @@ async def test_sensor_coverage_gaps(hass, test_charger, mock_ws_start):
     entity = OpenEVSESensor(description_no_val_fn, "test_unique_id", coordinator, entry)
     coordinator.data = {"test_sensor_key": "some_value"}
     assert entity.native_value == "some_value"
+
+    # Test sensor min_controller_version coverage
+    manager = hass.data[DOMAIN][entry.entry_id]["manager"]
+    desc_controller = MagicMock(
+        key="cable_temp_test",
+        name="Cable Temp Test",
+        min_version="5.1.0",
+        min_controller_version="9.4.0",
+        value_fn=None,
+        native_unit_of_measurement=None,
+        icon=None,
+    )
+    entity_controller = OpenEVSESensor(
+        desc_controller, entry.entry_id, coordinator, entry
+    )
+    entity_controller.hass = hass
+    coordinator.data["cable_temp_test"] = 25.0
+    with (
+        patch.object(manager, "version_check", return_value=True),
+        patch.object(manager, "controller_version_check", return_value=False),
+    ):
+        assert entity_controller.available is False
+
+    with (
+        patch.object(manager, "version_check", return_value=True),
+        patch.object(manager, "controller_version_check", return_value=True),
+    ):
+        assert entity_controller.available is True
+
+    # Test coordinator parse_sensors cable_temperatures unpacking
+    with patch.object(
+        type(manager),
+        "cable_temperatures",
+        new_callable=PropertyMock,
+        return_value={"ev1": 35.5, "ev2": None, "in1": 40.0, "in2": None},
+    ):
+        data = coordinator.parse_sensors()
+        assert data.get("cable_temperature_ev1") == 35.5
+        assert data.get("cable_temperature_in1") == 40.0
+        assert "cable_temperature_ev2" not in data
+        assert "cable_temperature_in2" not in data
