@@ -3,21 +3,24 @@
 import asyncio
 import json
 import logging
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 import voluptuous as vol
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
-from openevsehttp.exceptions import ParseJSONError
+from openevsehttp.exceptions import CommandFailedError, ParseJSONError
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.openevse.const import (
     ATTR_AUTO_RELEASE,
+    ATTR_CERTIFICATE,
+    ATTR_CERTIFICATE_ID,
     ATTR_CHARGE_CURRENT,
     ATTR_DEVICE_ID,
     ATTR_ENERGY_LIMIT,
+    ATTR_KEY,
     ATTR_MAX_CURRENT,
     ATTR_NAME,
     ATTR_PERSON,
@@ -31,10 +34,13 @@ from custom_components.openevse.const import (
     ATTR_VALUE,
     DOMAIN,
     MANAGER,
+    SERVICE_ADD_CERTIFICATE,
     SERVICE_ADD_RFID_TAG,
     SERVICE_CLEAR_LIMIT,
     SERVICE_CLEAR_OVERRIDE,
+    SERVICE_DELETE_CERTIFICATE,
     SERVICE_DELETE_RFID_USER,
+    SERVICE_GET_CERTIFICATES,
     SERVICE_GET_LIMIT,
     SERVICE_GET_RFID_USERS,
     SERVICE_GET_TIME,
@@ -60,6 +66,7 @@ TEST_URL_OVERRIDE = "http://openevse.test.tld/override"
 TEST_URL_TIME = "http://openevse.test.tld/time"
 TEST_URL_RFID_ADD = "http://openevse.test.tld/rfid/add"
 TEST_URL_RFID_USERS = "http://openevse.test.tld/rfid/users"
+TEST_URL_CERTIFICATES = "http://openevse.test.tld/certificates"
 
 
 async def test_list_claims(
@@ -837,7 +844,9 @@ async def test_set_time_no_parameters(
     assert entry
     assert entry.device_id
 
-    with pytest.raises(vol.Invalid, match="must contain at least one of"):
+    with pytest.raises(
+        vol.Invalid, match="(must contain at least one of|at least one of)"
+    ):
         await hass.services.async_call(
             DOMAIN,
             SERVICE_SET_TIME,
@@ -1205,7 +1214,9 @@ async def test_set_rfid_user_no_name_or_person(
     assert entry
     assert entry.device_id
 
-    with pytest.raises(vol.Invalid, match="must contain at least one of"):
+    with pytest.raises(
+        vol.Invalid, match="(must contain at least one of|at least one of)"
+    ):
         await hass.services.async_call(
             DOMAIN,
             SERVICE_SET_RFID_USER,
@@ -1510,6 +1521,9 @@ async def test_service_missing_config(
         (SERVICE_SET_RFID_USER, {ATTR_RFID: "01020304", ATTR_NAME: "Alice"}),
         (SERVICE_DELETE_RFID_USER, {ATTR_RFID: "01020304"}),
         (SERVICE_GET_RFID_USERS, {}),
+        (SERVICE_GET_CERTIFICATES, {}),
+        (SERVICE_ADD_CERTIFICATE, {ATTR_NAME: "test", ATTR_CERTIFICATE: "test"}),
+        (SERVICE_DELETE_CERTIFICATE, {ATTR_CERTIFICATE_ID: "3a8f"}),
     ]
 
     for service_name, data in services_to_test:
@@ -1523,6 +1537,7 @@ async def test_service_missing_config(
             SERVICE_LIST_OVERRIDES,
             SERVICE_GET_TIME,
             SERVICE_GET_RFID_USERS,
+            SERVICE_GET_CERTIFICATES,
         ]
 
         caplog.clear()
@@ -1598,12 +1613,16 @@ async def test_services_with_none_values(
         assert "Set Override response:" in caplog.text
 
 
-async def test_services_coverage_gaps(hass, test_charger, mock_ws_start, caplog):
+async def test_services_coverage_gaps(
+    hass, test_charger, mock_ws_start, entity_registry: er.EntityRegistry, caplog
+):
     """Verify services coverage gaps."""
     entry = MockConfigEntry(domain=DOMAIN, data=CONFIG_DATA)
     entry.add_to_hass(hass)
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
+
+    entry_entity = entity_registry.async_get("sensor.openevse_station_status")
 
     # Test ValueError if device ID is not valid
     with pytest.raises(ValueError, match="Device ID invalid_device is not valid"):
@@ -1634,6 +1653,33 @@ async def test_services_coverage_gaps(hass, test_charger, mock_ws_start, caplog)
             {"device_id": device_no_conn.id, "state": "active"},
             blocking=True,
         )
+
+    # Test services with response when no target devices are resolved
+    with patch(
+        "custom_components.openevse.services.OpenEVSEServices._resolve_target_device_ids",
+        return_value=[],
+    ):
+        res_get = await hass.services.async_call(
+            DOMAIN,
+            SERVICE_GET_CERTIFICATES,
+            {"device_id": entry_entity.device_id},
+            blocking=True,
+            return_response=True,
+        )
+        assert res_get == {}
+
+        res_add = await hass.services.async_call(
+            DOMAIN,
+            SERVICE_ADD_CERTIFICATE,
+            {
+                "device_id": entry_entity.device_id,
+                ATTR_NAME: "test",
+                ATTR_CERTIFICATE: "test",
+            },
+            blocking=True,
+            return_response=True,
+        )
+        assert res_add == {}
 
 
 async def test_services_connection_errors(
@@ -1683,6 +1729,17 @@ async def test_services_connection_errors(
             "delete_rfid_user",
         ),
         (SERVICE_GET_RFID_USERS, {}, "get_rfid_users"),
+        (SERVICE_GET_CERTIFICATES, {}, "get_certificates"),
+        (
+            SERVICE_ADD_CERTIFICATE,
+            {ATTR_NAME: "test", ATTR_CERTIFICATE: "test"},
+            "add_certificate",
+        ),
+        (
+            SERVICE_DELETE_CERTIFICATE,
+            {ATTR_CERTIFICATE_ID: "3a8f"},
+            "delete_certificate",
+        ),
     ]
 
     for service_name, data, manager_method in services_to_test:
@@ -1698,6 +1755,7 @@ async def test_services_connection_errors(
                 SERVICE_LIST_OVERRIDES,
                 SERVICE_GET_TIME,
                 SERVICE_GET_RFID_USERS,
+                SERVICE_GET_CERTIFICATES,
             ]
 
             result = await hass.services.async_call(
@@ -1793,6 +1851,21 @@ async def test_services_with_entity_id(
     )
     mock_aioclient.delete(
         f"{TEST_URL_RFID_USERS}?rfid=01020304",
+        status=200,
+        text='{"msg": "OK"}',
+    )
+    mock_aioclient.get(
+        TEST_URL_CERTIFICATES,
+        status=200,
+        text='[{"id": "3a8f", "name": "Test Cert"}]',
+    )
+    mock_aioclient.post(
+        TEST_URL_CERTIFICATES,
+        status=200,
+        text='{"msg": "OK", "id": "3a8f"}',
+    )
+    mock_aioclient.delete(
+        f"{TEST_URL_CERTIFICATES}/3a8f",
         status=200,
         text='{"msg": "OK"}',
     )
@@ -2005,6 +2078,46 @@ async def test_services_with_entity_id(
     )
     assert response == {"users": {"01020304": "Alice"}}
 
+    # 17. Get certificates via entity_id
+    response = await hass.services.async_call(
+        DOMAIN,
+        SERVICE_GET_CERTIFICATES,
+        {"entity_id": target_entity},
+        blocking=True,
+        return_response=True,
+    )
+    assert response == {"certificates": [{"id": "3a8f", "name": "Test Cert"}]}
+
+    # 18. Add certificate via entity_id
+    response = await hass.services.async_call(
+        DOMAIN,
+        SERVICE_ADD_CERTIFICATE,
+        {
+            "entity_id": target_entity,
+            ATTR_NAME: "Test Cert",
+            ATTR_CERTIFICATE: (
+                "-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----"
+            ),
+            ATTR_KEY: "-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----",
+        },
+        blocking=True,
+        return_response=True,
+    )
+    assert response == {"msg": "OK", "id": "3a8f"}
+
+    # 19. Delete certificate via entity_id
+    with caplog.at_level(logging.DEBUG):
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_DELETE_CERTIFICATE,
+            {
+                "entity_id": target_entity,
+                ATTR_CERTIFICATE_ID: "3a8f",
+            },
+            blocking=True,
+        )
+        assert "Delete certificate command sent successfully." in caplog.text
+
 
 async def test_service_invalid_entity_id(
     hass,
@@ -2076,6 +2189,7 @@ async def test_service_entity_without_device_id(
         SERVICE_LIST_OVERRIDES,
         SERVICE_GET_TIME,
         SERVICE_GET_RFID_USERS,
+        SERVICE_GET_CERTIFICATES,
     ]:
         res = await hass.services.async_call(
             DOMAIN,
@@ -2085,3 +2199,240 @@ async def test_service_entity_without_device_id(
             return_response=True,
         )
         assert res == {}
+
+
+async def test_certificate_services(
+    hass,
+    test_charger_services,
+    mock_aioclient,
+    mock_ws_start,
+    entity_registry: er.EntityRegistry,
+    caplog,
+):
+    """Test certificate services with success, specific id, and failures."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA,
+    )
+    mock_aioclient.get(
+        TEST_URL_OVERRIDE,
+        status=200,
+        text="{}",
+    )
+    mock_aioclient.get(
+        TEST_URL_CERTIFICATES,
+        status=200,
+        text='[{"id": "3a8f", "name": "CA Root"}]',
+    )
+    mock_aioclient.get(
+        f"{TEST_URL_CERTIFICATES}/3a8f",
+        status=200,
+        text='{"id": "3a8f", "name": "CA Root", "type": "ca"}',
+    )
+    mock_aioclient.post(
+        TEST_URL_CERTIFICATES,
+        status=200,
+        text='{"msg": "OK", "id": "4b9c"}',
+    )
+    mock_aioclient.delete(
+        f"{TEST_URL_CERTIFICATES}/4b9c",
+        status=200,
+        text='{"msg": "OK"}',
+    )
+
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    target_entity = "sensor.openevse_charging_status"
+    assert entity_registry.async_get(target_entity)
+
+    # 1. Get all certificates
+    res = await hass.services.async_call(
+        DOMAIN,
+        SERVICE_GET_CERTIFICATES,
+        {"entity_id": target_entity},
+        blocking=True,
+        return_response=True,
+    )
+    assert res == {"certificates": [{"id": "3a8f", "name": "CA Root"}]}
+
+    # 2. Get specific certificate
+    res = await hass.services.async_call(
+        DOMAIN,
+        SERVICE_GET_CERTIFICATES,
+        {"entity_id": target_entity, ATTR_CERTIFICATE_ID: "3a8f"},
+        blocking=True,
+        return_response=True,
+    )
+    assert res == {"certificates": {"id": "3a8f", "name": "CA Root", "type": "ca"}}
+
+    # 3. Add certificate
+    res = await hass.services.async_call(
+        DOMAIN,
+        SERVICE_ADD_CERTIFICATE,
+        {
+            "entity_id": target_entity,
+            ATTR_NAME: "Client Cert",
+            ATTR_CERTIFICATE: (
+                "-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----"
+            ),
+            ATTR_KEY: "-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----",
+        },
+        blocking=True,
+        return_response=True,
+    )
+    assert res == {"msg": "OK", "id": "4b9c"}
+
+    # 4. Delete certificate
+    with caplog.at_level(logging.DEBUG):
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_DELETE_CERTIFICATE,
+            {"entity_id": target_entity, ATTR_CERTIFICATE_ID: "4b9c"},
+            blocking=True,
+        )
+        assert "Delete certificate command sent successfully." in caplog.text
+
+
+async def test_certificate_services_firmware_check(
+    hass,
+    test_charger_services,
+    mock_aioclient,
+    mock_ws_start,
+    entity_registry: er.EntityRegistry,
+    caplog,
+):
+    """Test certificate services when firmware version is below 4.0.0."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA,
+    )
+    mock_aioclient.get(
+        TEST_URL_OVERRIDE,
+        status=200,
+        text="{}",
+    )
+
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    manager = hass.data[DOMAIN][entry.entry_id][MANAGER]
+    manager.version_check = MagicMock(return_value=False)
+
+    target_entity = "sensor.openevse_charging_status"
+
+    with caplog.at_level(logging.WARNING):
+        res = await hass.services.async_call(
+            DOMAIN,
+            SERVICE_GET_CERTIFICATES,
+            {"entity_id": target_entity},
+            blocking=True,
+            return_response=True,
+        )
+        assert res == {}
+        assert (
+            "Managing certificates requires firmware version 4.0.0 or higher."
+            in caplog.text
+        )
+
+    caplog.clear()
+    with caplog.at_level(logging.WARNING):
+        res = await hass.services.async_call(
+            DOMAIN,
+            SERVICE_ADD_CERTIFICATE,
+            {
+                "entity_id": target_entity,
+                ATTR_NAME: "Test",
+                ATTR_CERTIFICATE: "test-cert",
+            },
+            blocking=True,
+            return_response=True,
+        )
+        assert res == {}
+        assert (
+            "Managing certificates requires firmware version 4.0.0 or higher."
+            in caplog.text
+        )
+
+    caplog.clear()
+    with caplog.at_level(logging.WARNING):
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_DELETE_CERTIFICATE,
+            {"entity_id": target_entity, ATTR_CERTIFICATE_ID: "3a8f"},
+            blocking=True,
+        )
+        assert (
+            "Managing certificates requires firmware version 4.0.0 or higher."
+            in caplog.text
+        )
+
+
+async def test_certificate_services_command_failed(
+    hass,
+    test_charger_services,
+    mock_aioclient,
+    mock_ws_start,
+    entity_registry: er.EntityRegistry,
+):
+    """Test certificate services handling CommandFailedError."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA,
+    )
+    mock_aioclient.get(
+        TEST_URL_OVERRIDE,
+        status=200,
+        text="{}",
+    )
+
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    manager = hass.data[DOMAIN][entry.entry_id][MANAGER]
+    manager.get_certificates = AsyncMock(
+        side_effect=CommandFailedError("Corrupt certificate store")
+    )
+    manager.add_certificate = AsyncMock(
+        side_effect=CommandFailedError("Invalid cert format")
+    )
+    manager.delete_certificate = AsyncMock(
+        side_effect=CommandFailedError("Certificate not found")
+    )
+
+    target_entity = "sensor.openevse_charging_status"
+
+    with pytest.raises(HomeAssistantError, match="Error retrieving certificates"):
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_GET_CERTIFICATES,
+            {"entity_id": target_entity},
+            blocking=True,
+            return_response=True,
+        )
+
+    with pytest.raises(HomeAssistantError, match="Error adding certificate"):
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_ADD_CERTIFICATE,
+            {
+                "entity_id": target_entity,
+                ATTR_NAME: "Test",
+                ATTR_CERTIFICATE: "bad-cert",
+            },
+            blocking=True,
+        )
+
+    with pytest.raises(HomeAssistantError, match="Error deleting certificate"):
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_DELETE_CERTIFICATE,
+            {"entity_id": target_entity, ATTR_CERTIFICATE_ID: "bad_id"},
+            blocking=True,
+        )
