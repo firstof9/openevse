@@ -1529,6 +1529,8 @@ async def test_service_missing_config(
         (SERVICE_GET_CERTIFICATES, {}),
         (SERVICE_ADD_CERTIFICATE, {ATTR_NAME: "test", ATTR_CERTIFICATE: "test"}),
         (SERVICE_DELETE_CERTIFICATE, {ATTR_CERTIFICATE_ID: "3a8f"}),
+        (SERVICE_GET_NOTIFICATIONS, {}),
+        (SERVICE_ACK_NOTIFICATION, {ATTR_NOTIFICATION_ID: "safety.ground_check"}),
     ]
 
     for service_name, data in services_to_test:
@@ -1543,6 +1545,7 @@ async def test_service_missing_config(
             SERVICE_GET_TIME,
             SERVICE_GET_RFID_USERS,
             SERVICE_GET_CERTIFICATES,
+            SERVICE_GET_NOTIFICATIONS,
         ]
 
         caplog.clear()
@@ -1745,6 +1748,12 @@ async def test_services_connection_errors(
             {ATTR_CERTIFICATE_ID: "3a8f"},
             "delete_certificate",
         ),
+        (SERVICE_GET_NOTIFICATIONS, {}, "get_notifications"),
+        (
+            SERVICE_ACK_NOTIFICATION,
+            {ATTR_NOTIFICATION_ID: "safety.ground_check"},
+            "acknowledge_notification",
+        ),
     ]
 
     for service_name, data, manager_method in services_to_test:
@@ -1761,6 +1770,7 @@ async def test_services_connection_errors(
                 SERVICE_GET_TIME,
                 SERVICE_GET_RFID_USERS,
                 SERVICE_GET_CERTIFICATES,
+                SERVICE_GET_NOTIFICATIONS,
             ]
 
             result = await hass.services.async_call(
@@ -2195,6 +2205,7 @@ async def test_service_entity_without_device_id(
         SERVICE_GET_TIME,
         SERVICE_GET_RFID_USERS,
         SERVICE_GET_CERTIFICATES,
+        SERVICE_GET_NOTIFICATIONS,
     ]:
         res = await hass.services.async_call(
             DOMAIN,

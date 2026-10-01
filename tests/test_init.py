@@ -22,6 +22,9 @@ from openevsehttp.exceptions import (
     MissingSerial,
     UnsupportedFeature,
 )
+from openevsehttp.exceptions import (
+    CommandFailedError as OpenevseHttpCommandFailedError,
+)
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 from pytest_homeassistant_custom_component.test_util.aiohttp import (
     AiohttpClientMockResponse,
@@ -42,7 +45,10 @@ from custom_components.openevse.entity import (
     OpenEVSENumberEntityDescription,
     OpenEVSESensorEntityDescription,
 )
-from custom_components.openevse.repairs import async_create_fix_flow
+from custom_components.openevse.repairs import (
+    async_create_fix_flow,
+    async_process_notifications,
+)
 
 from .const import (
     CONFIG_DATA,
@@ -1577,3 +1583,144 @@ async def test_repair_issues_cleared_on_unload(
     await hass.async_block_till_done()
 
     assert issue_registry.async_get_issue(DOMAIN, issue_id) is None
+
+
+async def test_repair_fix_flow_error_handling(
+    hass, test_charger, mock_ws_start, mock_aioclient, caplog
+):
+    """Test error handling in repair fix flow."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA,
+        version=2,
+    )
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    manager = hass.data[DOMAIN][entry.entry_id][MANAGER]
+    manager.acknowledge_notification = AsyncMock(
+        side_effect=OpenevseHttpCommandFailedError("Device failed to acknowledge")
+    )
+
+    issue_id = f"advisory_{entry.entry_id}_safety.ground_check"
+    flow = await async_create_fix_flow(
+        hass,
+        issue_id,
+        {"entry_id": entry.entry_id, "notification_id": "safety.ground_check"},
+    )
+    flow.hass = hass
+
+    with caplog.at_level(logging.ERROR):
+        result = await flow.async_step_confirm(user_input={})
+        assert result["type"] == "create_entry"
+        assert "Failed to acknowledge notification" in caplog.text
+
+
+async def test_async_process_notifications_edge_cases(hass):
+    """Test defensive guards and severity parsing in async_process_notifications."""
+    # 1. Non-dict notifications_data
+    assert async_process_notifications(hass, "test_entry", None) == set()
+    assert async_process_notifications(hass, "test_entry", "not_a_dict") == set()
+
+    # 2. Non-list notifications key
+    assert (
+        async_process_notifications(hass, "test_entry", {"notifications": "not_a_list"})
+        == set()
+    )
+
+    # 3. Item is not a dict or missing id
+    result = async_process_notifications(
+        hass,
+        "test_entry",
+        {
+            "notifications": [
+                "not_a_dict",
+                {"id": None},
+                {"no_id": True},
+                {"id": 12345},  # not a string
+                {
+                    "id": "safety.error_item",
+                    "severity": "error",
+                    "category": "safety",
+                    "acked": False,
+                },
+            ]
+        },
+    )
+    assert result == {"advisory_test_entry_safety.error_item"}
+
+    issue_registry = ir.async_get(hass)
+    issue = issue_registry.async_get_issue(
+        DOMAIN, "advisory_test_entry_safety.error_item"
+    )
+    assert issue is not None
+    assert issue.severity == ir.IssueSeverity.ERROR
+
+
+async def test_coordinator_repair_issues_exceptions(
+    hass, test_charger, mock_ws_start, mock_aioclient, caplog
+):
+    """Test coordinator handles exceptions during async_check_repair_issues."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA,
+        version=2,
+    )
+    mock_aioclient.get(
+        "http://openevse.test.tld/notifications",
+        status=200,
+        text="{}",
+    )
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
+    manager = hass.data[DOMAIN][entry.entry_id][MANAGER]
+
+    # Connection error
+    with (
+        patch.object(manager, "get_notifications", side_effect=asyncio.TimeoutError),
+        caplog.at_level(logging.DEBUG),
+    ):
+        await coordinator.async_check_repair_issues()
+        assert "Connection error retrieving notifications" in caplog.text
+
+    # CommandFailedError
+    with (
+        patch.object(
+            manager,
+            "get_notifications",
+            side_effect=CommandFailedError("Command failed"),
+        ),
+        caplog.at_level(logging.DEBUG),
+    ):
+        await coordinator.async_check_repair_issues()
+        assert "Error checking notifications" in caplog.text
+
+    # UnsupportedFeature
+    with (
+        patch.object(
+            manager,
+            "get_notifications",
+            side_effect=UnsupportedFeature("Not supported"),
+        ),
+        caplog.at_level(logging.DEBUG),
+    ):
+        await coordinator.async_check_repair_issues()
+        assert "Error checking notifications" in caplog.text
+
+    # Unexpected Exception
+    with (
+        patch.object(
+            manager,
+            "get_notifications",
+            side_effect=RuntimeError("Unexpected error"),
+        ),
+        caplog.at_level(logging.WARNING),
+    ):
+        await coordinator.async_check_repair_issues()
+        assert "Unexpected error checking notifications" in caplog.text
