@@ -1,0 +1,98 @@
+{
+  "config": {
+    "error": {
+      "communication": "Unable to connect to OpenEVSE charger. Please check the log for details.",
+      "invalid_auth": "Invalid authentication credentials."
+    },
+    "step": {
+      "user": {
+        "data": {
+          "name": "Alias",
+          "host": "Hostname/IP",
+          "password": "Password (optional)",
+          "username": "Username (optional)",
+          "ssl": "Use SSL",
+          "verify_ssl": "Verify SSL Certificate"
+        },
+        "description": "Please enter the connection information of OpenEVSE charger.\n\nNote: Certificates must be uploaded to the device before being able to use HTTPS.",
+        "title": "OpenEVSE Setup"
+      },
+      "reconfigure": {
+        "data": {
+          "name": "Alias",
+          "host": "Hostname/IP",
+          "password": "Password (optional)",
+          "username": "Username (optional)",
+          "ssl": "Use SSL",
+          "verify_ssl": "Verify SSL Certificate"
+        },
+        "description": "Please enter the connection information of OpenEVSE charger.\n\nNote: Certificates must be uploaded to the device before being able to use HTTPS.",
+        "title": "OpenEVSE Setup"
+      },
+      "discovery_confirm": {
+        "description": "Do you want to set up {name}?",
+        "title": "Discovered charger"
+      },
+      "reauth_confirm": {
+        "data": {
+          "password": "Password (optional)",
+          "username": "Username (optional)"
+        },
+        "description": "Please enter the new connection credentials of your OpenEVSE charger.",
+        "title": "Reauthenticate OpenEVSE"
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "menu_options": {
+          "sensors": "Configure sensor entities",
+          "certificate": "Install TLS/SSL certificate"
+        },
+        "description": "Select an option to configure OpenEVSE.",
+        "title": "OpenEVSE Options"
+      },
+      "sensors": {
+        "data": {
+          "grid": "Grid import/export sensor (optional)",
+          "solar": "Solar production sensor (optional)",
+          "voltage": "Grid voltage sensor (optional)",
+          "shaper": "Shaper live power sensor (optional)",
+          "vehicle_soc": "Vehicle state of charge sensor (optional)",
+          "vehicle_range": "Vehicle range sensor (optional)",
+          "vehicle_eta": "Vehicle time-to-full-charge sensor (optional)",
+          "home_battery_soc": "Home battery state of charge sensor (optional)",
+          "home_battery_power": "Home battery power sensor (optional)",
+          "invert_grid": "Invert grid import/export",
+          "github_token": "GitHub personal access token (optional)"
+        },
+        "description": "Configure sensor entities to push data to OpenEVSE.\n\nIMPORTANT NOTE: OpenEVSE expects positive import and negative export.",
+        "title": "OpenEVSE Sensor Options"
+      },
+      "certificate": {
+        "data": {
+          "name": "Certificate name",
+          "certificate": "Certificate (PEM format)",
+          "key": "Private key (PEM format, optional)"
+        },
+        "description": "Upload a TLS/SSL certificate to the OpenEVSE charger.",
+        "title": "Install Certificate"
+      }
+    },
+    "error": {
+      "communication": "Unable to connect to OpenEVSE charger. Please check the log for details.",
+      "command_failed": "Failed to install certificate on the charger.",
+      "unknown": "An unexpected error occurred."
+    },
+    "abort": {
+      "firmware_version_unsupported": "Installing certificates requires OpenEVSE firmware version 4.0.0 or higher."
+    }
+  },
+  "issues": {
+    "advisory_notification": {
+      "title": "OpenEVSE Advisory: {id}",
+      "description": "OpenEVSE reported an active advisory notification:\n\n- **ID**: {id}\n- **Category**: {category}\n- **Severity**: {severity}\n\nAcknowledging this repair will mute/acknowledge the notification on the OpenEVSE charger."
+    }
+  }
+}
