@@ -844,7 +844,9 @@ async def test_set_time_no_parameters(
     assert entry
     assert entry.device_id
 
-    with pytest.raises(vol.Invalid, match="must contain at least one of"):
+    with pytest.raises(
+        vol.Invalid, match="(must contain at least one of|at least one of)"
+    ):
         await hass.services.async_call(
             DOMAIN,
             SERVICE_SET_TIME,
@@ -1212,7 +1214,9 @@ async def test_set_rfid_user_no_name_or_person(
     assert entry
     assert entry.device_id
 
-    with pytest.raises(vol.Invalid, match="must contain at least one of"):
+    with pytest.raises(
+        vol.Invalid, match="(must contain at least one of|at least one of)"
+    ):
         await hass.services.async_call(
             DOMAIN,
             SERVICE_SET_RFID_USER,
