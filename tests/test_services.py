@@ -1521,6 +1521,9 @@ async def test_service_missing_config(
         (SERVICE_SET_RFID_USER, {ATTR_RFID: "01020304", ATTR_NAME: "Alice"}),
         (SERVICE_DELETE_RFID_USER, {ATTR_RFID: "01020304"}),
         (SERVICE_GET_RFID_USERS, {}),
+        (SERVICE_GET_CERTIFICATES, {}),
+        (SERVICE_ADD_CERTIFICATE, {ATTR_NAME: "test", ATTR_CERTIFICATE: "test"}),
+        (SERVICE_DELETE_CERTIFICATE, {ATTR_CERTIFICATE_ID: "3a8f"}),
     ]
 
     for service_name, data in services_to_test:
@@ -1534,6 +1537,7 @@ async def test_service_missing_config(
             SERVICE_LIST_OVERRIDES,
             SERVICE_GET_TIME,
             SERVICE_GET_RFID_USERS,
+            SERVICE_GET_CERTIFICATES,
         ]
 
         caplog.clear()
@@ -1694,6 +1698,17 @@ async def test_services_connection_errors(
             "delete_rfid_user",
         ),
         (SERVICE_GET_RFID_USERS, {}, "get_rfid_users"),
+        (SERVICE_GET_CERTIFICATES, {}, "get_certificates"),
+        (
+            SERVICE_ADD_CERTIFICATE,
+            {ATTR_NAME: "test", ATTR_CERTIFICATE: "test"},
+            "add_certificate",
+        ),
+        (
+            SERVICE_DELETE_CERTIFICATE,
+            {ATTR_CERTIFICATE_ID: "3a8f"},
+            "delete_certificate",
+        ),
     ]
 
     for service_name, data, manager_method in services_to_test:
@@ -1709,6 +1724,7 @@ async def test_services_connection_errors(
                 SERVICE_LIST_OVERRIDES,
                 SERVICE_GET_TIME,
                 SERVICE_GET_RFID_USERS,
+                SERVICE_GET_CERTIFICATES,
             ]
 
             result = await hass.services.async_call(
