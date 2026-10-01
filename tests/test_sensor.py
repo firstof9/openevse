@@ -43,7 +43,7 @@ async def test_sensors(
         assert await hass.config_entries.async_setup(entry.entry_id)
         await hass.async_block_till_done()
 
-        assert len(hass.states.async_entity_ids(SENSOR_DOMAIN)) == 23
+        assert len(hass.states.async_entity_ids(SENSOR_DOMAIN)) == 26
         entries = hass.config_entries.async_entries(DOMAIN)
         assert len(entries) == 1
 
@@ -77,6 +77,18 @@ async def test_sensors(
         state = hass.states.get("sensor.openevse_charging_current")
         assert state
         assert state.state == "32.2"
+
+        state = hass.states.get("sensor.openevse_gfci_trip_count")
+        assert state
+        assert state.state == "1"
+
+        state = hass.states.get("sensor.openevse_no_ground_trip_count")
+        assert state
+        assert state.state == "0"
+
+        state = hass.states.get("sensor.openevse_stuck_relay_trip_count")
+        assert state
+        assert state.state == "0"
 
         # enable disabled sensor
         entity_id = "sensor.openevse_vehicle_charge_completion"
@@ -122,7 +134,7 @@ async def test_sensors_v2(
         assert await hass.config_entries.async_setup(entry.entry_id)
         await hass.async_block_till_done()
 
-        assert len(hass.states.async_entity_ids(SENSOR_DOMAIN)) == 23
+        assert len(hass.states.async_entity_ids(SENSOR_DOMAIN)) == 26
         entries = hass.config_entries.async_entries(DOMAIN)
         assert len(entries) == 1
 
@@ -173,7 +185,7 @@ async def test_sensors_new(
         assert await hass.config_entries.async_setup(entry.entry_id)
         await hass.async_block_till_done()
 
-        assert len(hass.states.async_entity_ids(SENSOR_DOMAIN)) == 23
+        assert len(hass.states.async_entity_ids(SENSOR_DOMAIN)) == 26
         entries = hass.config_entries.async_entries(DOMAIN)
         assert len(entries) == 1
 
@@ -281,7 +293,7 @@ async def test_sensors_controller_v9(
         assert await hass.config_entries.async_setup(entry.entry_id)
         await hass.async_block_till_done()
 
-        assert len(hass.states.async_entity_ids(SENSOR_DOMAIN)) == 23
+        assert len(hass.states.async_entity_ids(SENSOR_DOMAIN)) == 26
 
         # enable disabled cable temperature sensors
         for sensor_id in (

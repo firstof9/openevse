@@ -50,6 +50,9 @@ CHARGER_DATA = {
     "rfid_enabled": False,
     "max_current_soft": 48,
     "led_brightness": 128,
+    "gfi_trip_count": 1,
+    "no_gnd_trip_count": 0,
+    "stuck_relay_trip_count": 0,
 }
 CONFIG_DATA = {
     "name": "openevse",
@@ -102,6 +105,7 @@ DIAG_DEVICE_RESULTS = {
     "divert_active": False,
     "divertmode": "eco",
     "esp_temperature": 56.0,
+    "gfi_trip_count": 1,
     "has_limit": False,
     "ir_temperature": None,
     "led_brightness": 64,
@@ -112,6 +116,7 @@ DIAG_DEVICE_RESULTS = {
     "min_amps": 6,
     "mqtt_connected": True,
     "mqtt_vehicle_range_miles": False,
+    "no_gnd_trip_count": 0,
     "openevse_firmware": "7.1.3",
     "ota_update": False,
     "override_state": "auto",
@@ -127,6 +132,7 @@ DIAG_DEVICE_RESULTS = {
     "smoothed_available_current": None,
     "state": "sleeping",
     "status": "sleeping",
+    "stuck_relay_trip_count": 0,
     "total_day": None,
     "total_month": None,
     "total_week": None,
