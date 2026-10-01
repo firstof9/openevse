@@ -328,7 +328,10 @@ add_certificate:
       name: Certificate
       description: PEM-encoded certificate string (including BEGIN/END headers).
       required: true
-      example: "-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----"
+      example: |
+        -----BEGIN CERTIFICATE-----
+        MIIB/zCCAaagAwIBAgIU...
+        -----END CERTIFICATE-----
       selector:
         text:
           multiline: true
@@ -336,7 +339,10 @@ add_certificate:
       name: Private key
       description: Optional PEM-encoded private key string for client certificates.
       required: false
-      example: "-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----"
+      example: |
+        -----BEGIN PRIVATE KEY-----
+        MIGHAgEAMBMGByqGSM49...
+        -----END PRIVATE KEY-----
       selector:
         text:
           multiline: true

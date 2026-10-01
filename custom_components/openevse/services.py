@@ -816,7 +816,7 @@ class OpenEVSEServices:
                 manager = self.hass.data[DOMAIN][config_id][MANAGER]
                 if not manager.version_check("4.0.0"):
                     logger.warning(FW_VERSION_WARN, "Managing certificates", "4.0.0")
-                    return None
+                    return {}
                 try:
                     response = await manager.add_certificate(
                         name=name, certificate=certificate, key=key
@@ -825,6 +825,7 @@ class OpenEVSEServices:
                     return response
                 except CONNECTION_ERRORS as err:
                     logger.error(CONNECTION_ERROR, err)
+                    return {}
                 except CommandFailedError as err:
                     logger.error("Error adding certificate: %s", err)
                     raise HomeAssistantError(
@@ -832,7 +833,8 @@ class OpenEVSEServices:
                     ) from err
             except KeyError as err:
                 logger.error("Error locating configuration: %s", err)
-        return None
+                return {}
+        return {}
 
     async def _delete_certificate(self, service: ServiceCall) -> None:
         """Delete a certificate from the charger."""

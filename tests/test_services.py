@@ -1613,12 +1613,16 @@ async def test_services_with_none_values(
         assert "Set Override response:" in caplog.text
 
 
-async def test_services_coverage_gaps(hass, test_charger, mock_ws_start, caplog):
+async def test_services_coverage_gaps(
+    hass, test_charger, mock_ws_start, entity_registry: er.EntityRegistry, caplog
+):
     """Verify services coverage gaps."""
     entry = MockConfigEntry(domain=DOMAIN, data=CONFIG_DATA)
     entry.add_to_hass(hass)
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
+
+    entry_entity = entity_registry.async_get("sensor.openevse_station_status")
 
     # Test ValueError if device ID is not valid
     with pytest.raises(ValueError, match="Device ID invalid_device is not valid"):
@@ -1649,6 +1653,33 @@ async def test_services_coverage_gaps(hass, test_charger, mock_ws_start, caplog)
             {"device_id": device_no_conn.id, "state": "active"},
             blocking=True,
         )
+
+    # Test services with response when no target devices are resolved
+    with patch(
+        "custom_components.openevse.services.OpenEVSEServices._resolve_target_device_ids",
+        return_value=[],
+    ):
+        res_get = await hass.services.async_call(
+            DOMAIN,
+            SERVICE_GET_CERTIFICATES,
+            {"device_id": entry_entity.device_id},
+            blocking=True,
+            return_response=True,
+        )
+        assert res_get == {}
+
+        res_add = await hass.services.async_call(
+            DOMAIN,
+            SERVICE_ADD_CERTIFICATE,
+            {
+                "device_id": entry_entity.device_id,
+                ATTR_NAME: "test",
+                ATTR_CERTIFICATE: "test",
+            },
+            blocking=True,
+            return_response=True,
+        )
+        assert res_add == {}
 
 
 async def test_services_connection_errors(
@@ -2310,7 +2341,7 @@ async def test_certificate_services_firmware_check(
 
     caplog.clear()
     with caplog.at_level(logging.WARNING):
-        await hass.services.async_call(
+        res = await hass.services.async_call(
             DOMAIN,
             SERVICE_ADD_CERTIFICATE,
             {
@@ -2319,7 +2350,9 @@ async def test_certificate_services_firmware_check(
                 ATTR_CERTIFICATE: "test-cert",
             },
             blocking=True,
+            return_response=True,
         )
+        assert res == {}
         assert (
             "Managing certificates requires firmware version 4.0.0 or higher."
             in caplog.text
