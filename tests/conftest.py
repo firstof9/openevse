@@ -402,6 +402,54 @@ def test_charger_new(mock_aioclient):
     return main.OpenEVSE(TEST_TLD)
 
 
+@pytest.fixture(name="test_charger_controller_v9")
+def test_charger_controller_v9(mock_aioclient):
+    """Load the charger data with controller v9.4.0 firmware."""
+    mock_aioclient.get(
+        TEST_URL_STATUS,
+        status=200,
+        text=load_fixture("status-controller-v9.json"),
+    )
+    mock_aioclient.post(
+        TEST_URL_STATUS,
+        status=200,
+        text='{ "msg": "OK" }',
+    )
+    mock_aioclient.get(
+        TEST_URL_CONFIG,
+        status=200,
+        text=load_fixture("config-controller-v9.json"),
+    )
+    mock_aioclient.post(
+        TEST_URL_CONFIG,
+        status=200,
+        text='{ "msg": "OK" }',
+    )
+    mock_aioclient.get(
+        TEST_URL_WS,
+        status=101,
+        headers={"Upgrade": "websocket", "Connection": "Upgrade"},
+        text=load_fixture("status-controller-v9.json"),
+    )
+    register_github_release_mocks(mock_aioclient)
+    mock_aioclient.post(
+        TEST_URL_OVERRIDE,
+        status=200,
+        text='{ "msg": "OK" }',
+    )
+    mock_aioclient.get(
+        TEST_URL_OVERRIDE,
+        status=200,
+        text="{}",
+    )
+    mock_aioclient.get(
+        TEST_URL_CLAIMS_TARGET,
+        status=200,
+        text='{"properties":{"state":"disabled","charge_current":28,"max_current":23,"auto_release":false},"claims":{"state":65540,"charge_current":65537,"max_current":65548}}',
+    )
+    return main.OpenEVSE(TEST_TLD)
+
+
 @pytest.fixture()
 def mock_manager():
     """Mock manager."""

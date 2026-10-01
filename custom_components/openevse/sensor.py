@@ -62,6 +62,9 @@ class OpenEVSESensor(CoordinatorEntity, OpenEVSEEntity, SensorEntity):
         self._state = None
         self._icon = sensor_description.icon
         self._min_version = sensor_description.min_version
+        self._min_controller_version = getattr(
+            sensor_description, "min_controller_version", None
+        )
 
         self._attr_name = f"{self._config.data[CONF_NAME]} {self._name}"
         self._attr_unique_id = f"{self._name}_{self._unique_id}"
@@ -110,6 +113,8 @@ class OpenEVSESensor(CoordinatorEntity, OpenEVSEEntity, SensorEntity):
 
         # Check firmware version requirement
         manager = self.hass.data[DOMAIN][self._unique_id][MANAGER]
-        if not self._min_version:
-            return True
-        return manager.version_check(self._min_version)
+        if self._min_version and not manager.version_check(self._min_version):
+            return False
+        if self._min_controller_version:
+            return manager.controller_version_check(self._min_controller_version)
+        return True

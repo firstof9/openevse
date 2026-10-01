@@ -51,7 +51,7 @@ async def test_switches(
     await hass.async_block_till_done()
 
     # Ensure all switches are created
-    assert len(hass.states.async_entity_ids(SWITCH_DOMAIN)) == 7
+    assert len(hass.states.async_entity_ids(SWITCH_DOMAIN)) == 8
 
     # Get the coordinator to simulate data updates
     coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
@@ -272,6 +272,108 @@ async def test_switches(
     state = hass.states.get(entity_id)
     assert state.state == "off"
 
+    # -------------------------------------------------------------------------
+    # 7. Test Cable Temperature Monitoring Switch
+    # -------------------------------------------------------------------------
+    entity_id = "switch.openevse_cable_temperature_monitoring"
+    manager = hass.data[DOMAIN][entry.entry_id][MANAGER]
+
+    # Without controller 9.4.0+, switch is unavailable
+    state = hass.states.get(entity_id)
+    assert state
+    assert state.state == "unavailable"
+
+    with patch.object(manager, "_controller_version_check", return_value=True):
+        coordinator.async_set_updated_data(coordinator._data)
+        await hass.async_block_till_done()
+
+        state = hass.states.get(entity_id)
+        assert state
+        assert state.state == "off"
+
+        # Action: Turn On
+        mock_aioclient.post(
+            "http://openevse.test.tld/config",
+            status=200,
+            text='{"msg": "OK"}',
+        )
+
+        await hass.services.async_call(
+            SWITCH_DOMAIN, "turn_on", {"entity_id": entity_id}, blocking=True
+        )
+
+        # Simulate update
+        coordinator._data["cable_temp_enabled"] = True
+        coordinator.async_set_updated_data(coordinator._data)
+        await hass.async_block_till_done()
+
+        # Assert: Entity should now be ON
+        state = hass.states.get(entity_id)
+        assert state.state == "on"
+
+        # Action: Turn Off
+        await hass.services.async_call(
+            SWITCH_DOMAIN, "turn_off", {"entity_id": entity_id}, blocking=True
+        )
+
+        # Simulate update
+        coordinator._data["cable_temp_enabled"] = False
+        coordinator.async_set_updated_data(coordinator._data)
+        await hass.async_block_till_done()
+
+        # Assert: Entity should now be OFF
+        state = hass.states.get(entity_id)
+        assert state.state == "off"
+
+
+async def test_switches_controller_v9(
+    hass,
+    test_charger_controller_v9,
+    mock_ws_start,
+    mock_aioclient,
+    entity_registry: er.EntityRegistry,
+):
+    """Test switch platform with controller v9.4.0 fixture."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA,
+    )
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    # Cable temperature monitoring switch is naturally available with controller 9.4.0
+    entity_id = "switch.openevse_cable_temperature_monitoring"
+    state = hass.states.get(entity_id)
+    assert state
+    assert state.state == "off"
+
+    # Action: Turn On
+    await hass.services.async_call(
+        SWITCH_DOMAIN, "turn_on", {"entity_id": entity_id}, blocking=True
+    )
+
+    coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
+    coordinator._data["cable_temp_enabled"] = True
+    coordinator.async_set_updated_data(coordinator._data)
+    await hass.async_block_till_done()
+
+    state = hass.states.get(entity_id)
+    assert state.state == "on"
+
+    # Action: Turn Off
+    await hass.services.async_call(
+        SWITCH_DOMAIN, "turn_off", {"entity_id": entity_id}, blocking=True
+    )
+
+    coordinator._data["cable_temp_enabled"] = False
+    coordinator.async_set_updated_data(coordinator._data)
+    await hass.async_block_till_done()
+
+    state = hass.states.get(entity_id)
+    assert state.state == "off"
+
 
 async def test_switches_v2(
     hass,
@@ -307,7 +409,7 @@ async def test_switches_v2(
         await hass.config_entries.async_forward_entry_setups(entry, [SWITCH_DOMAIN])
         await hass.async_block_till_done()
 
-        assert len(hass.states.async_entity_ids(SWITCH_DOMAIN)) == 7
+        assert len(hass.states.async_entity_ids(SWITCH_DOMAIN)) == 8
         entries = hass.config_entries.async_entries(DOMAIN)
         assert len(entries) == 1
 
@@ -319,6 +421,11 @@ async def test_switches_v2(
         assert state.state == "unavailable"
 
         entity_id = "switch.openevse_rfid_access"
+        state = hass.states.get(entity_id)
+        assert state
+        assert state.state == "unavailable"
+
+        entity_id = "switch.openevse_cable_temperature_monitoring"
         state = hass.states.get(entity_id)
         assert state
         assert state.state == "unavailable"
