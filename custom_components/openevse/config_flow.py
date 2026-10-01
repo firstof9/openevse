@@ -27,9 +27,11 @@ from homeassistant.helpers.selector import (
     TextSelectorType,
 )
 from openevsehttp.__main__ import OpenEVSE
-from openevsehttp.exceptions import AuthenticationError
+from openevsehttp.exceptions import AuthenticationError, CommandFailedError
 
 from .const import (
+    ATTR_CERTIFICATE,
+    ATTR_KEY,
     CONF_GITHUB_TOKEN,
     CONF_GRID,
     CONF_HOME_BATTERY_POWER,
@@ -43,9 +45,11 @@ from .const import (
     CONF_VEHICLE_RANGE,
     CONF_VEHICLE_SOC,
     CONF_VOLTAGE,
+    CONNECTION_ERRORS,
     DEFAULT_HOST,
     DEFAULT_NAME,
     DOMAIN,
+    MANAGER,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -331,7 +335,16 @@ class OpenEVSEOptionsFlowHandler(config_entries.OptionsFlow):
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
-        """Manage the options."""
+        """Manage the options and show menu."""
+        return self.async_show_menu(
+            step_id="init",
+            menu_options=["sensors", "certificate"],
+        )
+
+    async def async_step_sensors(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Manage sensor options."""
         if user_input is not None:
             return self.async_create_entry(title="", data=user_input)
 
@@ -377,8 +390,55 @@ class OpenEVSEOptionsFlowHandler(config_entries.OptionsFlow):
         )
 
         return self.async_show_form(
-            step_id="init",
+            step_id="sensors",
             data_schema=self.add_suggested_values_to_schema(schema, options),
+        )
+
+    async def async_step_certificate(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Upload a TLS/SSL certificate to the charger."""
+        errors: dict[str, str] = {}
+
+        manager = self.hass.data[DOMAIN][self.config_entry.entry_id][MANAGER]
+        if not manager.version_check("4.0.0"):
+            return self.async_abort(reason="firmware_version_unsupported")
+
+        if user_input is not None:
+            name = user_input[CONF_NAME]
+            certificate = user_input[ATTR_CERTIFICATE]
+            key = user_input.get(ATTR_KEY) or None
+            try:
+                await manager.add_certificate(
+                    name=name,
+                    certificate=certificate,
+                    key=key,
+                )
+                return self.async_create_entry(title="", data={})
+            except CONNECTION_ERRORS:
+                errors["base"] = "communication"
+            except CommandFailedError:
+                errors["base"] = "command_failed"
+            except Exception:  # pylint: disable=broad-except
+                _LOGGER.exception("Unexpected error uploading certificate")
+                errors["base"] = "unknown"
+
+        schema = vol.Schema(
+            {
+                vol.Required(CONF_NAME): str,
+                vol.Required(ATTR_CERTIFICATE): TextSelector(
+                    TextSelectorConfig(multiline=True)
+                ),
+                vol.Optional(ATTR_KEY): TextSelector(
+                    TextSelectorConfig(multiline=True)
+                ),
+            }
+        )
+
+        return self.async_show_form(
+            step_id="certificate",
+            data_schema=schema,
+            errors=errors,
         )
 
 

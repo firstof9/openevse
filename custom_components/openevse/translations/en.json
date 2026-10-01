@@ -46,6 +46,14 @@
   "options": {
     "step": {
       "init": {
+        "menu_options": {
+          "sensors": "Configure sensor entities",
+          "certificate": "Install TLS/SSL certificate"
+        },
+        "description": "Select an option to configure OpenEVSE.",
+        "title": "OpenEVSE Options"
+      },
+      "sensors": {
         "data": {
           "grid": "Grid import/export sensor (optional)",
           "solar": "Solar production sensor (optional)",
@@ -61,7 +69,24 @@
         },
         "description": "Configure sensor entities to push data to OpenEVSE.\n\nIMPORTANT NOTE: OpenEVSE expects positive import and negative export.",
         "title": "OpenEVSE Sensor Options"
+      },
+      "certificate": {
+        "data": {
+          "name": "Certificate name",
+          "certificate": "Certificate (PEM format)",
+          "key": "Private key (PEM format, optional)"
+        },
+        "description": "Upload a TLS/SSL certificate to the OpenEVSE charger.",
+        "title": "Install Certificate"
       }
+    },
+    "error": {
+      "communication": "Unable to connect to OpenEVSE charger. Please check the log for details.",
+      "command_failed": "Failed to install certificate on the charger.",
+      "unknown": "An unexpected error occurred."
+    },
+    "abort": {
+      "firmware_version_unsupported": "Installing certificates requires OpenEVSE firmware version 4.0.0 or higher."
     }
   }
 }
