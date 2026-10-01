@@ -63,10 +63,9 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: 📦 Install requirements
         run: |
-          uv pip install --system -r requirements_test.txt
-      - name: 🏃 Run tests
-        run: |
-          pytest --asyncio-mode=auto --timeout=30 --cov=custom_components/openevse --cov-report=xml
+          uv pip install --system tox tox-gh tox-uv
+      - name: 🏃 Test with tox
+        run: tox -v
       - name: 📤 Upload coverage data
         if: matrix.python-version == '3.14'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
