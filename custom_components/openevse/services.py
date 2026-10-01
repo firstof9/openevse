@@ -25,6 +25,8 @@ from .const import (
     ATTR_CHARGE_CURRENT,
     ATTR_DEVICE_ID,
     ATTR_ENERGY_LIMIT,
+    ATTR_HARD,
+    ATTR_IMPORT,
     ATTR_KEY,
     ATTR_MAX_CURRENT,
     ATTR_NAME,
@@ -60,6 +62,7 @@ from .const import (
     SERVICE_LIST_OVERRIDES,
     SERVICE_MAKE_CLAIM,
     SERVICE_RELEASE_CLAIM,
+    SERVICE_RESET_ENERGY_METER,
     SERVICE_SET_LIMIT,
     SERVICE_SET_OVERRIDE,
     SERVICE_SET_RFID_USER,
@@ -320,6 +323,18 @@ class OpenEVSEServices:
             schema=cv.make_entity_service_schema(
                 {
                     vol.Required(ATTR_NOTIFICATION_ID): vol.Coerce(str),
+                }
+            ),
+        )
+
+        self.hass.services.async_register(
+            DOMAIN,
+            SERVICE_RESET_ENERGY_METER,
+            self._reset_energy_meter,
+            schema=cv.make_entity_service_schema(
+                {
+                    vol.Optional(ATTR_HARD, default=False): vol.Coerce(bool),
+                    vol.Optional(ATTR_IMPORT, default=False): vol.Coerce(bool),
                 }
             ),
         )
@@ -948,6 +963,41 @@ class OpenEVSEServices:
                     logger.error("Error acknowledging notification: %s", err)
                     raise HomeAssistantError(
                         f"Error acknowledging notification: {err}"
+                    ) from err
+            except KeyError as err:
+                logger.error("Error locating configuration: %s", err)
+
+    async def _reset_energy_meter(self, service: ServiceCall) -> None:
+        """Reset the charger energy meter."""
+        hard = service.data.get(ATTR_HARD, False)
+        import_from_evse = service.data.get(ATTR_IMPORT, False)
+
+        for device_id in self._resolve_target_device_ids(service):
+            logger = self._get_logger(device_id)
+            logger.debug("Device ID: %s", device_id)
+
+            config_id = self._resolve_device_config(device_id)
+            logger.debug("Config ID: %s", config_id)
+            try:
+                manager = self.hass.data[DOMAIN][config_id][MANAGER]
+                if not manager.version_check("4.0.0"):
+                    logger.warning(FW_VERSION_WARN, "Resetting energy meter", "4.0.0")
+                    continue
+                try:
+                    await manager.reset_energy_meter(
+                        hard=hard, import_from_evse=import_from_evse
+                    )
+                    logger.debug(
+                        "Energy meter reset successfully (hard=%s, import=%s).",
+                        hard,
+                        import_from_evse,
+                    )
+                except CONNECTION_ERRORS as err:
+                    logger.error(CONNECTION_ERROR, err)
+                except CommandFailedError as err:
+                    logger.error("Error resetting energy meter: %s", err)
+                    raise HomeAssistantError(
+                        f"Error resetting energy meter: {err}"
                     ) from err
             except KeyError as err:
                 logger.error("Error locating configuration: %s", err)

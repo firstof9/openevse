@@ -383,3 +383,25 @@ acknowledge_notification:
       example: "safety.ground_check"
       selector:
         text:
+
+reset_energy_meter:
+  name: Reset energy meter
+  description: Resets the charger energy meter (requires firmware v4.0.0+).
+  target:
+    entity:
+      integration: openevse
+  fields:
+    hard:
+      name: Hard reset
+      description: If true, performs a hard reset resetting total energy and switch counter to 0. If false, performs a soft reset.
+      required: false
+      default: false
+      selector:
+        boolean:
+    import:
+      name: Import from EVSE
+      description: If true, allows re-importing total energy counters from EVSE.
+      required: false
+      default: false
+      selector:
+        boolean:
