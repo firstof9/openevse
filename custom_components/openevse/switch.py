@@ -63,6 +63,9 @@ class OpenEVSESwitch(CoordinatorEntity, OpenEVSEEntity, SwitchEntity):
         self._state = None
         self.toggle_command = description.toggle_command
         self._min_version = description.min_version
+        self._min_controller_version = getattr(
+            description, "min_controller_version", None
+        )
 
     @property
     def unique_id(self) -> str:
@@ -96,7 +99,11 @@ class OpenEVSESwitch(CoordinatorEntity, OpenEVSEEntity, SwitchEntity):
     def available(self) -> bool:
         """Return if entity is available."""
         manager = self.hass.data[DOMAIN][self._unique_id][MANAGER]
-        return not (self._min_version and not manager.version_check(self._min_version))
+        if self._min_version and not manager.version_check(self._min_version):
+            return False
+        if self._min_controller_version:
+            return manager.controller_version_check(self._min_controller_version)
+        return True
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn the switch on."""
@@ -111,6 +118,8 @@ class OpenEVSESwitch(CoordinatorEntity, OpenEVSEEntity, SwitchEntity):
                 await self._manager.set_mqtt_vehicle_range_miles(True)
             elif self.toggle_command == "set_rfid_enabled":
                 await self._manager.set_rfid_enabled(True)
+            elif self.toggle_command == "set_cable_temp_enabled":
+                await self._manager.set_cable_temp_enabled(True)
             else:
                 await getattr(self._manager, self.toggle_command)()
         except CONNECTION_ERRORS as err:
@@ -133,6 +142,8 @@ class OpenEVSESwitch(CoordinatorEntity, OpenEVSEEntity, SwitchEntity):
                 await self._manager.set_mqtt_vehicle_range_miles(False)
             elif self.toggle_command == "set_rfid_enabled":
                 await self._manager.set_rfid_enabled(False)
+            elif self.toggle_command == "set_cable_temp_enabled":
+                await self._manager.set_cable_temp_enabled(False)
             else:
                 await getattr(self._manager, self.toggle_command)()
         except CONNECTION_ERRORS as err:
