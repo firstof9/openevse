@@ -28,6 +28,7 @@ from .const import (
     ATTR_KEY,
     ATTR_MAX_CURRENT,
     ATTR_NAME,
+    ATTR_NOTIFICATION_ID,
     ATTR_PERSON,
     ATTR_RFID,
     ATTR_SNTP,
@@ -43,6 +44,7 @@ from .const import (
     DOMAIN,
     FW_VERSION_WARN,
     MANAGER,
+    SERVICE_ACK_NOTIFICATION,
     SERVICE_ADD_CERTIFICATE,
     SERVICE_ADD_RFID_TAG,
     SERVICE_CLEAR_LIMIT,
@@ -51,6 +53,7 @@ from .const import (
     SERVICE_DELETE_RFID_USER,
     SERVICE_GET_CERTIFICATES,
     SERVICE_GET_LIMIT,
+    SERVICE_GET_NOTIFICATIONS,
     SERVICE_GET_RFID_USERS,
     SERVICE_GET_TIME,
     SERVICE_LIST_CLAIMS,
@@ -298,6 +301,25 @@ class OpenEVSEServices:
             schema=cv.make_entity_service_schema(
                 {
                     vol.Required(ATTR_CERTIFICATE_ID): vol.Coerce(str),
+                }
+            ),
+        )
+
+        self.hass.services.async_register(
+            DOMAIN,
+            SERVICE_GET_NOTIFICATIONS,
+            self._get_notifications,
+            schema=cv.make_entity_service_schema({}),
+            supports_response=SupportsResponse.ONLY,
+        )
+
+        self.hass.services.async_register(
+            DOMAIN,
+            SERVICE_ACK_NOTIFICATION,
+            self._ack_notification,
+            schema=cv.make_entity_service_schema(
+                {
+                    vol.Required(ATTR_NOTIFICATION_ID): vol.Coerce(str),
                 }
             ),
         )
@@ -860,6 +882,72 @@ class OpenEVSEServices:
                     logger.error("Error deleting certificate: %s", err)
                     raise HomeAssistantError(
                         f"Error deleting certificate: {err}"
+                    ) from err
+            except KeyError as err:
+                logger.error("Error locating configuration: %s", err)
+
+    async def _get_notifications(self, service: ServiceCall) -> ServiceResponse:
+        """Retrieve active advisory notifications from the charger."""
+        for device_id in self._resolve_target_device_ids(service):
+            logger = self._get_logger(device_id)
+            logger.debug("Device ID: %s", device_id)
+
+            config_id = self._resolve_device_config(device_id)
+            logger.debug("Config ID: %s", config_id)
+            try:
+                manager = self.hass.data[DOMAIN][config_id][MANAGER]
+                if not manager.version_check("5.1.0"):
+                    logger.warning(
+                        FW_VERSION_WARN, "Retrieving advisory notifications", "5.1.0"
+                    )
+                    return {}
+                try:
+                    notifications = await manager.get_notifications()
+                    logger.debug("Get notifications response: %s", notifications)
+                    return notifications
+                except CONNECTION_ERRORS as err:
+                    logger.error(CONNECTION_ERROR, err)
+                    return {}
+                except CommandFailedError as err:
+                    logger.error("Error retrieving notifications: %s", err)
+                    raise HomeAssistantError(
+                        f"Error retrieving notifications: {err}"
+                    ) from err
+            except KeyError as err:
+                logger.error("Error locating configuration: %s", err)
+                return {}
+        return {}
+
+    async def _ack_notification(self, service: ServiceCall) -> None:
+        """Acknowledge (mute) an active advisory notification on the charger."""
+        notification_id = service.data[ATTR_NOTIFICATION_ID]
+
+        for device_id in self._resolve_target_device_ids(service):
+            logger = self._get_logger(device_id)
+            logger.debug("Device ID: %s", device_id)
+
+            config_id = self._resolve_device_config(device_id)
+            logger.debug("Config ID: %s", config_id)
+            try:
+                manager = self.hass.data[DOMAIN][config_id][MANAGER]
+                if not manager.version_check("5.1.0"):
+                    logger.warning(
+                        FW_VERSION_WARN, "Acknowledging notification", "5.1.0"
+                    )
+                    continue
+                try:
+                    await manager.acknowledge_notification(
+                        notification_id=notification_id
+                    )
+                    logger.debug(
+                        "Notification %s acknowledged successfully.", notification_id
+                    )
+                except CONNECTION_ERRORS as err:
+                    logger.error(CONNECTION_ERROR, err)
+                except CommandFailedError as err:
+                    logger.error("Error acknowledging notification: %s", err)
+                    raise HomeAssistantError(
+                        f"Error acknowledging notification: {err}"
                     ) from err
             except KeyError as err:
                 logger.error("Error locating configuration: %s", err)

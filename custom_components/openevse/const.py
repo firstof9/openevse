@@ -121,6 +121,8 @@ SERVICE_GET_RFID_USERS = "get_rfid_users"
 SERVICE_GET_CERTIFICATES = "get_certificates"
 SERVICE_ADD_CERTIFICATE = "add_certificate"
 SERVICE_DELETE_CERTIFICATE = "delete_certificate"
+SERVICE_GET_NOTIFICATIONS = "get_notifications"
+SERVICE_ACK_NOTIFICATION = "acknowledge_notification"
 
 # attributes
 ATTR_DEVICE_ID = "device_id"
@@ -141,6 +143,7 @@ ATTR_PERSON = "person"
 ATTR_CERTIFICATE_ID = "certificate_id"
 ATTR_CERTIFICATE = "certificate"
 ATTR_KEY = "key"
+ATTR_NOTIFICATION_ID = "notification_id"
 
 SERVICE_LEVELS = ["1", "2", "A"]
 DIVERT_MODE = ["fast", "eco"]
@@ -569,6 +572,22 @@ SENSOR_TYPES: Final[tuple[OpenEVSESensorEntityDescription, ...]] = (
         state_class=SensorStateClass.TOTAL_INCREASING,
         entity_category=EntityCategory.DIAGNOSTIC,
         value_fn=lambda data: data.get("stuck_relay_trip_count"),
+    ),
+    OpenEVSESensorEntityDescription(
+        key="notifications_count",
+        name="Notification Count",
+        icon="mdi:bell-badge",
+        entity_category=EntityCategory.DIAGNOSTIC,
+        min_version="5.1.0",
+        value_fn=lambda data: data.get("notifications_count"),
+    ),
+    OpenEVSESensorEntityDescription(
+        key="notifications_severity",
+        name="Notification Severity",
+        icon="mdi:alert-circle-outline",
+        entity_category=EntityCategory.DIAGNOSTIC,
+        min_version="5.1.0",
+        value_fn=lambda data: data.get("notifications_severity"),
     ),
 )
 

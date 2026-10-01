@@ -88,5 +88,11 @@
     "abort": {
       "firmware_version_unsupported": "Installing certificates requires OpenEVSE firmware version 4.0.0 or higher."
     }
+  },
+  "issues": {
+    "advisory_notification": {
+      "title": "OpenEVSE Advisory: {id}",
+      "description": "OpenEVSE reported an active advisory notification:\n\n- **ID**: {id}\n- **Category**: {category}\n- **Severity**: {severity}\n\nAcknowledging this repair will mute/acknowledge the notification on the OpenEVSE charger."
+    }
   }
 }

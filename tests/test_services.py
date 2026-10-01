@@ -23,6 +23,7 @@ from custom_components.openevse.const import (
     ATTR_KEY,
     ATTR_MAX_CURRENT,
     ATTR_NAME,
+    ATTR_NOTIFICATION_ID,
     ATTR_PERSON,
     ATTR_RFID,
     ATTR_SNTP,
@@ -34,6 +35,7 @@ from custom_components.openevse.const import (
     ATTR_VALUE,
     DOMAIN,
     MANAGER,
+    SERVICE_ACK_NOTIFICATION,
     SERVICE_ADD_CERTIFICATE,
     SERVICE_ADD_RFID_TAG,
     SERVICE_CLEAR_LIMIT,
@@ -42,6 +44,7 @@ from custom_components.openevse.const import (
     SERVICE_DELETE_RFID_USER,
     SERVICE_GET_CERTIFICATES,
     SERVICE_GET_LIMIT,
+    SERVICE_GET_NOTIFICATIONS,
     SERVICE_GET_RFID_USERS,
     SERVICE_GET_TIME,
     SERVICE_LIST_CLAIMS,
@@ -67,6 +70,8 @@ TEST_URL_TIME = "http://openevse.test.tld/time"
 TEST_URL_RFID_ADD = "http://openevse.test.tld/rfid/add"
 TEST_URL_RFID_USERS = "http://openevse.test.tld/rfid/users"
 TEST_URL_CERTIFICATES = "http://openevse.test.tld/certificates"
+TEST_URL_NOTIFICATIONS = "http://openevse.test.tld/notifications"
+TEST_URL_NOTIFICATIONS_ACK = "http://openevse.test.tld/notifications/ack"
 
 
 async def test_list_claims(
@@ -2434,5 +2439,197 @@ async def test_certificate_services_command_failed(
             DOMAIN,
             SERVICE_DELETE_CERTIFICATE,
             {"entity_id": target_entity, ATTR_CERTIFICATE_ID: "bad_id"},
+            blocking=True,
+        )
+
+
+async def test_notification_services(
+    hass,
+    test_charger_services,
+    mock_aioclient,
+    mock_ws_start,
+    entity_registry: er.EntityRegistry,
+    caplog,
+):
+    """Test get_notifications and acknowledge_notification services."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA,
+    )
+    mock_aioclient.get(
+        TEST_URL_OVERRIDE,
+        status=200,
+        text="{}",
+    )
+    notif_data = {
+        "count": 1,
+        "max_severity": "warning",
+        "notifications": [
+            {
+                "id": "safety.ground_check",
+                "category": "safety",
+                "severity": "warning",
+                "sticky": False,
+                "acked": False,
+                "first_seen": 1726050000,
+                "last_seen": 1726050005,
+            }
+        ],
+    }
+    mock_aioclient.get(
+        TEST_URL_NOTIFICATIONS,
+        status=200,
+        text=json.dumps(notif_data),
+    )
+    mock_aioclient.post(
+        TEST_URL_NOTIFICATIONS_ACK,
+        status=200,
+        text='{"msg": "OK"}',
+    )
+
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    target_entity = "sensor.openevse_charging_status"
+    assert entity_registry.async_get(target_entity)
+
+    # 1. Get notifications
+    res = await hass.services.async_call(
+        DOMAIN,
+        SERVICE_GET_NOTIFICATIONS,
+        {"entity_id": target_entity},
+        blocking=True,
+        return_response=True,
+    )
+    assert res == notif_data
+
+    # 2. Acknowledge notification
+    with caplog.at_level(logging.DEBUG):
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_ACK_NOTIFICATION,
+            {
+                "entity_id": target_entity,
+                ATTR_NOTIFICATION_ID: "safety.ground_check",
+            },
+            blocking=True,
+        )
+        assert (
+            "Notification safety.ground_check acknowledged successfully." in caplog.text
+        )
+
+
+async def test_notification_services_firmware_check(
+    hass,
+    test_charger_services,
+    mock_aioclient,
+    mock_ws_start,
+    entity_registry: er.EntityRegistry,
+    caplog,
+):
+    """Test notification services when firmware version is below 5.1.0."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA,
+    )
+    mock_aioclient.get(
+        TEST_URL_OVERRIDE,
+        status=200,
+        text="{}",
+    )
+
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    manager = hass.data[DOMAIN][entry.entry_id][MANAGER]
+    manager.version_check = MagicMock(return_value=False)
+
+    target_entity = "sensor.openevse_charging_status"
+
+    with caplog.at_level(logging.WARNING):
+        res = await hass.services.async_call(
+            DOMAIN,
+            SERVICE_GET_NOTIFICATIONS,
+            {"entity_id": target_entity},
+            blocking=True,
+            return_response=True,
+        )
+        assert res == {}
+        assert (
+            "Retrieving advisory notifications requires firmware version"
+            " 5.1.0 or higher." in caplog.text
+        )
+
+    caplog.clear()
+    with caplog.at_level(logging.WARNING):
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_ACK_NOTIFICATION,
+            {
+                "entity_id": target_entity,
+                ATTR_NOTIFICATION_ID: "safety.ground_check",
+            },
+            blocking=True,
+        )
+        assert (
+            "Acknowledging notification requires firmware version 5.1.0 or higher."
+            in caplog.text
+        )
+
+
+async def test_notification_services_command_failed(
+    hass,
+    test_charger_services,
+    mock_aioclient,
+    mock_ws_start,
+    entity_registry: er.EntityRegistry,
+):
+    """Test notification services handling CommandFailedError."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA,
+    )
+    mock_aioclient.get(
+        TEST_URL_OVERRIDE,
+        status=200,
+        text="{}",
+    )
+
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    manager = hass.data[DOMAIN][entry.entry_id][MANAGER]
+    manager.get_notifications = AsyncMock(
+        side_effect=CommandFailedError("Corrupt notifications endpoint")
+    )
+    manager.acknowledge_notification = AsyncMock(
+        side_effect=CommandFailedError("Failed to ack")
+    )
+
+    target_entity = "sensor.openevse_charging_status"
+
+    with pytest.raises(HomeAssistantError, match="Error retrieving notifications"):
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_GET_NOTIFICATIONS,
+            {"entity_id": target_entity},
+            blocking=True,
+            return_response=True,
+        )
+
+    with pytest.raises(HomeAssistantError, match="Error acknowledging notification"):
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_ACK_NOTIFICATION,
+            {
+                "entity_id": target_entity,
+                ATTR_NOTIFICATION_ID: "safety.ground_check",
+            },
             blocking=True,
         )

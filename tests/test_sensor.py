@@ -43,7 +43,7 @@ async def test_sensors(
         assert await hass.config_entries.async_setup(entry.entry_id)
         await hass.async_block_till_done()
 
-        assert len(hass.states.async_entity_ids(SENSOR_DOMAIN)) == 26
+        assert len(hass.states.async_entity_ids(SENSOR_DOMAIN)) == 28
         entries = hass.config_entries.async_entries(DOMAIN)
         assert len(entries) == 1
 
@@ -90,6 +90,14 @@ async def test_sensors(
         assert state
         assert state.state == "0"
 
+        state = hass.states.get("sensor.openevse_notification_count")
+        assert state
+        assert state.state == "1"
+
+        state = hass.states.get("sensor.openevse_notification_severity")
+        assert state
+        assert state.state == "warning"
+
         # enable disabled sensor
         entity_id = "sensor.openevse_vehicle_charge_completion"
         entity_entry = entity_registry.async_get(entity_id)
@@ -134,7 +142,7 @@ async def test_sensors_v2(
         assert await hass.config_entries.async_setup(entry.entry_id)
         await hass.async_block_till_done()
 
-        assert len(hass.states.async_entity_ids(SENSOR_DOMAIN)) == 26
+        assert len(hass.states.async_entity_ids(SENSOR_DOMAIN)) == 28
         entries = hass.config_entries.async_entries(DOMAIN)
         assert len(entries) == 1
 
@@ -165,6 +173,14 @@ async def test_sensors_v2(
         assert state
         assert state.state == "unavailable"
 
+        state = hass.states.get("sensor.openevse_notification_count")
+        assert state
+        assert state.state == "unavailable"
+
+        state = hass.states.get("sensor.openevse_notification_severity")
+        assert state
+        assert state.state == "unavailable"
+
 
 async def test_sensors_new(
     hass,
@@ -185,7 +201,7 @@ async def test_sensors_new(
         assert await hass.config_entries.async_setup(entry.entry_id)
         await hass.async_block_till_done()
 
-        assert len(hass.states.async_entity_ids(SENSOR_DOMAIN)) == 26
+        assert len(hass.states.async_entity_ids(SENSOR_DOMAIN)) == 28
         entries = hass.config_entries.async_entries(DOMAIN)
         assert len(entries) == 1
 
@@ -293,7 +309,7 @@ async def test_sensors_controller_v9(
         assert await hass.config_entries.async_setup(entry.entry_id)
         await hass.async_block_till_done()
 
-        assert len(hass.states.async_entity_ids(SENSOR_DOMAIN)) == 26
+        assert len(hass.states.async_entity_ids(SENSOR_DOMAIN)) == 28
 
         # enable disabled cable temperature sensors
         for sensor_id in (
