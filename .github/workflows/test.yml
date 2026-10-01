@@ -43,7 +43,7 @@ jobs:
   tests:
     runs-on: "ubuntu-latest"
     name: Run tests
-    needs: [validate, prek]
+    needs: prek
     strategy:
       matrix:
         python-version:
