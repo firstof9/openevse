@@ -48,7 +48,8 @@
       "init": {
         "menu_options": {
           "sensors": "Configurar sensores",
-          "certificate": "Instalar certificado TLS/SSL"
+          "certificate": "Instalar certificado TLS/SSL",
+          "root_ca": "Instalar certificado de CA raíz"
         },
         "description": "Selecciona una opción para configurar OpenEVSE.",
         "title": "Opciones de OpenEVSE"
@@ -78,6 +79,14 @@
         },
         "description": "Subir un certificado TLS/SSL al cargador OpenEVSE.",
         "title": "Instalar certificado"
+      },
+      "root_ca": {
+        "data": {
+          "name": "Nombre del certificado",
+          "certificate": "Certificado de CA raíz (formato PEM)"
+        },
+        "description": "Subir un certificado de CA raíz al cargador OpenEVSE.",
+        "title": "Instalar certificado de CA raíz"
       }
     },
     "error": {

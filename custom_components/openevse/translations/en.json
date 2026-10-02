@@ -48,7 +48,8 @@
       "init": {
         "menu_options": {
           "sensors": "Configure sensor entities",
-          "certificate": "Install TLS/SSL certificate"
+          "certificate": "Install TLS/SSL certificate",
+          "root_ca": "Install root CA certificate"
         },
         "description": "Select an option to configure OpenEVSE.",
         "title": "OpenEVSE Options"
@@ -78,6 +79,14 @@
         },
         "description": "Upload a TLS/SSL certificate to the OpenEVSE charger.",
         "title": "Install Certificate"
+      },
+      "root_ca": {
+        "data": {
+          "name": "Certificate name",
+          "certificate": "Root CA certificate (PEM format)"
+        },
+        "description": "Upload a root CA certificate to the OpenEVSE charger.",
+        "title": "Install Root CA Certificate"
       }
     },
     "error": {
