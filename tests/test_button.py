@@ -35,7 +35,7 @@ async def test_buttons(
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
 
-    assert len(hass.states.async_entity_ids(BUTTON_DOMAIN)) == 3
+    assert len(hass.states.async_entity_ids(BUTTON_DOMAIN)) == 5
 
     # 1. Test Restart WiFi Button
     entity_id = "button.openevse_restart_wifi"
@@ -53,6 +53,8 @@ async def test_buttons(
     manager.restart_wifi = AsyncMock()
     manager.restart_evse = AsyncMock()
     manager.add_rfid_tag = AsyncMock()
+    manager.run_stuck_relay_recovery = AsyncMock()
+    manager.reset_energy_meter = AsyncMock()
 
     await hass.services.async_call(
         BUTTON_DOMAIN, SERVICE_PRESS, {"entity_id": entity_id}, blocking=True
@@ -84,6 +86,41 @@ async def test_buttons(
 
     assert manager.add_rfid_tag.called
     assert manager.add_rfid_tag.call_count == 1
+
+    # 4. Test Stuck-Relay Recovery Button
+    entity_id = "button.openevse_stuck_relay_recovery"
+    state = hass.states.get(entity_id)
+    assert state
+    assert (
+        state.state == "unavailable"
+    )  # Default test charger has controller firmware 7.1.3 < 9.3.0
+
+    with patch.object(manager, "controller_version_check", return_value=True):
+        coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
+        coordinator.async_update_listeners()
+        await hass.async_block_till_done()
+
+        await hass.services.async_call(
+            BUTTON_DOMAIN, SERVICE_PRESS, {"entity_id": entity_id}, blocking=True
+        )
+
+        assert manager.run_stuck_relay_recovery.called
+        assert manager.run_stuck_relay_recovery.call_count == 1
+
+    # 5. Test Reset Energy Meter Button (soft reset: hard=False, import_from_evse=False)
+    entity_id = "button.openevse_reset_energy_meter"
+    state = hass.states.get(entity_id)
+    assert state
+
+    await hass.services.async_call(
+        BUTTON_DOMAIN, SERVICE_PRESS, {"entity_id": entity_id}, blocking=True
+    )
+
+    assert manager.reset_energy_meter.called
+    assert manager.reset_energy_meter.call_count == 1
+    manager.reset_energy_meter.assert_awaited_once_with(
+        hard=False, import_from_evse=False
+    )
 
 
 async def test_buttons_connection_error(
@@ -188,3 +225,25 @@ async def test_button_version_availability(
         state = hass.states.get(entity_id)
         assert state
         assert state.state != "unavailable"
+
+    # Test controller version check on stuck_relay_recovery button
+    entity_id_relay = "button.openevse_stuck_relay_recovery"
+    state_relay = hass.states.get(entity_id_relay)
+    assert state_relay
+    assert state_relay.state == "unavailable"
+
+    with patch.object(manager, "controller_version_check", return_value=True):
+        coordinator.async_update_listeners()
+        await hass.async_block_till_done()
+
+        state_relay = hass.states.get(entity_id_relay)
+        assert state_relay
+        assert state_relay.state != "unavailable"
+
+    with patch.object(manager, "controller_version_check", return_value=False):
+        coordinator.async_update_listeners()
+        await hass.async_block_till_done()
+
+        state_relay = hass.states.get(entity_id_relay)
+        assert state_relay
+        assert state_relay.state == "unavailable"

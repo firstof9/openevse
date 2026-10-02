@@ -57,6 +57,8 @@ class OpenEVSEButton(CoordinatorEntity, OpenEVSEEntity, ButtonEntity):
         self._key = button_description.key
         self._name = button_description.name
         self._min_version = button_description.min_version
+        self._min_controller_version = button_description.min_controller_version
+        self._action = button_description.action
         self._base_unique_id = config_entry.entry_id
         self._attr_name = f"{config_entry.data[CONF_NAME]} {self._name}"
         self._attr_unique_id = f"{self._base_unique_id}.{self._key}"
@@ -64,14 +66,20 @@ class OpenEVSEButton(CoordinatorEntity, OpenEVSEEntity, ButtonEntity):
     @property
     def available(self) -> bool:
         """Return if entity is available."""
-        if not self._min_version:
-            return True
-        return self.manager.version_check(self._min_version)
+        if self._min_version and not self.manager.version_check(self._min_version):
+            return False
+        return not (
+            self._min_controller_version
+            and not self.manager.controller_version_check(self._min_controller_version)
+        )
 
     async def async_press(self) -> None:
         """Handle the button press."""
         try:
-            await getattr(self.manager, self._key)()
+            if self._action is not None:
+                await self._action(self.manager)
+            else:
+                await getattr(self.manager, self._key)()
         except CONNECTION_ERRORS as err:
             self.coordinator.logger.error(CONNECTION_ERROR, err)
             raise HomeAssistantError(

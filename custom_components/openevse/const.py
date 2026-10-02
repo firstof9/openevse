@@ -123,6 +123,7 @@ SERVICE_ADD_CERTIFICATE = "add_certificate"
 SERVICE_DELETE_CERTIFICATE = "delete_certificate"
 SERVICE_GET_NOTIFICATIONS = "get_notifications"
 SERVICE_ACK_NOTIFICATION = "acknowledge_notification"
+SERVICE_RESET_ENERGY_METER = "reset_energy_meter"
 
 # attributes
 ATTR_DEVICE_ID = "device_id"
@@ -144,6 +145,8 @@ ATTR_CERTIFICATE_ID = "certificate_id"
 ATTR_CERTIFICATE = "certificate"
 ATTR_KEY = "key"
 ATTR_NOTIFICATION_ID = "notification_id"
+ATTR_HARD = "hard"
+ATTR_IMPORT = "import"
 
 SERVICE_LEVELS = ["1", "2", "A"]
 DIVERT_MODE = ["fast", "eco"]
@@ -785,6 +788,24 @@ BUTTON_TYPES: Final[tuple[OpenEVSEButtonEntityDescription, ...]] = (
         icon="mdi:credit-card-wireless",
         entity_category=EntityCategory.CONFIG,
         min_version="4.0.0",
+    ),
+    OpenEVSEButtonEntityDescription(
+        key="stuck_relay_recovery",
+        name="Stuck-Relay Recovery",
+        icon="mdi:wrench-outline",
+        entity_category=EntityCategory.CONFIG,
+        min_controller_version="9.3.0",
+        action=lambda manager: manager.run_stuck_relay_recovery(),
+    ),
+    OpenEVSEButtonEntityDescription(
+        key="reset_energy_meter",
+        name="Reset Energy Meter",
+        icon="mdi:counter",
+        entity_category=EntityCategory.CONFIG,
+        min_version="4.0.0",
+        action=lambda manager: manager.reset_energy_meter(
+            hard=False, import_from_evse=False
+        ),
     ),
 )
 

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Coroutine
 from dataclasses import dataclass
 from typing import Any
 
@@ -38,6 +38,8 @@ class OpenEVSEButtonEntityDescription(ButtonEntityDescription):
     """Class describing OpenEVSE button entities."""
 
     min_version: str | None = None
+    min_controller_version: str | None = None
+    action: Callable[[Any], Coroutine[Any, Any, None]] | None = None
 
 
 @dataclass

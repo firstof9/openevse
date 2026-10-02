@@ -20,6 +20,8 @@ from custom_components.openevse.const import (
     ATTR_CHARGE_CURRENT,
     ATTR_DEVICE_ID,
     ATTR_ENERGY_LIMIT,
+    ATTR_HARD,
+    ATTR_IMPORT,
     ATTR_KEY,
     ATTR_MAX_CURRENT,
     ATTR_NAME,
@@ -51,6 +53,7 @@ from custom_components.openevse.const import (
     SERVICE_LIST_OVERRIDES,
     SERVICE_MAKE_CLAIM,
     SERVICE_RELEASE_CLAIM,
+    SERVICE_RESET_ENERGY_METER,
     SERVICE_SET_LIMIT,
     SERVICE_SET_OVERRIDE,
     SERVICE_SET_RFID_USER,
@@ -1458,8 +1461,13 @@ async def test_service_invalid_device_id(
         (SERVICE_SYNC_TIME, {}),
         (SERVICE_ADD_RFID_TAG, {}),
         (SERVICE_SET_RFID_USER, {ATTR_RFID: "01020304", ATTR_NAME: "Alice"}),
-        (SERVICE_DELETE_RFID_USER, {ATTR_RFID: "01020304"}),
         (SERVICE_GET_RFID_USERS, {}),
+        (SERVICE_GET_CERTIFICATES, {}),
+        (SERVICE_ADD_CERTIFICATE, {ATTR_NAME: "test", ATTR_CERTIFICATE: "test"}),
+        (SERVICE_DELETE_CERTIFICATE, {ATTR_CERTIFICATE_ID: "3a8f"}),
+        (SERVICE_GET_NOTIFICATIONS, {}),
+        (SERVICE_ACK_NOTIFICATION, {ATTR_NOTIFICATION_ID: "safety.ground_check"}),
+        (SERVICE_RESET_ENERGY_METER, {}),
     ]
 
     for service_name, data in services_to_test:
@@ -1473,6 +1481,8 @@ async def test_service_invalid_device_id(
             SERVICE_LIST_OVERRIDES,
             SERVICE_GET_TIME,
             SERVICE_GET_RFID_USERS,
+            SERVICE_GET_CERTIFICATES,
+            SERVICE_GET_NOTIFICATIONS,
         ]
 
         with pytest.raises(ValueError, match="Device ID fake_device_id is not valid"):
@@ -1531,6 +1541,7 @@ async def test_service_missing_config(
         (SERVICE_DELETE_CERTIFICATE, {ATTR_CERTIFICATE_ID: "3a8f"}),
         (SERVICE_GET_NOTIFICATIONS, {}),
         (SERVICE_ACK_NOTIFICATION, {ATTR_NOTIFICATION_ID: "safety.ground_check"}),
+        (SERVICE_RESET_ENERGY_METER, {}),
     ]
 
     for service_name, data in services_to_test:
@@ -1753,6 +1764,11 @@ async def test_services_connection_errors(
             SERVICE_ACK_NOTIFICATION,
             {ATTR_NOTIFICATION_ID: "safety.ground_check"},
             "acknowledge_notification",
+        ),
+        (
+            SERVICE_RESET_ENERGY_METER,
+            {},
+            "reset_energy_meter",
         ),
     ]
 
@@ -2642,5 +2658,155 @@ async def test_notification_services_command_failed(
                 "entity_id": target_entity,
                 ATTR_NOTIFICATION_ID: "safety.ground_check",
             },
+            blocking=True,
+        )
+
+
+async def test_reset_energy_meter_service(
+    hass,
+    test_charger_services,
+    mock_aioclient,
+    mock_ws_start,
+    entity_registry: er.EntityRegistry,
+    caplog,
+):
+    """Test reset_energy_meter service calls."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA,
+    )
+    mock_aioclient.get(
+        TEST_URL_OVERRIDE,
+        status=200,
+        text="{}",
+    )
+
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    manager = hass.data[DOMAIN][entry.entry_id][MANAGER]
+    manager.reset_energy_meter = AsyncMock()
+
+    target_entity = "sensor.openevse_charging_status"
+    assert entity_registry.async_get(target_entity)
+
+    # 1. Reset energy meter with default arguments (hard=False, import=False)
+    with caplog.at_level(logging.DEBUG):
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_RESET_ENERGY_METER,
+            {"entity_id": target_entity},
+            blocking=True,
+        )
+        assert (
+            "Energy meter reset successfully (hard=False, import=False)." in caplog.text
+        )
+    manager.reset_energy_meter.assert_awaited_once_with(
+        hard=False, import_from_evse=False
+    )
+
+    # 2. Reset energy meter with hard=True and import=True
+    manager.reset_energy_meter.reset_mock()
+    caplog.clear()
+    with caplog.at_level(logging.DEBUG):
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_RESET_ENERGY_METER,
+            {
+                "entity_id": target_entity,
+                ATTR_HARD: True,
+                ATTR_IMPORT: True,
+            },
+            blocking=True,
+        )
+        assert (
+            "Energy meter reset successfully (hard=True, import=True)." in caplog.text
+        )
+    manager.reset_energy_meter.assert_awaited_once_with(
+        hard=True, import_from_evse=True
+    )
+
+
+async def test_reset_energy_meter_firmware_check(
+    hass,
+    test_charger_services,
+    mock_aioclient,
+    mock_ws_start,
+    entity_registry: er.EntityRegistry,
+    caplog,
+):
+    """Test reset_energy_meter when firmware version is below 4.0.0."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA,
+    )
+    mock_aioclient.get(
+        TEST_URL_OVERRIDE,
+        status=200,
+        text="{}",
+    )
+
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    manager = hass.data[DOMAIN][entry.entry_id][MANAGER]
+    manager.version_check = MagicMock(return_value=False)
+    manager.reset_energy_meter = AsyncMock()
+
+    target_entity = "sensor.openevse_charging_status"
+
+    with caplog.at_level(logging.WARNING):
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_RESET_ENERGY_METER,
+            {"entity_id": target_entity},
+            blocking=True,
+        )
+        assert (
+            "Resetting energy meter requires firmware version 4.0.0 or higher."
+            in caplog.text
+        )
+    assert not manager.reset_energy_meter.called
+
+
+async def test_reset_energy_meter_command_failed(
+    hass,
+    test_charger_services,
+    mock_aioclient,
+    mock_ws_start,
+    entity_registry: er.EntityRegistry,
+):
+    """Test reset_energy_meter handling CommandFailedError."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA,
+    )
+    mock_aioclient.get(
+        TEST_URL_OVERRIDE,
+        status=200,
+        text="{}",
+    )
+
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    manager = hass.data[DOMAIN][entry.entry_id][MANAGER]
+    manager.reset_energy_meter = AsyncMock(
+        side_effect=CommandFailedError("Reset failed")
+    )
+
+    target_entity = "sensor.openevse_charging_status"
+
+    with pytest.raises(HomeAssistantError, match="Error resetting energy meter"):
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_RESET_ENERGY_METER,
+            {"entity_id": target_entity},
             blocking=True,
         )
