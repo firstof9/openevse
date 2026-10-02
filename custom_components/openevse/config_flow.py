@@ -338,7 +338,7 @@ class OpenEVSEOptionsFlowHandler(config_entries.OptionsFlow):
         """Manage the options and show menu."""
         return self.async_show_menu(
             step_id="init",
-            menu_options=["sensors", "certificate"],
+            menu_options=["sensors", "certificate", "root_ca"],
         )
 
     async def async_step_sensors(
@@ -437,6 +437,49 @@ class OpenEVSEOptionsFlowHandler(config_entries.OptionsFlow):
 
         return self.async_show_form(
             step_id="certificate",
+            data_schema=schema,
+            errors=errors,
+        )
+
+    async def async_step_root_ca(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Upload a root CA certificate to the charger without a private key."""
+        errors: dict[str, str] = {}
+
+        manager = self.hass.data[DOMAIN][self.config_entry.entry_id][MANAGER]
+        if not manager.version_check("4.0.0"):
+            return self.async_abort(reason="firmware_version_unsupported")
+
+        if user_input is not None:
+            name = user_input[CONF_NAME]
+            certificate = user_input[ATTR_CERTIFICATE]
+            try:
+                await manager.add_certificate(
+                    name=name,
+                    certificate=certificate,
+                    key=None,
+                )
+                return self.async_create_entry(title="", data={})
+            except CONNECTION_ERRORS:
+                errors["base"] = "communication"
+            except CommandFailedError:
+                errors["base"] = "command_failed"
+            except Exception:  # pylint: disable=broad-except
+                _LOGGER.exception("Unexpected error uploading root CA certificate")
+                errors["base"] = "unknown"
+
+        schema = vol.Schema(
+            {
+                vol.Required(CONF_NAME): str,
+                vol.Required(ATTR_CERTIFICATE): TextSelector(
+                    TextSelectorConfig(multiline=True)
+                ),
+            }
+        )
+
+        return self.async_show_form(
+            step_id="root_ca",
             data_schema=schema,
             errors=errors,
         )
