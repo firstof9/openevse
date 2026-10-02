@@ -419,7 +419,7 @@ class OpenEVSEOptionsFlowHandler(config_entries.OptionsFlow):
                 errors["base"] = "communication"
             except CommandFailedError:
                 errors["base"] = "command_failed"
-            except Exception:  # pylint: disable=broad-except
+            except (OSError, ValueError, RuntimeError):
                 _LOGGER.exception("Unexpected error uploading certificate")
                 errors["base"] = "unknown"
 
@@ -465,7 +465,7 @@ class OpenEVSEOptionsFlowHandler(config_entries.OptionsFlow):
                 errors["base"] = "communication"
             except CommandFailedError:
                 errors["base"] = "command_failed"
-            except Exception:  # pylint: disable=broad-except
+            except (OSError, ValueError, RuntimeError):
                 _LOGGER.exception("Unexpected error uploading root CA certificate")
                 errors["base"] = "unknown"
 
