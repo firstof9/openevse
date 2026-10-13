@@ -947,6 +947,95 @@ async def test_options_flow_root_ca_errors(hass, test_charger, mock_ws_start):
     await hass.async_block_till_done()
 
 
+async def test_options_flow_certificate_from_file(hass, test_charger, mock_ws_start):
+    """Test options flow uploading certificate and root CA via file upload."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA,
+        version=2,
+    )
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    manager = hass.data[DOMAIN][entry.entry_id][MANAGER]
+    manager.version_check = MagicMock(return_value=True)
+    manager.add_certificate = AsyncMock(return_value={"msg": "OK", "id": "4b9c"})
+
+    # Test file upload with process_uploaded_file mock
+    cert_content = "-----BEGIN CERTIFICATE-----\nFILE_CERT\n-----END CERTIFICATE-----"
+    key_content = "-----BEGIN PRIVATE KEY-----\nFILE_KEY\n-----END PRIVATE KEY-----"
+
+    class MockPath:
+        def __init__(self, content: str) -> None:
+            self._content = content
+
+        def read_text(self, encoding: str = "utf-8") -> str:
+            return self._content
+
+    from contextlib import contextmanager
+
+    @contextmanager
+    def mock_process_uploaded_file(_hass, file_id: str):
+        if file_id == "cert-file-id":
+            yield MockPath(cert_content)
+        elif file_id == "key-file-id":
+            yield MockPath(key_content)
+        else:
+            raise ValueError("File does not exist")
+
+    with patch(
+        "custom_components.openevse.config_flow.process_uploaded_file",
+        side_effect=mock_process_uploaded_file,
+    ):
+        result = await hass.config_entries.options.async_init(entry.entry_id)
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"],
+            user_input={"next_step_id": "certificate"},
+        )
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"],
+            user_input={
+                "name": "File Cert",
+                "certificate": "cert-file-id",
+                "key": "key-file-id",
+            },
+        )
+        assert result["type"] is FlowResultType.CREATE_ENTRY
+        manager.add_certificate.assert_awaited_once_with(
+            name="File Cert",
+            certificate=cert_content,
+            key=key_content,
+        )
+
+        manager.add_certificate.reset_mock()
+
+        # Test root_ca with file upload
+        result = await hass.config_entries.options.async_init(entry.entry_id)
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"],
+            user_input={"next_step_id": "root_ca"},
+        )
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"],
+            user_input={
+                "name": "File Root CA",
+                "certificate": "cert-file-id",
+            },
+        )
+        assert result["type"] is FlowResultType.CREATE_ENTRY
+        manager.add_certificate.assert_awaited_once_with(
+            name="File Root CA",
+            certificate=cert_content,
+            key=None,
+        )
+
+    await hass.async_block_till_done()
+    await hass.config_entries.async_unload(entry.entry_id)
+    await hass.async_block_till_done()
+
+
 async def test_migrate_from_v1(hass, test_charger, mock_ws_start):
     """Test migration from config version 1 to version 2."""
     # Create a v1 entry with sensor fields in data
