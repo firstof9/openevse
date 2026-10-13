@@ -15,6 +15,11 @@ Icon
 .idea
 *.iml
 
+# Node / VitePress
+node_modules/
+docs/.vitepress/dist/
+docs/.vitepress/cache/
+
 # pytest
 .pytest_cache
 .cache
