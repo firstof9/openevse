@@ -1,0 +1,31 @@
+{
+  "name": "openevse",
+  "version": "1.0.0",
+  "description": "Custom component to integrate with [OpenEVSE](https://openevse.com/) electric vehicle chargers.",
+  "main": "index.js",
+  "directories": {
+    "test": "tests"
+  },
+  "private": true,
+  "scripts": {
+    "docs:dev": "vitepress dev docs",
+    "docs:build": "vitepress build docs",
+    "docs:preview": "vitepress preview docs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/firstof9/openevse.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/firstof9/openevse/issues"
+  },
+  "homepage": "https://github.com/firstof9/openevse#readme",
+  "devDependencies": {
+    "vitepress": "^1.6.4",
+    "vue": "^3.5.44"
+  }
+}

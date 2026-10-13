@@ -9,6 +9,7 @@ Custom component to integrate with [OpenEVSE](https://openevse.com/) electric ve
   <a href="LICENSE"><img src="https://img.shields.io/github/license/firstof9/openevse.svg?style=for-the-badge" alt="License"></a>
   <br>
   <!-- Compatibility & HACS -->
+  <a href="https://custom-components.github.io/openevse/"><img src="https://img.shields.io/badge/docs-GitHub_Pages-blue.svg?style=for-the-badge" alt="Documentation"></a>
   <a href="https://github.com/custom-components/hacs"><img src="https://img.shields.io/badge/HACS-Custom-orange.svg?style=for-the-badge" alt="HACS"></a>
   <img src="https://img.shields.io/badge/HA-2024.5+-blue.svg?style=for-the-badge" alt="Home Assistant Minimum Version">
   <img src="https://img.shields.io/badge/maintainer-Chris%20Nowak%20%40firstof9-blue.svg?style=for-the-badge" alt="Project Maintenance">
