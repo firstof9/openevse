@@ -7,20 +7,24 @@ from homeassistant.components.binary_sensor import (
     BinarySensorEntity,
 )
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import (
     CoordinatorEntity,
     DataUpdateCoordinator,
 )
 
-from .const import BINARY_SENSORS, CONF_NAME, COORDINATOR, DOMAIN
+from .const import BINARY_SENSORS, CONF_NAME
 from .entity import OpenEVSEBinarySensorEntityDescription, OpenEVSEEntity
+from .models import OpenEVSEConfigEntry
 
 _LOGGER = logging.getLogger(__name__)
 
 
-async def async_setup_entry(hass, entry, async_add_devices):
+async def async_setup_entry(
+    hass: HomeAssistant, entry: OpenEVSEConfigEntry, async_add_devices
+):
     """Set up binary_sensor platform."""
-    coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
+    coordinator = entry.runtime_data.coordinator
 
     binary_sensors = []
     for description in BINARY_SENSORS:

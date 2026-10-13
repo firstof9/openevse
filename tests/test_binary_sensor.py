@@ -13,7 +13,7 @@ from homeassistant.helpers import entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.openevse.binary_sensor import OpenEVSEBinarySensor
-from custom_components.openevse.const import COORDINATOR, DOMAIN
+from custom_components.openevse.const import DOMAIN
 
 from .const import CONFIG_DATA
 
@@ -124,7 +124,7 @@ async def test_binary_sensor_coverage_gaps(hass, test_charger, mock_ws_start):
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
 
-    coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
+    coordinator = entry.runtime_data.coordinator
 
     # Test is_on property when sensor type is missing from coordinator data
     description_bin = BinarySensorEntityDescription(

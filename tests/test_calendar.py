@@ -9,7 +9,7 @@ from homeassistant.exceptions import HomeAssistantError
 from openevsehttp.exceptions import CommandFailedError, UnsupportedFeature
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.openevse.const import DOMAIN, MANAGER
+from custom_components.openevse.const import DOMAIN
 
 from .const import CONFIG_DATA
 
@@ -38,7 +38,7 @@ async def test_calendar_setup_and_events(hass, test_charger, mock_ws_start):
     assert state is not None
     assert state.name == "openevse Schedule"
 
-    manager = hass.data[DOMAIN][entry.entry_id][MANAGER]
+    manager = entry.runtime_data.manager
 
     # Mock get_schedule data
     schedule_data = [
@@ -134,7 +134,7 @@ async def test_calendar_create_update_delete_events(hass, test_charger, mock_ws_
     )
     assert calendar_entity is not None
 
-    manager = hass.data[DOMAIN][entry.entry_id][MANAGER]
+    manager = entry.runtime_data.manager
     manager.set_schedule = AsyncMock()
     manager.delete_schedule = AsyncMock()
     manager.get_schedule = AsyncMock(return_value=[])
@@ -214,7 +214,7 @@ async def test_calendar_get_schedule_errors(hass, test_charger, mock_ws_start):
         entity_id
     )
 
-    manager = hass.data[DOMAIN][entry.entry_id][MANAGER]
+    manager = entry.runtime_data.manager
 
     # 1. UnsupportedFeature
     manager.get_schedule = AsyncMock(side_effect=UnsupportedFeature("get_schedule"))
@@ -252,7 +252,7 @@ async def test_calendar_edge_cases_and_caching(hass, test_charger, mock_ws_start
         entity_id
     )
 
-    manager = hass.data[DOMAIN][entry.entry_id][MANAGER]
+    manager = entry.runtime_data.manager
 
     # 1. Missing time or non-list days, malformed time
     manager.get_schedule = AsyncMock(

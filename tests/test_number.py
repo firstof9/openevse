@@ -10,7 +10,7 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.openevse.const import COORDINATOR, DOMAIN, MANAGER, NUMBER_TYPES
+from custom_components.openevse.const import DOMAIN, NUMBER_TYPES
 from custom_components.openevse.number import OpenEVSENumberEntity
 
 from .const import CONFIG_DATA
@@ -57,7 +57,7 @@ async def test_number(
     await hass.async_block_till_done()
 
     with caplog.at_level(logging.DEBUG):
-        coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
+        coordinator = entry.runtime_data.coordinator
         coordinator._data["max_current_soft"] = 21
         updated_data = coordinator._data
         coordinator.async_set_updated_data(updated_data)
@@ -74,7 +74,7 @@ async def test_number(
     assert state.state == "30.0"
 
     with caplog.at_level(logging.DEBUG):
-        coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
+        coordinator = entry.runtime_data.coordinator
         coordinator._data["divert_active"] = True
         updated_data = coordinator._data
         coordinator.async_set_updated_data(updated_data)
@@ -101,8 +101,8 @@ async def test_number_validation_error(hass, test_charger, mock_ws_start):
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
 
-    manager = hass.data[DOMAIN][entry.entry_id][MANAGER]
-    coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
+    manager = entry.runtime_data.manager
+    coordinator = entry.runtime_data.coordinator
 
     entity = OpenEVSENumberEntity(
         entry,
@@ -129,7 +129,7 @@ async def test_number_coverage_gaps(hass, test_charger, mock_ws_start):
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
 
-    coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
+    coordinator = entry.runtime_data.coordinator
 
     # 1. Test fallback when coordinator.data is None
     entity = OpenEVSENumberEntity(
@@ -188,7 +188,7 @@ async def test_number_connection_error(
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
 
-    manager = hass.data[DOMAIN][entry.entry_id][MANAGER]
+    manager = entry.runtime_data.manager
     manager.set_current = AsyncMock(side_effect=TimeoutError)
 
     entity_id = "number.openevse_charge_rate"

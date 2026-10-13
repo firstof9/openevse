@@ -9,7 +9,7 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.openevse.const import COORDINATOR, DOMAIN, MANAGER
+from custom_components.openevse.const import DOMAIN
 from custom_components.openevse.switch import OpenEVSESwitch
 
 from .conftest import TEST_URL_CONFIG
@@ -54,7 +54,7 @@ async def test_switches(
     assert len(hass.states.async_entity_ids(SWITCH_DOMAIN)) == 8
 
     # Get the coordinator to simulate data updates
-    coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
+    coordinator = entry.runtime_data.coordinator
 
     # -------------------------------------------------------------------------
     # 1. Test Sleep Mode Switch
@@ -276,7 +276,7 @@ async def test_switches(
     # 7. Test Cable Temperature Monitoring Switch
     # -------------------------------------------------------------------------
     entity_id = "switch.openevse_cable_temperature_monitoring"
-    manager = hass.data[DOMAIN][entry.entry_id][MANAGER]
+    manager = entry.runtime_data.manager
 
     # Without controller 9.4.0+, switch is unavailable
     state = hass.states.get(entity_id)
@@ -354,7 +354,7 @@ async def test_switches_controller_v9(
         SWITCH_DOMAIN, "turn_on", {"entity_id": entity_id}, blocking=True
     )
 
-    coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
+    coordinator = entry.runtime_data.coordinator
     coordinator._data["cable_temp_enabled"] = True
     coordinator.async_set_updated_data(coordinator._data)
     await hass.async_block_till_done()
@@ -438,8 +438,8 @@ async def test_switch_coverage_gaps(hass, test_charger, mock_ws_start):
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
 
-    coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
-    manager = hass.data[DOMAIN][entry.entry_id][MANAGER]
+    coordinator = entry.runtime_data.coordinator
+    manager = entry.runtime_data.manager
 
     # Test is_on when data is missing
     description = MagicMock(
@@ -527,13 +527,13 @@ async def test_switch_connection_error(
     await hass.config_entries.async_forward_entry_setups(entry, [SWITCH_DOMAIN])
     await hass.async_block_till_done()
 
-    manager = hass.data[DOMAIN][entry.entry_id][MANAGER]
+    manager = entry.runtime_data.manager
     manager.toggle_override = AsyncMock(side_effect=TimeoutError)
 
     entity_id = "switch.openevse_sleep_mode"
 
     # Force switch to different state to bypass 'if is_on' check
-    coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
+    coordinator = entry.runtime_data.coordinator
     coordinator.data["state"] = "active"  # switch is OFF
     coordinator.async_set_updated_data(coordinator.data)
     await hass.async_block_till_done()

@@ -8,6 +8,7 @@ from typing import Any
 from homeassistant.components.select import SelectEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_NAME
+from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from openevsehttp.exceptions import CommandFailedError as OpenEVSECommandFailedError
@@ -20,16 +21,19 @@ from . import (
     OpenEVSEUpdateCoordinator,
     send_command,
 )
-from .const import CONNECTION_ERROR, COORDINATOR, DOMAIN, MANAGER, SELECT_TYPES
+from .const import CONNECTION_ERROR, SELECT_TYPES
 from .entity import OpenEVSEEntity, OpenEVSESelectEntityDescription
+from .models import OpenEVSEConfigEntry
 
 _LOGGER = logging.getLogger(__name__)
 
 
-async def async_setup_entry(hass, entry, async_add_entities):
+async def async_setup_entry(
+    hass: HomeAssistant, entry: OpenEVSEConfigEntry, async_add_entities
+):
     """Set up the OpenEVSE selects."""
-    coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
-    manager = hass.data[DOMAIN][entry.entry_id][MANAGER]
+    coordinator = entry.runtime_data.coordinator
+    manager = entry.runtime_data.manager
     selects = []
     for description in SELECT_TYPES:
         if description.key == "max_current_soft":
@@ -149,7 +153,7 @@ class OpenEVSESelect(CoordinatorEntity, OpenEVSEEntity, SelectEntity):
         if not data or not isinstance(data, dict):
             return False
 
-        manager = self.hass.data[DOMAIN][self._config.entry_id][MANAGER]
+        manager = self._manager
         attributes = ("divertmode", "divert_active")
         if (
             set(attributes).issubset(data.keys())
