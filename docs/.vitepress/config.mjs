@@ -22,13 +22,14 @@ export default defineConfig({
     nav: [
       { text: 'Guide', link: '/getting-started' },
       { text: 'Features', link: '/features' },
-      { text: 'Services', link: '/services' },
       { text: 'Entities', link: '/entities' },
-      { text: 'FAQ & Troubleshooting', link: '/troubleshooting' },
+      { text: 'Services', link: '/services' },
+      { text: 'Architecture', link: '/architecture' },
+      { text: 'Troubleshooting', link: '/troubleshooting' },
       {
-        text: 'Links',
+        text: 'External',
         items: [
-          { text: 'OpenEVSE Hardware', link: 'https://openevse.com' },
+          { text: 'OpenEVSE Official Site', link: 'https://openevse.com' },
           { text: 'OpenEVSE Lovelace Card', link: 'https://github.com/KipK/openevse-card' },
           { text: 'Home Assistant Community', link: 'https://community.home-assistant.io/' },
           { text: 'Discord Community', link: 'https://discord.gg/Qa5fW2R' },
@@ -42,33 +43,33 @@ export default defineConfig({
         items: [
           { text: 'Introduction', link: '/getting-started' },
           { text: 'Installation (HACS & Manual)', link: '/installation' },
-          { text: 'Configuration', link: '/configuration' },
+          { text: 'Configuration & Certificates', link: '/configuration' },
         ]
       },
       {
-        text: 'Features & Capabilities',
+        text: 'Smart Charging Features',
         items: [
           { text: 'Overview', link: '/features' },
-          { text: 'Solar PV Divert', link: '/features#solar-pv-divert-mode' },
-          { text: 'Claims & Manual Overrides', link: '/features#claim-and-override-system' },
-          { text: 'RFID Card Management', link: '/features#rfid-management-v4-0-v5-0' },
-          { text: 'Firmware Updates', link: '/features#firmware-updates' },
-          { text: 'Energy Dashboard', link: '/features#home-assistant-energy-dashboard' },
+          { text: 'Solar PV Divert & Current Shaper', link: '/solar-divert' },
+          { text: 'Scheduling & Calendar', link: '/scheduling' },
+          { text: 'RFID Management', link: '/rfid' },
+          { text: 'Firmware Updates', link: '/firmware' },
         ]
       },
       {
         text: 'Reference',
         items: [
-          { text: 'Platforms & Entities', link: '/entities' },
+          { text: 'Entities & Platforms', link: '/entities' },
           { text: 'Service Calls Reference', link: '/services' },
-          { text: 'Lovelace UI & Cards', link: '/dashboards' },
+          { text: 'Lovelace UI & Dashboards', link: '/dashboards' },
         ]
       },
       {
-        text: 'Help & Development',
+        text: 'Developer & Architecture',
         items: [
+          { text: 'Internal Architecture', link: '/architecture' },
+          { text: 'Contributing Guidelines', link: '/contributing' },
           { text: 'Troubleshooting & FAQ', link: '/troubleshooting' },
-          { text: 'Contributing', link: '/contributing' },
         ]
       }
     ],

@@ -1,42 +1,85 @@
 # Troubleshooting & FAQ
 
-Frequently asked questions and troubleshooting advice for the OpenEVSE Home Assistant integration.
+Frequently asked questions, common setup scenarios, and troubleshooting steps for the OpenEVSE Home Assistant integration.
 
 ---
 
-## Frequently Asked Questions
+## Setup & Connectivity
 
-### Can I run this integration completely offline?
-**Yes.** All communication occurs on your local network (LAN) directly with the OpenEVSE controller over HTTP REST and WebSockets. No cloud connection or internet access is necessary for charger management.
+### Integration is not discovered automatically
+- **VLAN Isolation**: Zeroconf / mDNS discovery relies on multicast UDP packets which cannot traverse separated VLANs without an mDNS gateway or repeater (e.g. Avahi).
+- **Manual Setup**: If discovery fails, click **+ Add Integration ➔ OpenEVSE** and manually input the charger's static IP address or local hostname.
+- Verify the charger's WiFi LED is solid (not pulsing or disconnected).
 
-### Why does Solar Divert not start immediately when surplus solar is generated?
-To prevent damaging the vehicle's onboard charger or cycling contactors excessively:
-- The integration requires a sustained period of excess solar above the minimum charge threshold (typically 6A / ~1.4 kW single-phase or ~4.1 kW three-phase).
-- Smoothing windows and hysteresis prevent frequent cycling during cloudy spells.
+### "Unable to connect to device" during initial setup
+- Verify you can open `http://<CHARGER_IP>` in a browser from the same network.
+- If HTTP authentication is configured on the charger, double-check your username and password.
+- If using **HTTPS**, verify that SSL certificates have been provisioned on the charger.
 
-### How do I configure HTTPS / TLS?
-If your OpenEVSE firmware has SSL enabled, configure the integration with port `443` and ensure that certificates are uploaded to the OpenEVSE device.
+### Integration configured but entities missing
+- Ensure the charger's entry in **Settings ➔ Devices & Services ➔ OpenEVSE** shows a connected device.
+- Review logs under **Settings ➔ System ➔ Logs** filtered by `openevse`.
 
 ---
 
-## Troubleshooting Guide
+## Entities & Sensors
 
-### 1. Device Not Found via Auto-Discovery
-- **VLAN Isolation**: Ensure multicast DNS (mDNS / Zeroconf) packets can traverse across your IoT VLAN and your Home Assistant VLAN.
-- **Manual Setup**: If mDNS is disabled, manually add the integration via **Settings ➔ Devices & Services ➔ + Add Integration ➔ OpenEVSE** and specify the charger's static IP address.
+### Why do some entities show as "Unavailable"?
+Entities with a firmware version requirement (such as LED Brightness, Solar Divert, RFID Access, or Vehicle Telemetry) will report as **Unavailable** if the OpenEVSE controller or WiFi module is running older firmware.
+- Check the **Controller Firmware** sensor (`sensor.openevse_controller_firmware`) and compare it with the [Firmware Capability Matrix](./firmware.md#firmware-version-capability-matrix).
 
-### 2. WebSocket Disconnections or Stale Data
-- Verify the WiFi signal quality using `sensor.openevse_wifi_signal_strength`.
-- Check if another application (e.g. an external script) is exhausting WebSocket connections on the ESP module. OpenEVSE ESP firmware supports a limited number of concurrent WebSocket clients.
+### Sensor shows "Unknown" or "None"
+- Certain diagnostic sensors (like solar divert or current shaper calculations) only calculate numbers when the corresponding feature switch is enabled.
+- Wait for the next coordinator poll or restart the charger's WiFi if communication has frozen.
 
-### 3. Firmware Update Fails
-- Ensure your charger has access to the internet to download the firmware binary from GitHub releases.
-- Alternatively, you can upload the `.bin` firmware file directly via the OpenEVSE web GUI.
+### Update entity not finding new firmware
+- Anonymous GitHub API requests are capped at 60/hour. Add a [GitHub Personal Access Token](./configuration.md#additional-settings) to increase your limit to 5,000/hour.
+- Manually trigger an update check using the `homeassistant.update_entity` action targeting `update.openevse_update`.
 
-### 4. Enable Diagnostic Debug Logging
-If you need to report an issue, enable debug logging in Home Assistant:
+---
 
-Add the following to your `configuration.yaml`:
+## Services & Automation
+
+### Firmware version error on service call
+Services like `set_rfid_user`, `delete_rfid_user`, `get_rfid_users`, or `reset_energy_meter` require modern firmware. The integration will log an informative warning if invoked on older firmware.
+
+### `set_limit` with `soc` or `range` has no effect
+These limit modes require vehicle telemetry. You must configure the **Vehicle State of Charge Sensor** or **Vehicle Range Sensor** under **Settings ➔ Devices & Services ➔ OpenEVSE ➔ Configure**.
+
+### Manual override not taking effect
+Check if another entity or external service has registered a higher-priority claim using `openevse.list_claims`.
+
+---
+
+## Solar Divert & Current Shaper
+
+### Solar Divert enabled but charge current does not adjust
+- Verify that your **Grid Sensor** or **Solar Sensor** is updating actively in Home Assistant. The integration transmits sensor updates reactively when state events fire.
+- Verify whether your grid sensor exports power with negative numbers. If your meter reports export as positive values, enable **Invert Grid** in integration options.
+- Confirm the charger has adequate current headroom above its configured **Min Amps** threshold (typically 6A).
+
+---
+
+## Advisory Notifications & Home Assistant Repairs
+
+Firmware **5.1.0+** introduces hardware and operational advisories on the charger. The integration integrates with Home Assistant's native Repairs framework:
+
+- **Automatic Repair Issues**: When an advisory or alert is raised, an issue is created in **Settings ➔ System ➔ Repairs**.
+- **Acknowledgement**: You can review and acknowledge (mute) the advisory straight from the Repairs UI, or invoke `openevse.acknowledge_notification`.
+- **Monitoring**: Track active advisories with `sensor.openevse_notification_count` and `sensor.openevse_notification_severity`.
+
+---
+
+## Diagnostic Logging
+
+To capture deep debug logs for troubleshooting or filing an issue report:
+
+1. In Home Assistant, click the **three dots** on the OpenEVSE card under **Settings ➔ Devices & Services** and select **Enable debug logging**.
+2. Perform the action causing the issue.
+3. Select **Disable debug logging** to download the resulting log file.
+
+Alternatively, add the following to `configuration.yaml`:
+
 ```yaml
 logger:
   default: warning
@@ -44,4 +87,14 @@ logger:
     custom_components.openevse: debug
     openevse_http: debug
 ```
-Or click the **three dots** on the OpenEVSE integration card in Home Assistant and select **Enable debug logging**.
+
+---
+
+## Filing an Issue Report
+
+When opening an issue on GitHub, please include:
+1. Integration version (e.g. from HACS or release tag).
+2. Home Assistant core version.
+3. OpenEVSE WiFi and Controller firmware versions.
+4. Debug log excerpts.
+5. Non-sensitive diagnostics download (**Settings ➔ Devices & Services ➔ OpenEVSE ➔ Download Diagnostics**).
