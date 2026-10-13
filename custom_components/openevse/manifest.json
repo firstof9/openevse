@@ -4,6 +4,9 @@
   "after_dependencies": [
     "zeroconf"
   ],
+  "dependencies": [
+    "file_upload"
+  ],
   "codeowners": [
     "@firstof9"
   ],

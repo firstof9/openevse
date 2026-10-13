@@ -4,13 +4,16 @@ from ipaddress import ip_address
 from unittest.mock import ANY, AsyncMock, MagicMock, patch
 
 import pytest
+import voluptuous as vol
 from homeassistant import config_entries, setup
 from homeassistant.const import CONF_HOST
 from homeassistant.data_entry_flow import FlowResultType
+from homeassistant.helpers.selector import FileSelectorConfig
 from homeassistant.helpers.service_info.zeroconf import ZeroconfServiceInfo
 from openevsehttp.exceptions import AuthenticationError, CommandFailedError
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
+from custom_components.openevse.config_flow import OpenEVSEFileSelector
 from custom_components.openevse.const import DOMAIN
 from tests.const import CONFIG_DATA
 
@@ -945,6 +948,151 @@ async def test_options_flow_root_ca_errors(hass, test_charger, mock_ws_start):
     await hass.async_block_till_done()
     await hass.config_entries.async_unload(entry.entry_id)
     await hass.async_block_till_done()
+
+
+async def test_options_flow_certificate_from_file(hass, test_charger, mock_ws_start):
+    """Test options flow uploading certificate and root CA via file upload."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title=CHARGER_NAME,
+        data=CONFIG_DATA,
+        version=2,
+    )
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    manager = entry.runtime_data.manager
+    manager.version_check = MagicMock(return_value=True)
+    manager.add_certificate = AsyncMock(return_value={"msg": "OK", "id": "4b9c"})
+
+    # Test file upload with process_uploaded_file mock
+    cert_content = "-----BEGIN CERTIFICATE-----\nFILE_CERT\n-----END CERTIFICATE-----"
+    key_content = "-----BEGIN PRIVATE KEY-----\nFILE_KEY\n-----END PRIVATE KEY-----"
+
+    class MockPath:
+        def __init__(self, content: str) -> None:
+            self._content = content
+
+        def read_text(self, encoding: str = "utf-8") -> str:
+            return self._content
+
+    from contextlib import contextmanager
+
+    @contextmanager
+    def mock_process_uploaded_file(_hass, file_id: str):
+        if file_id == "cert-file-id":
+            yield MockPath(cert_content)
+        elif file_id == "key-file-id":
+            yield MockPath(key_content)
+        else:
+            raise ValueError("File does not exist")
+
+    with patch(
+        "custom_components.openevse.config_flow.process_uploaded_file",
+        side_effect=mock_process_uploaded_file,
+    ):
+        result = await hass.config_entries.options.async_init(entry.entry_id)
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"],
+            user_input={"next_step_id": "certificate"},
+        )
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"],
+            user_input={
+                "name": "File Cert",
+                "certificate": "cert-file-id",
+                "key": "key-file-id",
+            },
+        )
+        assert result["type"] is FlowResultType.CREATE_ENTRY
+        manager.add_certificate.assert_awaited_once_with(
+            name="File Cert",
+            certificate=cert_content,
+            key=key_content,
+        )
+
+        manager.add_certificate.reset_mock()
+
+        # Test root_ca with file upload
+        result = await hass.config_entries.options.async_init(entry.entry_id)
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"],
+            user_input={"next_step_id": "root_ca"},
+        )
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"],
+            user_input={
+                "name": "File Root CA",
+                "certificate": "cert-file-id",
+            },
+        )
+        manager.add_certificate.reset_mock()
+
+        fallback_cert = (
+            "-----BEGIN CERTIFICATE-----\nFALLBACK\n-----END CERTIFICATE-----"
+        )
+
+        # Test fallback when process_uploaded_file raises OSError
+        with patch(
+            "custom_components.openevse.config_flow.process_uploaded_file",
+            side_effect=OSError("Read error"),
+        ):
+            result = await hass.config_entries.options.async_init(entry.entry_id)
+            result = await hass.config_entries.options.async_configure(
+                result["flow_id"],
+                user_input={"next_step_id": "root_ca"},
+            )
+            result = await hass.config_entries.options.async_configure(
+                result["flow_id"],
+                user_input={
+                    "name": "Fallback CA",
+                    "certificate": fallback_cert,
+                },
+            )
+            assert result["type"] is FlowResultType.CREATE_ENTRY
+            manager.add_certificate.assert_awaited_once_with(
+                name="Fallback CA",
+                certificate=fallback_cert,
+                key=None,
+            )
+
+        manager.add_certificate.reset_mock()
+
+        # Test fallback when process_uploaded_file raises UnicodeDecodeError
+        with patch(
+            "custom_components.openevse.config_flow.process_uploaded_file",
+            side_effect=UnicodeDecodeError(
+                "utf-8", b"\xff", 0, 1, "invalid start byte"
+            ),
+        ):
+            result = await hass.config_entries.options.async_init(entry.entry_id)
+            result = await hass.config_entries.options.async_configure(
+                result["flow_id"],
+                user_input={"next_step_id": "certificate"},
+            )
+            result = await hass.config_entries.options.async_configure(
+                result["flow_id"],
+                user_input={
+                    "name": "Fallback Cert",
+                    "certificate": fallback_cert,
+                },
+            )
+            assert result["type"] is FlowResultType.CREATE_ENTRY
+            manager.add_certificate.assert_awaited_once_with(
+                name="Fallback Cert",
+                certificate=fallback_cert,
+                key=None,
+            )
+
+    await hass.async_block_till_done()
+    await hass.config_entries.async_unload(entry.entry_id)
+    await hass.async_block_till_done()
+
+    # Test invalid non-string input rejected by selector
+    selector = OpenEVSEFileSelector(FileSelectorConfig(accept=".pem"))
+    with pytest.raises(vol.Invalid, match="Value should be a string"):
+        selector(12345)
 
 
 async def test_migrate_from_v1(hass, test_charger, mock_ws_start):

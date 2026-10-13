@@ -9,6 +9,7 @@ from typing import Any, Final
 import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.components import zeroconf
+from homeassistant.components.file_upload import process_uploaded_file
 from homeassistant.const import (
     CONF_HOST,
     CONF_PASSWORD,
@@ -22,6 +23,8 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.selector import (
     EntitySelector,
     EntitySelectorConfig,
+    FileSelector,
+    FileSelectorConfig,
     TextSelector,
     TextSelectorConfig,
     TextSelectorType,
@@ -52,6 +55,16 @@ from .const import (
 )
 
 _LOGGER = logging.getLogger(__name__)
+
+
+class OpenEVSEFileSelector(FileSelector):
+    """File selector that accepts either an uploaded file ID or direct string input."""
+
+    def __call__(self, data: Any) -> str:
+        """Validate input is a string."""
+        if not isinstance(data, str):
+            raise vol.Invalid("Value should be a string")
+        return data
 
 
 @config_entries.HANDLERS.register(DOMAIN)
@@ -393,6 +406,14 @@ class OpenEVSEOptionsFlowHandler(config_entries.OptionsFlow):
             data_schema=self.add_suggested_values_to_schema(schema, options),
         )
 
+    def _extract_file_content(self, value: str) -> str:
+        """Extract content from an uploaded file ID or raw string."""
+        try:
+            with process_uploaded_file(self.hass, value) as file_path:
+                return file_path.read_text(encoding="utf-8")
+        except (ValueError, OSError, UnicodeDecodeError):
+            return value
+
     async def async_step_certificate(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
@@ -405,8 +426,15 @@ class OpenEVSEOptionsFlowHandler(config_entries.OptionsFlow):
 
         if user_input is not None:
             name = user_input[CONF_NAME]
-            certificate = user_input[ATTR_CERTIFICATE]
-            key = user_input.get(ATTR_KEY) or None
+            raw_cert = user_input[ATTR_CERTIFICATE]
+            certificate = await self.hass.async_add_executor_job(
+                self._extract_file_content, raw_cert
+            )
+            key = None
+            if raw_key := user_input.get(ATTR_KEY):
+                key = await self.hass.async_add_executor_job(
+                    self._extract_file_content, raw_key
+                )
             try:
                 await manager.add_certificate(
                     name=name,
@@ -425,11 +453,11 @@ class OpenEVSEOptionsFlowHandler(config_entries.OptionsFlow):
         schema = vol.Schema(
             {
                 vol.Required(CONF_NAME): str,
-                vol.Required(ATTR_CERTIFICATE): TextSelector(
-                    TextSelectorConfig(multiline=True)
+                vol.Required(ATTR_CERTIFICATE): OpenEVSEFileSelector(
+                    FileSelectorConfig(accept=".pem,.crt,.cer")
                 ),
-                vol.Optional(ATTR_KEY): TextSelector(
-                    TextSelectorConfig(multiline=True)
+                vol.Optional(ATTR_KEY): OpenEVSEFileSelector(
+                    FileSelectorConfig(accept=".pem,.key")
                 ),
             }
         )
@@ -452,7 +480,10 @@ class OpenEVSEOptionsFlowHandler(config_entries.OptionsFlow):
 
         if user_input is not None:
             name = user_input[CONF_NAME]
-            certificate = user_input[ATTR_CERTIFICATE]
+            raw_cert = user_input[ATTR_CERTIFICATE]
+            certificate = await self.hass.async_add_executor_job(
+                self._extract_file_content, raw_cert
+            )
             try:
                 await manager.add_certificate(
                     name=name,
@@ -471,8 +502,8 @@ class OpenEVSEOptionsFlowHandler(config_entries.OptionsFlow):
         schema = vol.Schema(
             {
                 vol.Required(CONF_NAME): str,
-                vol.Required(ATTR_CERTIFICATE): TextSelector(
-                    TextSelectorConfig(multiline=True)
+                vol.Required(ATTR_CERTIFICATE): OpenEVSEFileSelector(
+                    FileSelectorConfig(accept=".pem,.crt,.cer")
                 ),
             }
         )
