@@ -11,25 +11,20 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from openevsehttp.exceptions import CommandFailedError
 
 from . import CONNECTION_ERRORS, OpenEVSEManager
-from .const import (
-    BUTTON_TYPES,
-    CONF_NAME,
-    CONNECTION_ERROR,
-    COORDINATOR,
-    DOMAIN,
-    MANAGER,
-)
+from .const import BUTTON_TYPES, CONF_NAME, CONNECTION_ERROR
 from .entity import OpenEVSEButtonEntityDescription, OpenEVSEEntity
+from .models import OpenEVSEConfigEntry
 
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    config_entry: ConfigEntry,
+    config_entry: OpenEVSEConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up OpenEVSE buttons based on a config entry."""
-    manager = hass.data[DOMAIN][config_entry.entry_id][MANAGER]
-    coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
+    data = config_entry.runtime_data
+    manager = data.manager
+    coordinator = data.coordinator
     assert manager is not None
     buttons = []
     for description in BUTTON_TYPES:

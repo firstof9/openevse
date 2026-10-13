@@ -46,7 +46,7 @@ async def test_buttons(
     # We need to mock the manager method to verify it's called.
     # Since test_charger is a real object (OpenEVSE), we can mock the method on the instance  # noqa: E501
     # stored in hass.data.
-    manager = hass.data[DOMAIN][entry.entry_id]["manager"]
+    manager = entry.runtime_data.manager
 
     # Using the standard mock approach for the method on the live object
 
@@ -96,7 +96,7 @@ async def test_buttons(
     )  # Default test charger has controller firmware 7.1.3 < 9.3.0
 
     with patch.object(manager, "controller_version_check", return_value=True):
-        coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
+        coordinator = entry.runtime_data.coordinator
         coordinator.async_update_listeners()
         await hass.async_block_till_done()
 
@@ -141,7 +141,7 @@ async def test_buttons_connection_error(
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
 
-    manager = hass.data[DOMAIN][entry.entry_id]["manager"]
+    manager = entry.runtime_data.manager
     manager.restart_wifi = AsyncMock(side_effect=TimeoutError)
 
     entity_id = "button.openevse_restart_wifi"
@@ -171,7 +171,7 @@ async def test_buttons_command_failed_error(
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
 
-    manager = hass.data[DOMAIN][entry.entry_id]["manager"]
+    manager = entry.runtime_data.manager
     manager.restart_wifi = AsyncMock(
         side_effect=CommandFailedError("Failed to restart WiFi: restart gateway")
     )
@@ -207,9 +207,9 @@ async def test_button_version_availability(
     assert state
     assert state.state != "unavailable"
 
-    manager = hass.data[DOMAIN][entry.entry_id]["manager"]
+    manager = entry.runtime_data.manager
     with patch.object(manager, "version_check", return_value=False):
-        coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
+        coordinator = entry.runtime_data.coordinator
         coordinator.async_update_listeners()
         await hass.async_block_till_done()
 
@@ -218,7 +218,7 @@ async def test_button_version_availability(
         assert state.state == "unavailable"
 
     with patch.object(manager, "version_check", return_value=True):
-        coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
+        coordinator = entry.runtime_data.coordinator
         coordinator.async_update_listeners()
         await hass.async_block_till_done()
 

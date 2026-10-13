@@ -8,7 +8,7 @@ from homeassistant.components.light import DOMAIN as LIGHT_DOMAIN
 from homeassistant.exceptions import HomeAssistantError
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.openevse.const import COORDINATOR, DOMAIN, LIGHT_TYPES, MANAGER
+from custom_components.openevse.const import DOMAIN, LIGHT_TYPES
 from custom_components.openevse.entity import OpenEVSELightEntityDescription
 from custom_components.openevse.light import OpenEVSELight
 
@@ -122,8 +122,8 @@ async def test_light_coverage_gaps(hass, test_charger, mock_ws_start):
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
 
-    coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
-    manager = hass.data[DOMAIN][entry.entry_id][MANAGER]
+    coordinator = entry.runtime_data.coordinator
+    manager = entry.runtime_data.manager
 
     # Case: coordinator.data is empty during init
     coordinator.data = {}
@@ -177,7 +177,7 @@ async def test_light_connection_error(
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
 
-    manager = hass.data[DOMAIN][entry.entry_id][MANAGER]
+    manager = entry.runtime_data.manager
     manager.set_led_brightness = AsyncMock(side_effect=TimeoutError)
 
     entity_id = "light.openevse_led_brightness"
@@ -211,8 +211,8 @@ async def test_light_available_version_check(hass, test_charger, mock_ws_start):
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
 
-    coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
-    manager = hass.data[DOMAIN][entry.entry_id][MANAGER]
+    coordinator = entry.runtime_data.coordinator
+    manager = entry.runtime_data.manager
     entity_id = "light.openevse_led_brightness"
 
     # With version_check returning True, the entity should be available

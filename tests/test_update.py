@@ -16,10 +16,7 @@ from homeassistant.exceptions import HomeAssistantError
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.openevse.const import (
-    COORDINATOR,
     DOMAIN,
-    FW_COORDINATOR,
-    MANAGER,
 )
 from custom_components.openevse.update import OpenEVSEUpdateEntity
 from tests.typing import WebSocketGenerator
@@ -74,9 +71,9 @@ async def test_update_coverage_gaps(hass, test_charger, mock_ws_start):
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
 
-    coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
-    fw_coordinator = hass.data[DOMAIN][entry.entry_id][FW_COORDINATOR]
-    manager = hass.data[DOMAIN][entry.entry_id][MANAGER]
+    coordinator = entry.runtime_data.coordinator
+    fw_coordinator = entry.runtime_data.fw_coordinator
+    manager = entry.runtime_data.manager
 
     update = OpenEVSEUpdateEntity(coordinator, fw_coordinator, entry, manager)
 
@@ -97,7 +94,7 @@ async def test_update_install(hass, test_charger, mock_ws_start):
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
 
-    manager = hass.data[DOMAIN][entry.entry_id]["manager"]
+    manager = entry.runtime_data.manager
     manager.update_firmware = AsyncMock()
 
     entity_id = "update.openevse_update"
@@ -125,7 +122,7 @@ async def test_update_install_no_url(hass, test_charger, mock_ws_start):
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
 
-    fw_coordinator = hass.data[DOMAIN][entry.entry_id][FW_COORDINATOR]
+    fw_coordinator = entry.runtime_data.fw_coordinator
     fw_coordinator.data = {
         "latest_version": "4.1.8",
         "browser_download_url": None,
@@ -151,7 +148,7 @@ async def test_update_install_failure(hass, test_charger, mock_ws_start):
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
 
-    manager = hass.data[DOMAIN][entry.entry_id]["manager"]
+    manager = entry.runtime_data.manager
     manager.update_firmware = AsyncMock(side_effect=RuntimeError("Update failed"))
 
     entity_id = "update.openevse_update"
@@ -194,7 +191,7 @@ async def test_update_progress(hass, test_charger, mock_ws_start):
         mock_ota_update.return_value = True
         mock_ota_progress.return_value = 50
 
-        coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
+        coordinator = entry.runtime_data.coordinator
         await coordinator.async_refresh()
         await hass.async_block_till_done()
 
@@ -215,7 +212,7 @@ async def test_update_polling(hass, test_charger, mock_ws_start):
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
 
-    manager = hass.data[DOMAIN][entry.entry_id][MANAGER]
+    manager = entry.runtime_data.manager
     manager.update_firmware = AsyncMock()
 
     entity_id = "update.openevse_update"
