@@ -26,9 +26,9 @@ from openevsehttp.__main__ import OpenEVSE
 from openevsehttp.exceptions import CommandFailedError, UnsupportedFeature
 
 from .const import CONF_NAME as CONF_NAME_CONST
-from .const import COORDINATOR, DOMAIN, MANAGER
 from .entity import OpenEVSEEntity
 from .logger import OpenEVSELoggerAdapter
+from .models import OpenEVSEConfigEntry
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -45,14 +45,12 @@ WEEKDAYS = [
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    config_entry: ConfigEntry,
+    config_entry: OpenEVSEConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up OpenEVSE calendar platform."""
-    manager: OpenEVSE = hass.data[DOMAIN][config_entry.entry_id][MANAGER]
-    coordinator: DataUpdateCoordinator = hass.data[DOMAIN][config_entry.entry_id][
-        COORDINATOR
-    ]
+    manager: OpenEVSE = config_entry.runtime_data.manager
+    coordinator: DataUpdateCoordinator = config_entry.runtime_data.coordinator
 
     logger = OpenEVSELoggerAdapter(
         _LOGGER, {"device_name": config_entry.data.get(CONF_NAME_CONST, "OpenEVSE")}

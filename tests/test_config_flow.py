@@ -11,7 +11,7 @@ from homeassistant.helpers.service_info.zeroconf import ZeroconfServiceInfo
 from openevsehttp.exceptions import AuthenticationError, CommandFailedError
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.openevse.const import DOMAIN, MANAGER
+from custom_components.openevse.const import DOMAIN
 from tests.const import CONFIG_DATA
 
 CHARGER_NAME = "openevse"
@@ -627,7 +627,7 @@ async def test_options_flow_github_token(hass, test_charger, mock_ws_start):
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
 
-    manager = hass.data[DOMAIN][entry.entry_id][MANAGER]
+    manager = entry.runtime_data.manager
     assert manager.github_token == "ghp_initialtoken123"
 
     result = await hass.config_entries.options.async_init(entry.entry_id)
@@ -657,7 +657,7 @@ async def test_options_flow_github_token(hass, test_charger, mock_ws_start):
 
     await hass.async_block_till_done()
     # After options update, update_listener reloads entry
-    new_manager = hass.data[DOMAIN][entry.entry_id][MANAGER]
+    new_manager = entry.runtime_data.manager
     assert new_manager.github_token == "ghp_updatedtoken456"
 
     await hass.config_entries.async_unload(entry.entry_id)
@@ -676,7 +676,7 @@ async def test_options_flow_certificate_success(hass, test_charger, mock_ws_star
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
 
-    manager = hass.data[DOMAIN][entry.entry_id][MANAGER]
+    manager = entry.runtime_data.manager
     manager.version_check = MagicMock(return_value=True)
     manager.add_certificate = AsyncMock(return_value={"msg": "OK", "id": "4b9c"})
 
@@ -727,7 +727,7 @@ async def test_options_flow_certificate_firmware_unsupported(
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
 
-    manager = hass.data[DOMAIN][entry.entry_id][MANAGER]
+    manager = entry.runtime_data.manager
     manager.version_check = MagicMock(return_value=False)
 
     result = await hass.config_entries.options.async_init(entry.entry_id)
@@ -757,7 +757,7 @@ async def test_options_flow_certificate_errors(hass, test_charger, mock_ws_start
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
 
-    manager = hass.data[DOMAIN][entry.entry_id][MANAGER]
+    manager = entry.runtime_data.manager
     manager.version_check = MagicMock(return_value=True)
 
     # 1. Test CONNECTION_ERRORS (TimeoutError)
@@ -818,7 +818,7 @@ async def test_options_flow_root_ca_success(hass, test_charger, mock_ws_start):
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
 
-    manager = hass.data[DOMAIN][entry.entry_id][MANAGER]
+    manager = entry.runtime_data.manager
     manager.version_check = MagicMock(return_value=True)
     manager.add_certificate = AsyncMock(return_value={"msg": "OK", "id": "4b9c"})
 
@@ -868,7 +868,7 @@ async def test_options_flow_root_ca_firmware_unsupported(
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
 
-    manager = hass.data[DOMAIN][entry.entry_id][MANAGER]
+    manager = entry.runtime_data.manager
     manager.version_check = MagicMock(return_value=False)
 
     result = await hass.config_entries.options.async_init(entry.entry_id)
@@ -898,7 +898,7 @@ async def test_options_flow_root_ca_errors(hass, test_charger, mock_ws_start):
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
 
-    manager = hass.data[DOMAIN][entry.entry_id][MANAGER]
+    manager = entry.runtime_data.manager
     manager.version_check = MagicMock(return_value=True)
 
     # 1. Test CONNECTION_ERRORS (TimeoutError)

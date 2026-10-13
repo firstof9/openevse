@@ -49,7 +49,6 @@ from .const import (
     DEFAULT_HOST,
     DEFAULT_NAME,
     DOMAIN,
-    MANAGER,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -400,7 +399,7 @@ class OpenEVSEOptionsFlowHandler(config_entries.OptionsFlow):
         """Upload a TLS/SSL certificate to the charger."""
         errors: dict[str, str] = {}
 
-        manager = self.hass.data[DOMAIN][self.config_entry.entry_id][MANAGER]
+        manager = self.config_entry.runtime_data.manager
         if not manager.version_check("4.0.0"):
             return self.async_abort(reason="firmware_version_unsupported")
 
@@ -447,7 +446,7 @@ class OpenEVSEOptionsFlowHandler(config_entries.OptionsFlow):
         """Upload a root CA certificate to the charger without a private key."""
         errors: dict[str, str] = {}
 
-        manager = self.hass.data[DOMAIN][self.config_entry.entry_id][MANAGER]
+        manager = self.config_entry.runtime_data.manager
         if not manager.version_check("4.0.0"):
             return self.async_abort(reason="firmware_version_unsupported")
 

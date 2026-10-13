@@ -16,27 +16,21 @@ from . import (
     OpenEVSEManager,
     OpenEVSEUpdateCoordinator,
 )
-from .const import (
-    CONF_NAME,
-    CONNECTION_ERROR,
-    COORDINATOR,
-    DOMAIN,
-    MANAGER,
-    NUMBER_TYPES,
-)
+from .const import CONF_NAME, CONNECTION_ERROR, NUMBER_TYPES
 from .entity import OpenEVSEEntity, OpenEVSENumberEntityDescription
+from .models import OpenEVSEConfigEntry
 
 _LOGGER = logging.getLogger(__name__)
 
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    config_entry: ConfigEntry,
+    config_entry: OpenEVSEConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up the OpenEVSE number entities."""
-    coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
-    manager = hass.data[DOMAIN][config_entry.entry_id][MANAGER]
+    coordinator = config_entry.runtime_data.coordinator
+    manager = config_entry.runtime_data.manager
 
     entities: list[NumberEntity] = []
 

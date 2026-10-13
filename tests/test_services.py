@@ -36,7 +36,6 @@ from custom_components.openevse.const import (
     ATTR_TYPE,
     ATTR_VALUE,
     DOMAIN,
-    MANAGER,
     SERVICE_ACK_NOTIFICATION,
     SERVICE_ADD_CERTIFICATE,
     SERVICE_ADD_RFID_TAG,
@@ -932,7 +931,9 @@ async def test_sync_time_parse_json_error(
     assert entry
     assert entry.device_id
 
-    manager = hass.data[DOMAIN][entry.config_entry_id][MANAGER]
+    manager = hass.config_entries.async_get_entry(
+        entry.config_entry_id
+    ).runtime_data.manager
     with (
         patch.object(manager, "sync_time", side_effect=ParseJSONError),
         caplog.at_level(logging.ERROR),
@@ -973,7 +974,9 @@ async def test_set_time_parse_json_error(
     assert entry
     assert entry.device_id
 
-    manager = hass.data[DOMAIN][entry.config_entry_id][MANAGER]
+    manager = hass.config_entries.async_get_entry(
+        entry.config_entry_id
+    ).runtime_data.manager
     with (
         patch.object(manager, "set_time", side_effect=ParseJSONError),
         caplog.at_level(logging.ERROR),
@@ -1014,7 +1017,9 @@ async def test_get_time_parse_json_error(
     assert entry
     assert entry.device_id
 
-    manager = hass.data[DOMAIN][entry.config_entry_id][MANAGER]
+    manager = hass.config_entries.async_get_entry(
+        entry.config_entry_id
+    ).runtime_data.manager
     with (
         patch.object(manager, "get_time", side_effect=ParseJSONError),
         caplog.at_level(logging.ERROR),
@@ -1356,7 +1361,9 @@ async def test_rfid_services_version_check_unsupported(
     assert entry
     assert entry.device_id
 
-    manager = hass.data[DOMAIN][entry.config_entry_id][MANAGER]
+    manager = hass.config_entries.async_get_entry(
+        entry.config_entry_id
+    ).runtime_data.manager
 
     # Test when version_check returns False
     with (
@@ -1517,7 +1524,7 @@ async def test_service_missing_config(
 
     entry_entity = entity_registry.async_get("sensor.openevse_station_status")
 
-    hass.data[DOMAIN] = {}
+    entry.runtime_data = None
 
     services_to_test = [
         (SERVICE_SET_OVERRIDE, {}),
@@ -1721,7 +1728,7 @@ async def test_services_connection_errors(
     await hass.async_block_till_done()
 
     entry_entity = entity_registry.async_get("sensor.openevse_station_status")
-    manager = hass.data[DOMAIN][entry.entry_id][MANAGER]
+    manager = entry.runtime_data.manager
 
     services_to_test = [
         (SERVICE_SET_OVERRIDE, {ATTR_STATE: "active"}, "set_override"),
@@ -2352,7 +2359,7 @@ async def test_certificate_services_firmware_check(
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
 
-    manager = hass.data[DOMAIN][entry.entry_id][MANAGER]
+    manager = entry.runtime_data.manager
     manager.version_check = MagicMock(return_value=False)
 
     target_entity = "sensor.openevse_charging_status"
@@ -2427,7 +2434,7 @@ async def test_certificate_services_command_failed(
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
 
-    manager = hass.data[DOMAIN][entry.entry_id][MANAGER]
+    manager = entry.runtime_data.manager
     manager.get_certificates = AsyncMock(
         side_effect=CommandFailedError("Corrupt certificate store")
     )
@@ -2572,7 +2579,7 @@ async def test_notification_services_firmware_check(
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
 
-    manager = hass.data[DOMAIN][entry.entry_id][MANAGER]
+    manager = entry.runtime_data.manager
     manager.version_check = MagicMock(return_value=False)
 
     target_entity = "sensor.openevse_charging_status"
@@ -2631,7 +2638,7 @@ async def test_notification_services_command_failed(
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
 
-    manager = hass.data[DOMAIN][entry.entry_id][MANAGER]
+    manager = entry.runtime_data.manager
     manager.get_notifications = AsyncMock(
         side_effect=CommandFailedError("Corrupt notifications endpoint")
     )
@@ -2686,7 +2693,7 @@ async def test_reset_energy_meter_service(
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
 
-    manager = hass.data[DOMAIN][entry.entry_id][MANAGER]
+    manager = entry.runtime_data.manager
     manager.reset_energy_meter = AsyncMock()
 
     target_entity = "sensor.openevse_charging_status"
@@ -2753,7 +2760,7 @@ async def test_reset_energy_meter_firmware_check(
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
 
-    manager = hass.data[DOMAIN][entry.entry_id][MANAGER]
+    manager = entry.runtime_data.manager
     manager.version_check = MagicMock(return_value=False)
     manager.reset_energy_meter = AsyncMock()
 
@@ -2796,7 +2803,7 @@ async def test_reset_energy_meter_command_failed(
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
 
-    manager = hass.data[DOMAIN][entry.entry_id][MANAGER]
+    manager = entry.runtime_data.manager
     manager.reset_energy_meter = AsyncMock(
         side_effect=CommandFailedError("Reset failed")
     )

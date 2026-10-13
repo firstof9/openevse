@@ -5,18 +5,18 @@ from __future__ import annotations
 from typing import Any
 
 from homeassistant.components.diagnostics import async_redact_data
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_PASSWORD
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceEntry
 
-from .const import CONF_GITHUB_TOKEN, COORDINATOR, DOMAIN
+from .const import CONF_GITHUB_TOKEN
+from .models import OpenEVSEConfigEntry
 
 REDACT_KEYS = {CONF_PASSWORD, CONF_GITHUB_TOKEN}
 
 
 async def async_get_config_entry_diagnostics(
-    hass: HomeAssistant, config_entry: ConfigEntry
+    hass: HomeAssistant, config_entry: OpenEVSEConfigEntry
 ) -> dict[str, Any]:
     """Return diagnostics for a config entry."""
     diag: dict[str, Any] = {}
@@ -25,8 +25,7 @@ async def async_get_config_entry_diagnostics(
 
 
 async def async_get_device_diagnostics(
-    hass: HomeAssistant, config_entry: ConfigEntry, device: DeviceEntry
+    hass: HomeAssistant, config_entry: OpenEVSEConfigEntry, device: DeviceEntry
 ) -> dict[str, Any]:
     """Return diagnostics for a device."""
-    coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
-    return coordinator.data
+    return config_entry.runtime_data.coordinator.data

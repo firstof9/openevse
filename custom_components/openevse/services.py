@@ -45,7 +45,6 @@ from .const import (
     CONNECTION_ERRORS,
     DOMAIN,
     FW_VERSION_WARN,
-    MANAGER,
     SERVICE_ACK_NOTIFICATION,
     SERVICE_ADD_CERTIFICATE,
     SERVICE_ADD_RFID_TAG,
@@ -388,6 +387,13 @@ class OpenEVSEServices:
         config_id = next(iter(device_entry.connections))[1]
         return config_id
 
+    def _get_manager(self, config_id: str):
+        """Retrieve manager from entry runtime_data or fallback."""
+        entry = self.hass.config_entries.async_get_entry(config_id)
+        if entry and hasattr(entry, "runtime_data") and entry.runtime_data:
+            return entry.runtime_data.manager
+        raise KeyError(config_id)
+
     # Setup services
     async def _set_override(self, service: ServiceCall) -> None:
         """Set the override."""
@@ -399,7 +405,7 @@ class OpenEVSEServices:
             config_id = self._resolve_device_config(device_id)
             logger.debug("Config ID: %s", config_id)
             try:
-                manager = self.hass.data[DOMAIN][config_id][MANAGER]
+                manager = self._get_manager(config_id)
                 state = data.get(ATTR_STATE)
                 charge_current = data.get(ATTR_CHARGE_CURRENT)
                 max_current = data.get(ATTR_MAX_CURRENT)
@@ -433,7 +439,7 @@ class OpenEVSEServices:
             config_id = self._resolve_device_config(device_id)
             logger.debug("Config ID: %s Type: %s", config_id, type(config_id))
             try:
-                manager = self.hass.data[DOMAIN][config_id][MANAGER]
+                manager = self._get_manager(config_id)
                 try:
                     await manager.clear_override()
                     logger.debug("Override clear command sent.")
@@ -459,7 +465,7 @@ class OpenEVSEServices:
             config_id = self._resolve_device_config(device_id)
             logger.debug("Config ID: %s", config_id)
             try:
-                manager = self.hass.data[DOMAIN][config_id][MANAGER]
+                manager = self._get_manager(config_id)
                 limit_type = data[ATTR_TYPE]
                 value = data[ATTR_VALUE]
 
@@ -491,7 +497,7 @@ class OpenEVSEServices:
             config_id = self._resolve_device_config(device_id)
             logger.debug("Config ID: %s Type: %s", config_id, type(config_id))
             try:
-                manager = self.hass.data[DOMAIN][config_id][MANAGER]
+                manager = self._get_manager(config_id)
                 try:
                     await manager.clear_limit()
                     logger.debug("Limit clear command sent.")
@@ -510,7 +516,7 @@ class OpenEVSEServices:
             config_id = self._resolve_device_config(device_id)
             logger.debug("Config ID: %s Type: %s", config_id, type(config_id))
             try:
-                manager = self.hass.data[DOMAIN][config_id][MANAGER]
+                manager = self._get_manager(config_id)
                 try:
                     response = await manager.get_limit()
                     logger.debug("Get limit response %s.", response)
@@ -533,7 +539,7 @@ class OpenEVSEServices:
             config_id = self._resolve_device_config(device_id)
             logger.debug("Config ID: %s", config_id)
             try:
-                manager = self.hass.data[DOMAIN][config_id][MANAGER]
+                manager = self._get_manager(config_id)
                 state = data.get(ATTR_STATE)
                 charge_current = data.get(ATTR_CHARGE_CURRENT)
                 max_current = data.get(ATTR_MAX_CURRENT)
@@ -562,7 +568,7 @@ class OpenEVSEServices:
             config_id = self._resolve_device_config(device_id)
             logger.debug("Config ID: %s Type: %s", config_id, type(config_id))
             try:
-                manager = self.hass.data[DOMAIN][config_id][MANAGER]
+                manager = self._get_manager(config_id)
                 try:
                     await manager.release_claim()
                     logger.debug("Release claim command sent.")
@@ -581,7 +587,7 @@ class OpenEVSEServices:
             config_id = self._resolve_device_config(device_id)
             logger.debug("Config ID: %s Type: %s", config_id, type(config_id))
             try:
-                manager = self.hass.data[DOMAIN][config_id][MANAGER]
+                manager = self._get_manager(config_id)
                 try:
                     response = await manager.list_claims()
                     logger.debug("List claims response %s.", response)
@@ -608,7 +614,7 @@ class OpenEVSEServices:
             config_id = self._resolve_device_config(device_id)
             logger.debug("Config ID: %s Type: %s", config_id, type(config_id))
             try:
-                manager = self.hass.data[DOMAIN][config_id][MANAGER]
+                manager = self._get_manager(config_id)
                 try:
                     response = await manager.get_override()
                     logger.debug("List overrides response %s.", response)
@@ -631,7 +637,7 @@ class OpenEVSEServices:
             config_id = self._resolve_device_config(device_id)
             logger.debug("Config ID: %s Type: %s", config_id, type(config_id))
             try:
-                manager = self.hass.data[DOMAIN][config_id][MANAGER]
+                manager = self._get_manager(config_id)
                 try:
                     response = await manager.get_time()
                     logger.debug("Get time response %s.", response)
@@ -663,7 +669,7 @@ class OpenEVSEServices:
             config_id = self._resolve_device_config(device_id)
             logger.debug("Config ID: %s", config_id)
             try:
-                manager = self.hass.data[DOMAIN][config_id][MANAGER]
+                manager = self._get_manager(config_id)
                 try:
                     await manager.set_time(
                         target_time=target_time,
@@ -689,7 +695,7 @@ class OpenEVSEServices:
             config_id = self._resolve_device_config(device_id)
             logger.debug("Config ID: %s", config_id)
             try:
-                manager = self.hass.data[DOMAIN][config_id][MANAGER]
+                manager = self._get_manager(config_id)
                 try:
                     await manager.sync_time()
                     logger.debug("Sync time command sent successfully.")
@@ -711,7 +717,7 @@ class OpenEVSEServices:
             config_id = self._resolve_device_config(device_id)
             logger.debug("Config ID: %s", config_id)
             try:
-                manager = self.hass.data[DOMAIN][config_id][MANAGER]
+                manager = self._get_manager(config_id)
                 if not manager.version_check("4.0.0"):
                     logger.warning(FW_VERSION_WARN, "RFID tag learning", "4.0.0")
                     continue
@@ -744,7 +750,7 @@ class OpenEVSEServices:
             config_id = self._resolve_device_config(device_id)
             logger.debug("Config ID: %s", config_id)
             try:
-                manager = self.hass.data[DOMAIN][config_id][MANAGER]
+                manager = self._get_manager(config_id)
                 if not manager.version_check("5.0.0"):
                     logger.warning(FW_VERSION_WARN, "Managing RFID users", "5.0.0")
                     continue
@@ -766,7 +772,7 @@ class OpenEVSEServices:
             config_id = self._resolve_device_config(device_id)
             logger.debug("Config ID: %s", config_id)
             try:
-                manager = self.hass.data[DOMAIN][config_id][MANAGER]
+                manager = self._get_manager(config_id)
                 if not manager.version_check("5.0.0"):
                     logger.warning(FW_VERSION_WARN, "Managing RFID users", "5.0.0")
                     continue
@@ -787,7 +793,7 @@ class OpenEVSEServices:
             config_id = self._resolve_device_config(device_id)
             logger.debug("Config ID: %s", config_id)
             try:
-                manager = self.hass.data[DOMAIN][config_id][MANAGER]
+                manager = self._get_manager(config_id)
                 if not manager.version_check("5.0.0"):
                     logger.warning(FW_VERSION_WARN, "Managing RFID users", "5.0.0")
                     return {}
@@ -813,7 +819,7 @@ class OpenEVSEServices:
             config_id = self._resolve_device_config(device_id)
             logger.debug("Config ID: %s", config_id)
             try:
-                manager = self.hass.data[DOMAIN][config_id][MANAGER]
+                manager = self._get_manager(config_id)
                 if not manager.version_check("4.0.0"):
                     logger.warning(FW_VERSION_WARN, "Managing certificates", "4.0.0")
                     return {}
@@ -850,7 +856,7 @@ class OpenEVSEServices:
             config_id = self._resolve_device_config(device_id)
             logger.debug("Config ID: %s", config_id)
             try:
-                manager = self.hass.data[DOMAIN][config_id][MANAGER]
+                manager = self._get_manager(config_id)
                 if not manager.version_check("4.0.0"):
                     logger.warning(FW_VERSION_WARN, "Managing certificates", "4.0.0")
                     return {}
@@ -884,7 +890,7 @@ class OpenEVSEServices:
             config_id = self._resolve_device_config(device_id)
             logger.debug("Config ID: %s", config_id)
             try:
-                manager = self.hass.data[DOMAIN][config_id][MANAGER]
+                manager = self._get_manager(config_id)
                 if not manager.version_check("4.0.0"):
                     logger.warning(FW_VERSION_WARN, "Managing certificates", "4.0.0")
                     continue
@@ -910,7 +916,7 @@ class OpenEVSEServices:
             config_id = self._resolve_device_config(device_id)
             logger.debug("Config ID: %s", config_id)
             try:
-                manager = self.hass.data[DOMAIN][config_id][MANAGER]
+                manager = self._get_manager(config_id)
                 if not manager.version_check("5.1.0"):
                     logger.warning(
                         FW_VERSION_WARN, "Retrieving advisory notifications", "5.1.0"
@@ -944,7 +950,7 @@ class OpenEVSEServices:
             config_id = self._resolve_device_config(device_id)
             logger.debug("Config ID: %s", config_id)
             try:
-                manager = self.hass.data[DOMAIN][config_id][MANAGER]
+                manager = self._get_manager(config_id)
                 if not manager.version_check("5.1.0"):
                     logger.warning(
                         FW_VERSION_WARN, "Acknowledging notification", "5.1.0"
@@ -979,7 +985,7 @@ class OpenEVSEServices:
             config_id = self._resolve_device_config(device_id)
             logger.debug("Config ID: %s", config_id)
             try:
-                manager = self.hass.data[DOMAIN][config_id][MANAGER]
+                manager = self._get_manager(config_id)
                 if not manager.version_check("4.0.0"):
                     logger.warning(FW_VERSION_WARN, "Resetting energy meter", "4.0.0")
                     continue

@@ -60,12 +60,9 @@ from .const import (
     CONF_VOLTAGE,
     CONNECTION_ERROR,
     CONNECTION_ERRORS,
-    COORDINATOR,
     DOMAIN,
-    FW_COORDINATOR,
     ISSUE_URL,
     LIGHT_TYPES,
-    MANAGER,
     NON_NUMERIC_WARN,
     NUMBER_TYPES,
     PLATFORMS,
@@ -73,10 +70,10 @@ from .const import (
     SENSOR_FIELDS,
     SENSOR_TYPES,
     SWITCH_TYPES,
-    UNSUB_LISTENERS,
     VERSION,
 )
 from .logger import OpenEVSELoggerAdapter
+from .models import OpenEVSEConfigEntry, OpenEVSEData
 from .repairs import async_process_notifications
 from .services import OpenEVSEServices
 
@@ -124,7 +121,7 @@ async def handle_state_change(
     logger = OpenEVSELoggerAdapter(
         _LOGGER, {"device_name": config_entry.data.get(CONF_NAME, "OpenEVSE")}
     )
-    manager = hass.data[DOMAIN][config_entry.entry_id][MANAGER]
+    manager = config_entry.runtime_data.manager
     options = config_entry.options
     invert = options.get(CONF_INVERT)
     grid_sensor = options.get(CONF_GRID)
@@ -313,13 +310,13 @@ async def handle_state_change(
 
 async def homeassistant_started_listener(
     hass: HomeAssistant,
-    config_entry: ConfigEntry,
+    config_entry: OpenEVSEConfigEntry,
     sensors: list,
     event: Event = None,
 ):
     """Start tracking state changes after HomeAssistant has started."""
     # Listen to sensor state changes so we can fire an event
-    hass.data[DOMAIN][config_entry.entry_id][UNSUB_LISTENERS].append(
+    config_entry.runtime_data.unsub_listeners.append(
         async_track_state_change_event(
             hass,
             sensors,
@@ -333,9 +330,10 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     return True
 
 
-async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:
+async def async_setup_entry(
+    hass: HomeAssistant, config_entry: OpenEVSEConfigEntry
+) -> bool:
     """Set up is called when Home Assistant is loading our component."""
-    hass.data.setdefault(DOMAIN, {})
     logger = OpenEVSELoggerAdapter(
         _LOGGER, {"device_name": config_entry.data.get(CONF_NAME, "OpenEVSE")}
     )
@@ -350,12 +348,12 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
     coordinator = OpenEVSEUpdateCoordinator(hass, interval, config_entry, manager)
     fw_coordinator = OpenEVSEFirmwareCheck(hass, 86400, config_entry, manager)
 
-    hass.data[DOMAIN][config_entry.entry_id] = {
-        COORDINATOR: coordinator,
-        MANAGER: manager,
-        FW_COORDINATOR: fw_coordinator,
-        UNSUB_LISTENERS: [],
-    }
+    config_entry.runtime_data = OpenEVSEData(
+        coordinator=coordinator,
+        manager=manager,
+        fw_coordinator=fw_coordinator,
+        unsub_listeners=[],
+    )
 
     # Fetch initial data so we have data when entities subscribe
     await coordinator.async_refresh()
@@ -519,27 +517,25 @@ async def async_unload_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> 
     )
 
     logger.debug("Checking websocket...")
-    manager = hass.data[DOMAIN][config_entry.entry_id][MANAGER]
+    data = config_entry.runtime_data
+    manager = data.manager
     if manager.ws_state != "stopped":
         logger.debug("Closing websocket")
         await manager.ws_disconnect()
 
     if unload_ok:
         # Clear any active repair issues
-        coordinator = hass.data[DOMAIN][config_entry.entry_id].get(COORDINATOR)
-        if coordinator and hasattr(coordinator, "_active_repair_issues"):
+        coordinator = data.coordinator
+        if hasattr(coordinator, "_active_repair_issues"):
             for issue_id in coordinator._active_repair_issues:
                 ir.async_delete_issue(hass, DOMAIN, issue_id)
             coordinator._active_repair_issues.clear()
 
         # Unsubscribe to any listeners
-        for unsub_listener in hass.data[DOMAIN][config_entry.entry_id].get(
-            UNSUB_LISTENERS, []
-        ):
+        for unsub_listener in data.unsub_listeners:
             unsub_listener()
-        hass.data[DOMAIN][config_entry.entry_id].get(UNSUB_LISTENERS, []).clear()
+        data.unsub_listeners.clear()
         logger.debug("Successfully removed entities from the %s integration", DOMAIN)
-        hass.data[DOMAIN].pop(config_entry.entry_id)
 
     return unload_ok
 
@@ -731,9 +727,9 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
             )
             return
         try:
-            coordinator = self.hass.data[DOMAIN][self.config.entry_id][COORDINATOR]
+            coordinator = self.config.runtime_data.coordinator
             coordinator.async_set_updated_data(self._data)
-        except KeyError as err:
+        except AttributeError as err:
             self.logger.error("Error locating configuration: %s", err)
 
     async def _update_data_snapshot(self, skip_async: bool = False) -> None:

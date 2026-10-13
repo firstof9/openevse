@@ -10,7 +10,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import issue_registry as ir
 from openevsehttp.exceptions import CommandFailedError
 
-from .const import CONNECTION_ERRORS, DOMAIN, MANAGER
+from .const import CONNECTION_ERRORS, DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -31,8 +31,11 @@ class NotificationAcknowledgeRepairFlow(RepairsFlow):
     async def async_step_confirm(self, user_input: dict[str, str] | None = None) -> Any:
         """Handle confirmation and acknowledge the notification."""
         if user_input is not None:
+            entry = self.hass.config_entries.async_get_entry(self._entry_id)
             manager = (
-                self.hass.data.get(DOMAIN, {}).get(self._entry_id, {}).get(MANAGER)
+                entry.runtime_data.manager
+                if entry and hasattr(entry, "runtime_data") and entry.runtime_data
+                else None
             )
             if manager is not None:
                 try:

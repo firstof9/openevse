@@ -11,10 +11,12 @@ from homeassistant.components.sensor import (
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import UnitOfLength
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import CONF_NAME, COORDINATOR, DOMAIN, MANAGER, SENSOR_TYPES
+from .const import CONF_NAME, SENSOR_TYPES
 from .entity import OpenEVSEEntity
+from .models import OpenEVSEConfigEntry
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -28,9 +30,11 @@ STATUS_ICONS = {
 }
 
 
-async def async_setup_entry(hass, entry, async_add_entities):
+async def async_setup_entry(
+    hass: HomeAssistant, entry: OpenEVSEConfigEntry, async_add_entities
+):
     """Set up the OpenEVSE sensors."""
-    coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
+    coordinator = entry.runtime_data.coordinator
     unique_id = entry.entry_id
 
     sensors = []
@@ -81,7 +85,7 @@ class OpenEVSESensor(CoordinatorEntity, OpenEVSEEntity, SensorEntity):
     def native_unit_of_measurement(self) -> str | None:
         """Return the unit of measurement."""
         if self._type == "vehicle_range":
-            manager = self.hass.data[DOMAIN][self._unique_id][MANAGER]
+            manager = self._config.runtime_data.manager
             range_data = getattr(manager, "vehicle_range_with_unit", None)
             if range_data is not None:
                 unit = range_data[1]
@@ -112,7 +116,7 @@ class OpenEVSESensor(CoordinatorEntity, OpenEVSEEntity, SensorEntity):
             return False
 
         # Check firmware version requirement
-        manager = self.hass.data[DOMAIN][self._unique_id][MANAGER]
+        manager = self._config.runtime_data.manager
         if self._min_version and not manager.version_check(self._min_version):
             return False
         if self._min_controller_version:

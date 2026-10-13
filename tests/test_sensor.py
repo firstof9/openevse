@@ -278,8 +278,8 @@ async def test_sensors_new(
         assert state.state == "unavailable"
 
         # With controller 9.4.0+ and sensor data in coordinator, show value
-        manager = hass.data[DOMAIN][entry.entry_id]["manager"]
-        coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
+        manager = entry.runtime_data.manager
+        coordinator = entry.runtime_data.coordinator
         with patch.object(manager, "controller_version_check", return_value=True):
             coordinator.data["cable_temperature_ev1"] = 42.5
             coordinator.async_set_updated_data(coordinator.data)
@@ -352,9 +352,8 @@ async def test_sensor_coverage_icon_and_version(
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
 
-    data_entry = hass.data[DOMAIN][entry.entry_id]
-    coordinator = data_entry["coordinator"]
-    manager = data_entry["manager"]
+    coordinator = entry.runtime_data.coordinator
+    manager = entry.runtime_data.manager
 
     coordinator.data["state"] = "unknown_state_value"
     coordinator.async_update_listeners()
@@ -438,7 +437,7 @@ async def test_sensor_availability_aioclient(
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
 
-    coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
+    coordinator = entry.runtime_data.coordinator
     mock_aioclient.clear_requests()
 
     for url in urls:
@@ -504,7 +503,7 @@ async def test_vehicle_range_sensor_miles(
         assert entity.native_unit_of_measurement == UnitOfLength.MILES
 
         # Test async_parse_sensors unpacking
-        coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
+        coordinator = entry.runtime_data.coordinator
         with patch.object(
             coordinator,
             "_collect_async_values",
@@ -569,7 +568,7 @@ async def test_sensor_coverage_gaps(hass, test_charger, mock_ws_start):
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
 
-    coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
+    coordinator = entry.runtime_data.coordinator
 
     description_no_val_fn = MagicMock(
         key="test_sensor_key",
@@ -584,7 +583,7 @@ async def test_sensor_coverage_gaps(hass, test_charger, mock_ws_start):
     assert entity.native_value == "some_value"
 
     # Test sensor min_controller_version coverage
-    manager = hass.data[DOMAIN][entry.entry_id]["manager"]
+    manager = entry.runtime_data.manager
     desc_controller = MagicMock(
         key="cable_temp_test",
         name="Cable Temp Test",

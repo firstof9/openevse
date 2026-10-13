@@ -11,7 +11,7 @@ from homeassistant.helpers import entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.openevse import CommandFailedError, InvalidValueError
-from custom_components.openevse.const import COORDINATOR, DOMAIN, MANAGER
+from custom_components.openevse.const import DOMAIN
 from custom_components.openevse.entity import OpenEVSESelectEntityDescription
 from custom_components.openevse.select import OpenEVSESelect
 
@@ -80,7 +80,7 @@ async def test_select(
     )
     await hass.async_block_till_done()
 
-    coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
+    coordinator = entry.runtime_data.coordinator
     coordinator._data["override_state"] = "disabled"
     updated_data = coordinator._data
     coordinator.async_set_updated_data(updated_data)
@@ -106,7 +106,7 @@ async def test_select(
     )
     await hass.async_block_till_done()
 
-    coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
+    coordinator = entry.runtime_data.coordinator
     coordinator._data["override_state"] = "auto"
     updated_data = coordinator._data
     coordinator.async_set_updated_data(updated_data)
@@ -126,7 +126,7 @@ async def test_select(
     )
     await hass.async_block_till_done()
 
-    coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
+    coordinator = entry.runtime_data.coordinator
     coordinator._data["override_state"] = "active"
     updated_data = coordinator._data
     coordinator.async_set_updated_data(updated_data)
@@ -157,7 +157,7 @@ async def test_select(
     )
     await hass.async_block_till_done()
 
-    coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
+    coordinator = entry.runtime_data.coordinator
     coordinator._data["divertmode"] = "fast"
     updated_data = coordinator._data
     coordinator.async_set_updated_data(updated_data)
@@ -245,7 +245,7 @@ async def test_select_availability_divert(
     assert state.state != "unavailable"
 
     # Simulate PV Divert Active
-    coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
+    coordinator = entry.runtime_data.coordinator
     with caplog.at_level(logging.DEBUG):
         coordinator._data["divert_active"] = True
         coordinator._data["divertmode"] = "eco"  # Ensure mode is eco
@@ -277,7 +277,7 @@ async def test_select_exceptions(
     entity_id = "select.openevse_divert_mode"
 
     # Access manager to mock method
-    manager = hass.data[DOMAIN][entry.entry_id]["manager"]
+    manager = entry.runtime_data.manager
 
     # 1. Test ValueError/KeyError
     with patch.object(manager, "set_divert_mode", side_effect=ValueError("Test Error")):
@@ -342,8 +342,8 @@ async def test_select_coverage_gaps(hass, test_charger, mock_ws_start):
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
 
-    coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
-    manager = hass.data[DOMAIN][entry.entry_id][MANAGER]
+    coordinator = entry.runtime_data.coordinator
+    manager = entry.runtime_data.manager
 
     # Test current_option when data is missing
     description = OpenEVSESelectEntityDescription(
@@ -403,7 +403,7 @@ async def test_select_get_options_edge_cases(hass, test_charger, mock_ws_start):
     await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
 
-    coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
+    coordinator = entry.runtime_data.coordinator
     select_desc = OpenEVSESelectEntityDescription(
         key="max_current_soft",
         name="Charge Rate",
@@ -445,7 +445,7 @@ async def test_select_connection_error(
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
 
-    manager = hass.data[DOMAIN][entry.entry_id][MANAGER]
+    manager = entry.runtime_data.manager
     manager.version_check = MagicMock(return_value=True)
     manager.get_override_state = AsyncMock(return_value="auto")
     await hass.async_block_till_done()

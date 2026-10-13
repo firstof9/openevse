@@ -6,30 +6,27 @@ import logging
 from typing import Any, cast
 
 from homeassistant.components.switch import SwitchEntity
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_NAME
+from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from . import CONNECTION_ERRORS, OpenEVSEManager, OpenEVSEUpdateCoordinator
-from .const import (
-    CONNECTION_ERROR,
-    COORDINATOR,
-    DOMAIN,
-    MANAGER,
-    SWITCH_TYPES,
-)
+from .const import CONNECTION_ERROR, SWITCH_TYPES
 from .entity import OpenEVSEEntity, OpenEVSESwitchEntityDescription
+from .models import OpenEVSEConfigEntry
 
 _LOGGER = logging.getLogger(__name__)
 SLEEP_STATE = "sleeping"
 ATTR_STATE = "state"
 
 
-async def async_setup_entry(hass, entry, async_add_entities):
+async def async_setup_entry(
+    hass: HomeAssistant, entry: OpenEVSEConfigEntry, async_add_entities
+):
     """Set up the OpenEVSE switches."""
-    coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
-    manager = hass.data[DOMAIN][entry.entry_id][MANAGER]
+    coordinator = entry.runtime_data.coordinator
+    manager = entry.runtime_data.manager
 
     switches = []
     for description in SWITCH_TYPES:
@@ -44,7 +41,7 @@ class OpenEVSESwitch(CoordinatorEntity, OpenEVSEEntity, SwitchEntity):
     def __init__(
         self,
         hass,
-        config_entry: ConfigEntry,
+        config_entry: OpenEVSEConfigEntry,
         coordinator: OpenEVSEUpdateCoordinator,
         description: OpenEVSESwitchEntityDescription,
         manager: OpenEVSEManager,
@@ -98,11 +95,10 @@ class OpenEVSESwitch(CoordinatorEntity, OpenEVSEEntity, SwitchEntity):
     @property
     def available(self) -> bool:
         """Return if entity is available."""
-        manager = self.hass.data[DOMAIN][self._unique_id][MANAGER]
-        if self._min_version and not manager.version_check(self._min_version):
+        if self._min_version and not self._manager.version_check(self._min_version):
             return False
         if self._min_controller_version:
-            return manager.controller_version_check(self._min_controller_version)
+            return self._manager.controller_version_check(self._min_controller_version)
         return True
 
     async def async_turn_on(self, **kwargs: Any) -> None:

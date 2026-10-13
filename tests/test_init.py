@@ -40,7 +40,7 @@ from custom_components.openevse import (
     get_firmware,
     send_command,
 )
-from custom_components.openevse.const import COORDINATOR, DOMAIN, MANAGER
+from custom_components.openevse.const import DOMAIN
 from custom_components.openevse.entity import (
     OpenEVSENumberEntityDescription,
     OpenEVSESensorEntityDescription,
@@ -423,7 +423,7 @@ async def test_coordinator_websocket_reconnect(hass, test_charger, mock_ws_start
     await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
 
-    coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
+    coordinator = entry.runtime_data.coordinator
 
     # Replace the manager's websocket object with a Mock.
     # This allows us to set the 'state' attribute freely without AttributeError.
@@ -476,7 +476,7 @@ async def test_coordinator_update_errors(hass, test_charger, mock_ws_start):
     await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
 
-    coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
+    coordinator = entry.runtime_data.coordinator
 
     # 1. RuntimeError during manager.update() should be swallowed (logged)
     with patch.object(
@@ -503,7 +503,7 @@ async def test_coordinator_websocket_connect_errors(hass, test_charger, mock_ws_
     await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
 
-    coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
+    coordinator = entry.runtime_data.coordinator
 
     # Force websocket state to disconnected to trigger connection logic
     with patch.object(coordinator._manager, "websocket") as mock_ws:
@@ -617,7 +617,7 @@ async def test_coordinator_parse_errors(hass, test_charger, mock_ws_start, caplo
     await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
 
-    coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
+    coordinator = entry.runtime_data.coordinator
 
     # 1. Test Sync Parse Error
     # Patch the property on the CLASS, not the instance, to avoid 'no setter' errors
@@ -642,7 +642,7 @@ async def test_coordinator_parse_errors(hass, test_charger, mock_ws_start, caplo
 
     # 3. Test KeyError in websocket_update
     with (
-        patch.dict(hass.data[DOMAIN], {entry.entry_id: {}}, clear=True),
+        patch.object(entry, "runtime_data", None),
         patch.object(coordinator.logger, "error") as mock_log_error,
     ):
         await coordinator.websocket_update()
@@ -694,7 +694,7 @@ async def test_websocket_update_callback(hass, test_charger, mock_ws_start):
     await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
 
-    coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
+    coordinator = entry.runtime_data.coordinator
 
     # Mock async_set_updated_data to verify it is called
     with patch.object(coordinator, "async_set_updated_data") as mock_update:
@@ -877,8 +877,8 @@ async def test_init_coordinator_and_parser_gaps(hass, test_charger, mock_ws_star
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
 
-    coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
-    manager = hass.data[DOMAIN][entry.entry_id][MANAGER]
+    coordinator = entry.runtime_data.coordinator
+    manager = entry.runtime_data.manager
 
     # helper for futures
     def get_future(val):
@@ -934,7 +934,7 @@ async def test_init_cleanup_coverage_gaps(hass, test_charger, mock_ws_start):
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
 
-    coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
+    coordinator = entry.runtime_data.coordinator
 
     # Trigger exception path for select entity parsing
     # Now that AttributeError is unmasked, it bubbles out of parse_sensors
@@ -1002,7 +1002,7 @@ async def test_parse_sensors_missing_attribute(hass, test_charger, mock_ws_start
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
 
-    coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
+    coordinator = entry.runtime_data.coordinator
 
     # Clear data to ensure we see the skip
     coordinator._data = {}
@@ -1047,8 +1047,8 @@ async def test_async_parse_sensors_missing_attribute(hass, test_charger, mock_ws
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
 
-    coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
-    manager = hass.data[DOMAIN][entry.entry_id][MANAGER]
+    coordinator = entry.runtime_data.coordinator
+    manager = entry.runtime_data.manager
 
     # Clear data
     coordinator._data = {}
@@ -1072,7 +1072,7 @@ async def test_collect_async_values_seen_results(hass, test_charger, mock_ws_sta
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
 
-    coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
+    coordinator = entry.runtime_data.coordinator
 
     mock_descriptors = {
         "sensor1": OpenEVSESensorEntityDescription(
@@ -1119,7 +1119,7 @@ async def test_websocket_connection_error(
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
 
-    coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
+    coordinator = entry.runtime_data.coordinator
 
     # Mock _update_data_snapshot to raise TimeoutError
     with patch.object(
@@ -1147,7 +1147,7 @@ async def test_websocket_unexpected_error(
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
 
-    coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
+    coordinator = entry.runtime_data.coordinator
 
     # Mock _update_data_snapshot to raise an unexpected Exception
     with patch.object(
@@ -1356,7 +1356,7 @@ async def test_async_update_cooldown(hass, test_charger, mock_ws_start):
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
 
-    coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
+    coordinator = entry.runtime_data.coordinator
     manager = coordinator._manager
 
     # Save original state to restore later
@@ -1464,7 +1464,7 @@ async def test_repair_issues_sync(hass, test_charger, mock_ws_start, mock_aiocli
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
 
-    coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
+    coordinator = entry.runtime_data.coordinator
 
     issue_registry = ir.async_get(hass)
     issue_ground = issue_registry.async_get_issue(
@@ -1570,7 +1570,7 @@ async def test_repair_issues_cleared_on_unload(
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
 
-    coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
+    coordinator = entry.runtime_data.coordinator
     await coordinator.async_check_repair_issues()
     await hass.async_block_till_done()
 
@@ -1599,7 +1599,7 @@ async def test_repair_fix_flow_error_handling(
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
 
-    manager = hass.data[DOMAIN][entry.entry_id][MANAGER]
+    manager = entry.runtime_data.manager
     manager.acknowledge_notification = AsyncMock(
         side_effect=OpenevseHttpCommandFailedError("Device failed to acknowledge")
     )
@@ -1678,8 +1678,8 @@ async def test_coordinator_repair_issues_exceptions(
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
 
-    coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
-    manager = hass.data[DOMAIN][entry.entry_id][MANAGER]
+    coordinator = entry.runtime_data.coordinator
+    manager = entry.runtime_data.manager
 
     # Connection error
     with (
