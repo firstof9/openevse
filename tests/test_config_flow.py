@@ -1027,12 +1027,63 @@ async def test_options_flow_certificate_from_file(hass, test_charger, mock_ws_st
                 "certificate": "cert-file-id",
             },
         )
-        assert result["type"] is FlowResultType.CREATE_ENTRY
-        manager.add_certificate.assert_awaited_once_with(
-            name="File Root CA",
-            certificate=cert_content,
-            key=None,
+        manager.add_certificate.reset_mock()
+
+        fallback_cert = (
+            "-----BEGIN CERTIFICATE-----\nFALLBACK\n-----END CERTIFICATE-----"
         )
+
+        # Test fallback when process_uploaded_file raises OSError
+        with patch(
+            "custom_components.openevse.config_flow.process_uploaded_file",
+            side_effect=OSError("Read error"),
+        ):
+            result = await hass.config_entries.options.async_init(entry.entry_id)
+            result = await hass.config_entries.options.async_configure(
+                result["flow_id"],
+                user_input={"next_step_id": "root_ca"},
+            )
+            result = await hass.config_entries.options.async_configure(
+                result["flow_id"],
+                user_input={
+                    "name": "Fallback CA",
+                    "certificate": fallback_cert,
+                },
+            )
+            assert result["type"] is FlowResultType.CREATE_ENTRY
+            manager.add_certificate.assert_awaited_once_with(
+                name="Fallback CA",
+                certificate=fallback_cert,
+                key=None,
+            )
+
+        manager.add_certificate.reset_mock()
+
+        # Test fallback when process_uploaded_file raises UnicodeDecodeError
+        with patch(
+            "custom_components.openevse.config_flow.process_uploaded_file",
+            side_effect=UnicodeDecodeError(
+                "utf-8", b"\xff", 0, 1, "invalid start byte"
+            ),
+        ):
+            result = await hass.config_entries.options.async_init(entry.entry_id)
+            result = await hass.config_entries.options.async_configure(
+                result["flow_id"],
+                user_input={"next_step_id": "certificate"},
+            )
+            result = await hass.config_entries.options.async_configure(
+                result["flow_id"],
+                user_input={
+                    "name": "Fallback Cert",
+                    "certificate": fallback_cert,
+                },
+            )
+            assert result["type"] is FlowResultType.CREATE_ENTRY
+            manager.add_certificate.assert_awaited_once_with(
+                name="Fallback Cert",
+                certificate=fallback_cert,
+                key=None,
+            )
 
     await hass.async_block_till_done()
     await hass.config_entries.async_unload(entry.entry_id)
