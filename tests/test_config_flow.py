@@ -4,13 +4,16 @@ from ipaddress import ip_address
 from unittest.mock import ANY, AsyncMock, MagicMock, patch
 
 import pytest
+import voluptuous as vol
 from homeassistant import config_entries, setup
 from homeassistant.const import CONF_HOST
 from homeassistant.data_entry_flow import FlowResultType
+from homeassistant.helpers.selector import FileSelectorConfig
 from homeassistant.helpers.service_info.zeroconf import ZeroconfServiceInfo
 from openevsehttp.exceptions import AuthenticationError, CommandFailedError
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
+from custom_components.openevse.config_flow import OpenEVSEFileSelector
 from custom_components.openevse.const import DOMAIN, MANAGER
 from tests.const import CONFIG_DATA
 
@@ -1034,6 +1037,11 @@ async def test_options_flow_certificate_from_file(hass, test_charger, mock_ws_st
     await hass.async_block_till_done()
     await hass.config_entries.async_unload(entry.entry_id)
     await hass.async_block_till_done()
+
+    # Test invalid non-string input rejected by selector
+    selector = OpenEVSEFileSelector(FileSelectorConfig(accept=".pem"))
+    with pytest.raises(vol.Invalid, match="Value should be a string"):
+        selector(12345)
 
 
 async def test_migrate_from_v1(hass, test_charger, mock_ws_start):
