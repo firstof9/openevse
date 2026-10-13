@@ -70,6 +70,7 @@ export default defineConfig({
           { text: 'Internal Architecture', link: '/architecture' },
           { text: 'Contributing Guidelines', link: '/contributing' },
           { text: 'Troubleshooting & FAQ', link: '/troubleshooting' },
+          { text: 'Security Policy', link: '/security' },
         ]
       }
     ],
