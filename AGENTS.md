@@ -37,4 +37,4 @@ The integration depends on `python-openevse-http`. If you need to make changes t
 **CRITICAL**: Make sure to revert this change back to a published version (e.g., `python-openevse-http==0.4.0`) before staging, committing, or pushing to avoid shipping local paths.
 
 ### 3. Pull Requests
-When creating a Pull Request, always adhere to the repository template at [.github/pull_request_template.md](file:///.github/pull_request_template.md) and use the `create-pull-request` skill.
+When creating a Pull Request, always adhere to the repository template at [.github/pull_request_template.md](file:///.github/pull_request_template.md), use semantic PR titles (Conventional Commits format), and follow the `create-pull-request` skill.

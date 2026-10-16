@@ -11,10 +11,21 @@ When creating or proposing a Pull Request (PR) for this repository, you **must**
 
 ## PR Workflow & Requirements
 
-1. **Check the Template**:
+1. **Semantic PR Titles**:
+   - Pull Request titles **must** follow [Conventional Commits / Semantic PR](https://www.conventionalcommits.org/) format: `type(scope): description` or `type: description`.
+   - Common types:
+     - `feat`: New features or capabilities.
+     - `fix`: Bug fixes.
+     - `build(deps)`: Dependency and requirement updates (e.g., `build(deps): bump python-openevse-http to 1.9.0 in manifest.json`).
+     - `refactor`: Code refactoring without behavioral changes.
+     - `docs`: Documentation updates.
+     - `test`: Adding or improving tests.
+     - `ci`: CI/CD pipeline changes.
+
+2. **Check the Template**:
    - Read and format the PR body using the structure from [.github/pull_request_template.md](file:///.github/pull_request_template.md).
 
-2. **Fill in Required Sections**:
+3. **Fill in Required Sections**:
    - **Description**: Provide a clear summary of the changes and motivation. Reference any related issues (e.g., `Fixes #123`).
    - **Type of change**: Select only the relevant change types (delete or uncheck irrelevant ones):
      - Bug fix
@@ -31,6 +42,6 @@ When creating or proposing a Pull Request (PR) for this repository, you **must**
      - Unit tests added/updated and passing locally.
      - Any dependent library changes have been published/merged (no local paths in `requirements.txt`).
 
-3. **Pre-PR Verification**:
+4. **Pre-PR Verification**:
    - Run tests: `tox -e py313`
    - Run linting: `.tox/py313/bin/prek run --all-files --show-diff-on-failure`
