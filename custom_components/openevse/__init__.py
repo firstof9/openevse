@@ -43,6 +43,9 @@ from openevsehttp.exceptions import (
     MissingSerial,
     UnsupportedFeature,
 )
+from openevsehttp.exceptions import (
+    CommandFailedError as OpenEVSECommandFailedError,
+)
 
 from .const import (
     BINARY_SENSORS,
@@ -588,6 +591,7 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
         self._manager.callback = self.websocket_update
         self._last_async_update = 0.0
         self._active_repair_issues: set[str] = set()
+        self._notifications_supported = True
 
         self.logger = OpenEVSELoggerAdapter(
             _LOGGER, {"device_name": config.data.get(CONF_NAME, "OpenEVSE")}
@@ -605,7 +609,9 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
 
     async def async_check_repair_issues(self) -> None:
         """Fetch advisory notifications and synchronize repair issues."""
-        if not self._manager.version_check("5.1.0"):
+        if not self._notifications_supported or not self._manager.version_check(
+            "5.1.0"
+        ):
             return
 
         try:
@@ -613,7 +619,15 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
         except CONNECTION_ERRORS as err:
             self.logger.debug("Connection error retrieving notifications: %s", err)
             return
-        except (CommandFailedError, UnsupportedFeature) as err:
+        except UnsupportedFeature as err:
+            # Released firmware up to at least 5.1.5 has no /notifications endpoint.
+            # Stop asking until the entry is reloaded, e.g. after a firmware update.
+            self.logger.debug(
+                "Notifications not supported, not checking again: %s", err
+            )
+            self._notifications_supported = False
+            return
+        except OpenEVSECommandFailedError as err:
             self.logger.debug("Error checking notifications: %s", err)
             return
         except Exception as err:

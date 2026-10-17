@@ -1689,24 +1689,12 @@ async def test_coordinator_repair_issues_exceptions(
         await coordinator.async_check_repair_issues()
         assert "Connection error retrieving notifications" in caplog.text
 
-    # CommandFailedError
+    # CommandFailedError from the library, not the integration's own class
     with (
         patch.object(
             manager,
             "get_notifications",
-            side_effect=CommandFailedError("Command failed"),
-        ),
-        caplog.at_level(logging.DEBUG),
-    ):
-        await coordinator.async_check_repair_issues()
-        assert "Error checking notifications" in caplog.text
-
-    # UnsupportedFeature
-    with (
-        patch.object(
-            manager,
-            "get_notifications",
-            side_effect=UnsupportedFeature("Not supported"),
+            side_effect=OpenevseHttpCommandFailedError("Command failed"),
         ),
         caplog.at_level(logging.DEBUG),
     ):
@@ -1724,3 +1712,17 @@ async def test_coordinator_repair_issues_exceptions(
     ):
         await coordinator.async_check_repair_issues()
         assert "Unexpected error checking notifications" in caplog.text
+
+    # UnsupportedFeature stops further checks until the entry is reloaded
+    with (
+        patch.object(
+            manager,
+            "get_notifications",
+            side_effect=UnsupportedFeature("Not supported"),
+        ) as mock_get,
+        caplog.at_level(logging.DEBUG),
+    ):
+        await coordinator.async_check_repair_issues()
+        assert "Notifications not supported" in caplog.text
+        await coordinator.async_check_repair_issues()
+        assert mock_get.call_count == 1
