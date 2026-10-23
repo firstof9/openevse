@@ -16,7 +16,12 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
-from openevsehttp.exceptions import CommandFailedError, ParseJSONError
+from openevsehttp.exceptions import (
+    CommandFailedError,
+    EndpointNotFound,
+    ParseJSONError,
+    UnsupportedFeature,
+)
 
 from .const import (
     ATTR_AUTO_RELEASE,
@@ -832,6 +837,11 @@ class OpenEVSEServices:
                 except CONNECTION_ERRORS as err:
                     logger.error(CONNECTION_ERROR, err)
                     return {}
+                except (EndpointNotFound, UnsupportedFeature) as err:
+                    logger.warning(
+                        "Certificates not supported on this charger: %s", err
+                    )
+                    return {}
                 except CommandFailedError as err:
                     logger.error("Error retrieving certificates: %s", err)
                     raise HomeAssistantError(
@@ -928,6 +938,11 @@ class OpenEVSEServices:
                     return notifications
                 except CONNECTION_ERRORS as err:
                     logger.error(CONNECTION_ERROR, err)
+                    return {}
+                except (EndpointNotFound, UnsupportedFeature) as err:
+                    logger.warning(
+                        "Advisory notifications not supported on this charger: %s", err
+                    )
                     return {}
                 except CommandFailedError as err:
                     logger.error("Error retrieving notifications: %s", err)
