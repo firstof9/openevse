@@ -19,6 +19,7 @@ from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.update_coordinator import UpdateFailed
 from openevsehttp.exceptions import (
     AuthenticationError,
+    EndpointNotFound,
     MissingSerial,
     UnsupportedFeature,
 )
@@ -1701,6 +1702,24 @@ async def test_coordinator_repair_issues_exceptions(
         await coordinator.async_check_repair_issues()
         assert "Error checking notifications" in caplog.text
 
+    # EndpointNotFound stops further checks until the entry is reloaded
+    with (
+        patch.object(
+            manager,
+            "get_notifications",
+            side_effect=EndpointNotFound("Endpoint not found"),
+        ) as mock_get_endpoint,
+        caplog.at_level(logging.DEBUG),
+    ):
+        await coordinator.async_check_repair_issues()
+        assert "Notifications not supported, not checking again" in caplog.text
+        assert coordinator._notifications_supported is False
+        await coordinator.async_check_repair_issues()
+        assert mock_get_endpoint.call_count == 1
+
+    # Re-enable notifications to test unexpected exception
+    coordinator._notifications_supported = True
+
     # Unexpected Exception
     with (
         patch.object(
@@ -1723,6 +1742,7 @@ async def test_coordinator_repair_issues_exceptions(
         caplog.at_level(logging.DEBUG),
     ):
         await coordinator.async_check_repair_issues()
-        assert "Notifications not supported" in caplog.text
+        assert "Notifications not supported, not checking again" in caplog.text
+        assert coordinator._notifications_supported is False
         await coordinator.async_check_repair_issues()
         assert mock_get.call_count == 1

@@ -10,7 +10,11 @@ import voluptuous as vol
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
-from openevsehttp.exceptions import CommandFailedError, ParseJSONError
+from openevsehttp.exceptions import (
+    CommandFailedError,
+    EndpointNotFound,
+    ParseJSONError,
+)
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.openevse.const import (
@@ -2456,6 +2460,19 @@ async def test_certificate_services_command_failed(
             return_response=True,
         )
 
+    # Test EndpointNotFound returns {} gracefully
+    manager.get_certificates = AsyncMock(
+        side_effect=EndpointNotFound("Endpoint not found")
+    )
+    res = await hass.services.async_call(
+        DOMAIN,
+        SERVICE_GET_CERTIFICATES,
+        {"entity_id": target_entity},
+        blocking=True,
+        return_response=True,
+    )
+    assert res == {}
+
     with pytest.raises(HomeAssistantError, match="Error adding certificate"):
         await hass.services.async_call(
             DOMAIN,
@@ -2656,6 +2673,19 @@ async def test_notification_services_command_failed(
             blocking=True,
             return_response=True,
         )
+
+    # Test EndpointNotFound returns {} gracefully
+    manager.get_notifications = AsyncMock(
+        side_effect=EndpointNotFound("Endpoint not found")
+    )
+    res = await hass.services.async_call(
+        DOMAIN,
+        SERVICE_GET_NOTIFICATIONS,
+        {"entity_id": target_entity},
+        blocking=True,
+        return_response=True,
+    )
+    assert res == {}
 
     with pytest.raises(HomeAssistantError, match="Error acknowledging notification"):
         await hass.services.async_call(

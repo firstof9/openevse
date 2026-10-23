@@ -40,6 +40,7 @@ from homeassistant.util.unit_conversion import PowerConverter
 from openevsehttp.__main__ import OpenEVSE
 from openevsehttp.exceptions import (
     AuthenticationError,
+    EndpointNotFound,
     MissingSerial,
     UnsupportedFeature,
 )
@@ -619,7 +620,7 @@ class OpenEVSEUpdateCoordinator(DataUpdateCoordinator):
         except CONNECTION_ERRORS as err:
             self.logger.debug("Connection error retrieving notifications: %s", err)
             return
-        except UnsupportedFeature as err:
+        except (EndpointNotFound, UnsupportedFeature) as err:
             # Released firmware up to at least 5.1.5 has no /notifications endpoint.
             # Stop asking until the entry is reloaded, e.g. after a firmware update.
             self.logger.debug(
