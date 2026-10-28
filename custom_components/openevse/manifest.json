@@ -4,6 +4,9 @@
   "after_dependencies": [
     "zeroconf"
   ],
+  "categories": [
+    "energy.ev_charging"
+  ],
   "codeowners": [
     "@firstof9"
   ],
