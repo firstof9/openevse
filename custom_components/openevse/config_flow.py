@@ -72,7 +72,6 @@ class OpenEVSEFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
     """Config flow for KeyMaster."""
 
     VERSION = 2
-    CONNECTION_CLASS = config_entries.CONN_CLASS_LOCAL_POLL
     DEFAULTS: Final = {CONF_HOST: DEFAULT_HOST, CONF_NAME: DEFAULT_NAME}
 
     def __init__(self):
