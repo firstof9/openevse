@@ -107,6 +107,132 @@ TEST_URL_CLAIMS_TARGET = "http://openevse.test.tld/claims/target"
 TEST_URL_RAPI = "http://openevse.test.tld/r"
 TEST_URL_WS = "ws://openevse.test.tld/ws"
 TEST_TLD = "openevse.test.tld"
+DEFAULT_CLAIMS_TARGET_JSON = (
+    '{"properties":{"state":"disabled","charge_current":28,"max_current":23,'
+    '"auto_release":false},"claims":{"state":65540,"charge_current":65537,'
+    '"max_current":65548}}'
+)
+
+
+def _setup_mock_charger(
+    mock_aioclient,
+    status_fixture: str = "status.json",
+    config_fixture: str = "config.json",
+    include_https: bool = False,
+    status_post_exc: type[Exception] | None = None,
+    post_status: bool = True,
+    post_config: bool = False,
+    get_override: bool = True,
+    override_status: int = 200,
+    claims_target_status: int = 200,
+):
+    """Configure mock_aioclient endpoints and return an OpenEVSE test instance."""
+    status_text = load_fixture(status_fixture)
+    config_text = load_fixture(config_fixture)
+
+    mock_aioclient.get(TEST_URL_STATUS, status=200, text=status_text)
+    if include_https:
+        mock_aioclient.get(
+            TEST_URL_STATUS.replace("http://", "https://"),
+            status=200,
+            text=status_text,
+        )
+
+    if status_post_exc is not None:
+        mock_aioclient.post(TEST_URL_STATUS, exc=status_post_exc)
+    elif post_status:
+        mock_aioclient.post(TEST_URL_STATUS, status=200, text='{ "msg": "OK" }')
+        if include_https:
+            mock_aioclient.post(
+                TEST_URL_STATUS.replace("http://", "https://"),
+                status=200,
+                text='{ "msg": "OK" }',
+            )
+
+    mock_aioclient.get(TEST_URL_CONFIG, status=200, text=config_text)
+    if include_https:
+        mock_aioclient.get(
+            TEST_URL_CONFIG.replace("http://", "https://"),
+            status=200,
+            text=config_text,
+        )
+    if post_config:
+        mock_aioclient.post(TEST_URL_CONFIG, status=200, text='{ "msg": "OK" }')
+
+    ws_headers = {"Upgrade": "websocket", "Connection": "Upgrade"}
+    mock_aioclient.get(TEST_URL_WS, status=101, headers=ws_headers, text=status_text)
+    if include_https:
+        mock_aioclient.get(
+            TEST_URL_WS.replace("ws://", "wss://"),
+            status=101,
+            headers=ws_headers,
+            text=status_text,
+        )
+
+    register_github_release_mocks(mock_aioclient)
+
+    override_post_text = '{ "msg": "OK" }' if override_status == 200 else "{}"
+    mock_aioclient.post(
+        TEST_URL_OVERRIDE, status=override_status, text=override_post_text
+    )
+    if include_https:
+        mock_aioclient.post(
+            TEST_URL_OVERRIDE.replace("http://", "https://"),
+            status=override_status,
+            text=override_post_text,
+        )
+        mock_aioclient.patch(
+            TEST_URL_OVERRIDE, status=override_status, text=override_post_text
+        )
+        mock_aioclient.patch(
+            TEST_URL_OVERRIDE.replace("http://", "https://"),
+            status=override_status,
+            text=override_post_text,
+        )
+
+    if get_override:
+        mock_aioclient.get(TEST_URL_OVERRIDE, status=override_status, text="{}")
+        if include_https:
+            mock_aioclient.get(
+                TEST_URL_OVERRIDE.replace("http://", "https://"),
+                status=override_status,
+                text="{}",
+            )
+
+    claims_text = DEFAULT_CLAIMS_TARGET_JSON if claims_target_status == 200 else "{}"
+    mock_aioclient.get(
+        TEST_URL_CLAIMS_TARGET, status=claims_target_status, text=claims_text
+    )
+    if include_https:
+        mock_aioclient.get(
+            TEST_URL_CLAIMS_TARGET.replace("http://", "https://"),
+            status=claims_target_status,
+            text=claims_text,
+        )
+
+    return main.OpenEVSE(TEST_TLD)
+
+
+async def enable_entities_and_reload(
+    hass: HomeAssistant,
+    entity_registry,
+    entry,
+    domain: str,
+    entity_ids: str | list[str] | tuple[str, ...],
+) -> None:
+    """Enable one or more disabled entities in the registry and reload the platform."""
+    if isinstance(entity_ids, str):
+        entity_ids = [entity_ids]
+    for entity_id in entity_ids:
+        entity_entry = entity_registry.async_get(entity_id)
+        assert entity_entry is not None
+        updated_entry = entity_registry.async_update_entity(
+            entity_entry.entity_id, disabled_by=None
+        )
+        assert updated_entry.disabled is False
+    await hass.config_entries.async_forward_entry_unload(entry, domain)
+    await hass.config_entries.async_forward_entry_setups(entry, [domain])
+    await hass.async_block_till_done()
 
 
 # This fixture enables loading custom integrations in all tests.
@@ -165,289 +291,52 @@ def mock_ws_start():
 @pytest.fixture(name="test_charger")
 def test_charger(mock_aioclient):
     """Load the charger data."""
-    mock_aioclient.get(
-        TEST_URL_STATUS,
-        status=200,
-        text=load_fixture("status.json"),
-    )
-    mock_aioclient.get(
-        TEST_URL_STATUS.replace("http://", "https://"),
-        status=200,
-        text=load_fixture("status.json"),
-    )
-    mock_aioclient.post(
-        TEST_URL_STATUS,
-        status=200,
-        text='{ "msg": "OK" }',
-    )
-    mock_aioclient.post(
-        TEST_URL_STATUS.replace("http://", "https://"),
-        status=200,
-        text='{ "msg": "OK" }',
-    )
-    mock_aioclient.get(
-        TEST_URL_CONFIG,
-        status=200,
-        text=load_fixture("config.json"),
-    )
-    mock_aioclient.get(
-        TEST_URL_CONFIG.replace("http://", "https://"),
-        status=200,
-        text=load_fixture("config.json"),
-    )
-    mock_aioclient.get(
-        TEST_URL_WS,
-        status=101,
-        headers={"Upgrade": "websocket", "Connection": "Upgrade"},
-        text=load_fixture("status.json"),
-    )
-    mock_aioclient.get(
-        TEST_URL_WS.replace("ws://", "wss://"),
-        status=101,
-        headers={"Upgrade": "websocket", "Connection": "Upgrade"},
-        text=load_fixture("status.json"),
-    )
-    register_github_release_mocks(mock_aioclient)
-    mock_aioclient.post(
-        TEST_URL_OVERRIDE,
-        status=200,
-        text='{ "msg": "OK" }',
-    )
-    mock_aioclient.post(
-        TEST_URL_OVERRIDE.replace("http://", "https://"),
-        status=200,
-        text='{ "msg": "OK" }',
-    )
-    mock_aioclient.patch(
-        TEST_URL_OVERRIDE,
-        status=200,
-        text='{ "msg": "OK" }',
-    )
-    mock_aioclient.patch(
-        TEST_URL_OVERRIDE.replace("http://", "https://"),
-        status=200,
-        text='{ "msg": "OK" }',
-    )
-    mock_aioclient.get(
-        TEST_URL_OVERRIDE,
-        status=200,
-        text="{}",
-    )
-    mock_aioclient.get(
-        TEST_URL_OVERRIDE.replace("http://", "https://"),
-        status=200,
-        text="{}",
-    )
-    mock_aioclient.get(
-        TEST_URL_CLAIMS_TARGET,
-        status=200,
-        text='{"properties":{"state":"disabled","charge_current":28,"max_current":23,"auto_release":false},"claims":{"state":65540,"charge_current":65537,"max_current":65548}}',
-    )
-    mock_aioclient.get(
-        TEST_URL_CLAIMS_TARGET.replace("http://", "https://"),
-        status=200,
-        text='{"properties":{"state":"disabled","charge_current":28,"max_current":23,"auto_release":false},"claims":{"state":65540,"charge_current":65537,"max_current":65548}}',
-    )
-    return main.OpenEVSE(TEST_TLD)
+    return _setup_mock_charger(mock_aioclient, include_https=True)
 
 
 @pytest.fixture(name="test_charger_services")
 def test_charger_services(mock_aioclient):
     """Load the charger data."""
-    mock_aioclient.get(
-        TEST_URL_STATUS,
-        status=200,
-        text=load_fixture("status.json"),
-    )
-    mock_aioclient.post(
-        TEST_URL_STATUS,
-        status=200,
-        text='{ "msg": "OK" }',
-    )
-    mock_aioclient.get(
-        TEST_URL_CONFIG,
-        status=200,
-        text=load_fixture("config.json"),
-    )
-    mock_aioclient.get(
-        TEST_URL_WS,
-        status=101,
-        headers={"Upgrade": "websocket", "Connection": "Upgrade"},
-        text=load_fixture("status.json"),
-    )
-    register_github_release_mocks(mock_aioclient)
-    mock_aioclient.post(
-        TEST_URL_OVERRIDE,
-        status=200,
-        text='{ "msg": "OK" }',
-    )
-    mock_aioclient.get(
-        TEST_URL_CLAIMS_TARGET,
-        status=200,
-        text='{"properties":{"state":"disabled","charge_current":28,"max_current":23,"auto_release":false},"claims":{"state":65540,"charge_current":65537,"max_current":65548}}',
-    )
-    return main.OpenEVSE(TEST_TLD)
+    return _setup_mock_charger(mock_aioclient, get_override=False)
 
 
 @pytest.fixture(name="test_charger_bad_serial")
 def test_charger_bad_serial(mock_aioclient):
     """Load the charger data."""
-    mock_aioclient.get(
-        TEST_URL_STATUS,
-        status=200,
-        text=load_fixture("status.json"),
+    return _setup_mock_charger(
+        mock_aioclient,
+        config_fixture="config-no-serial.json",
+        post_status=False,
     )
-    mock_aioclient.get(
-        TEST_URL_CONFIG,
-        status=200,
-        text=load_fixture("config-no-serial.json"),
-    )
-    mock_aioclient.get(
-        TEST_URL_WS,
-        status=101,
-        headers={"Upgrade": "websocket", "Connection": "Upgrade"},
-        text=load_fixture("status.json"),
-    )
-    register_github_release_mocks(mock_aioclient)
-    mock_aioclient.get(
-        TEST_URL_CLAIMS_TARGET,
-        status=200,
-        text='{"properties":{"state":"disabled","charge_current":28,"max_current":23,"auto_release":false},"claims":{"state":65540,"charge_current":65537,"max_current":65548}}',
-    )
-    mock_aioclient.get(
-        TEST_URL_OVERRIDE,
-        status=200,
-        text="{}",
-    )
-    return main.OpenEVSE(TEST_TLD)
 
 
 @pytest.fixture(name="test_charger_bad_post")
 def test_charger_bad_post(mock_aioclient):
     """Load the charger data."""
-    mock_aioclient.get(
-        TEST_URL_STATUS,
-        status=200,
-        text=load_fixture("status.json"),
+    return _setup_mock_charger(
+        mock_aioclient,
+        status_post_exc=TimeoutError,
     )
-    mock_aioclient.post(
-        TEST_URL_STATUS,
-        exc=TimeoutError,
-    )
-    mock_aioclient.get(
-        TEST_URL_CONFIG,
-        status=200,
-        text=load_fixture("config.json"),
-    )
-    mock_aioclient.get(
-        TEST_URL_WS,
-        status=101,
-        headers={"Upgrade": "websocket", "Connection": "Upgrade"},
-        text=load_fixture("status.json"),
-    )
-    register_github_release_mocks(mock_aioclient)
-    mock_aioclient.get(
-        TEST_URL_CLAIMS_TARGET,
-        status=200,
-        text='{"properties":{"state":"disabled","charge_current":28,"max_current":23,"auto_release":false},"claims":{"state":65540,"charge_current":65537,"max_current":65548}}',
-    )
-    mock_aioclient.get(
-        TEST_URL_OVERRIDE,
-        status=200,
-        text="{}",
-    )
-    return main.OpenEVSE(TEST_TLD)
 
 
 @pytest.fixture(name="test_charger_new")
 def test_charger_new(mock_aioclient):
     """Load the charger data."""
-    mock_aioclient.get(
-        TEST_URL_STATUS,
-        status=200,
-        text=load_fixture("status-new.json"),
+    return _setup_mock_charger(
+        mock_aioclient,
+        status_fixture="status-new.json",
     )
-    mock_aioclient.post(
-        TEST_URL_STATUS,
-        status=200,
-        text='{ "msg": "OK" }',
-    )
-    mock_aioclient.get(
-        TEST_URL_CONFIG,
-        status=200,
-        text=load_fixture("config.json"),
-    )
-    mock_aioclient.get(
-        TEST_URL_WS,
-        status=101,
-        headers={"Upgrade": "websocket", "Connection": "Upgrade"},
-        text=load_fixture("status-new.json"),
-    )
-    register_github_release_mocks(mock_aioclient)
-    mock_aioclient.post(
-        TEST_URL_OVERRIDE,
-        status=200,
-        text='{ "msg": "OK" }',
-    )
-    mock_aioclient.get(
-        TEST_URL_OVERRIDE,
-        status=200,
-        text="{}",
-    )
-    mock_aioclient.get(
-        TEST_URL_CLAIMS_TARGET,
-        status=200,
-        text='{"properties":{"state":"disabled","charge_current":28,"max_current":23,"auto_release":false},"claims":{"state":65540,"charge_current":65537,"max_current":65548}}',
-    )
-    return main.OpenEVSE(TEST_TLD)
 
 
 @pytest.fixture(name="test_charger_controller_v9")
 def test_charger_controller_v9(mock_aioclient):
     """Load the charger data with controller v9.4.0 firmware."""
-    mock_aioclient.get(
-        TEST_URL_STATUS,
-        status=200,
-        text=load_fixture("status-controller-v9.json"),
+    return _setup_mock_charger(
+        mock_aioclient,
+        status_fixture="status-controller-v9.json",
+        config_fixture="config-controller-v9.json",
+        post_config=True,
     )
-    mock_aioclient.post(
-        TEST_URL_STATUS,
-        status=200,
-        text='{ "msg": "OK" }',
-    )
-    mock_aioclient.get(
-        TEST_URL_CONFIG,
-        status=200,
-        text=load_fixture("config-controller-v9.json"),
-    )
-    mock_aioclient.post(
-        TEST_URL_CONFIG,
-        status=200,
-        text='{ "msg": "OK" }',
-    )
-    mock_aioclient.get(
-        TEST_URL_WS,
-        status=101,
-        headers={"Upgrade": "websocket", "Connection": "Upgrade"},
-        text=load_fixture("status-controller-v9.json"),
-    )
-    register_github_release_mocks(mock_aioclient)
-    mock_aioclient.post(
-        TEST_URL_OVERRIDE,
-        status=200,
-        text='{ "msg": "OK" }',
-    )
-    mock_aioclient.get(
-        TEST_URL_OVERRIDE,
-        status=200,
-        text="{}",
-    )
-    mock_aioclient.get(
-        TEST_URL_CLAIMS_TARGET,
-        status=200,
-        text='{"properties":{"state":"disabled","charge_current":28,"max_current":23,"auto_release":false},"claims":{"state":65540,"charge_current":65537,"max_current":65548}}',
-    )
-    return main.OpenEVSE(TEST_TLD)
 
 
 @pytest.fixture()
@@ -490,44 +379,13 @@ def register_github_release_mocks(
 @pytest.fixture(name="test_charger_v2")
 def test_charger_v2(mock_aioclient):
     """Load the charger data."""
-    mock_aioclient.get(
-        TEST_URL_STATUS,
-        status=200,
-        text=load_fixture("v2_status.json"),
+    return _setup_mock_charger(
+        mock_aioclient,
+        status_fixture="v2_status.json",
+        config_fixture="v2_config.json",
+        override_status=404,
+        claims_target_status=404,
     )
-    mock_aioclient.post(
-        TEST_URL_STATUS,
-        status=200,
-        text='{ "msg": "OK" }',
-    )
-    mock_aioclient.get(
-        TEST_URL_CONFIG,
-        status=200,
-        text=load_fixture("v2_config.json"),
-    )
-    mock_aioclient.get(
-        TEST_URL_WS,
-        status=101,
-        headers={"Upgrade": "websocket", "Connection": "Upgrade"},
-        text=load_fixture("v2_status.json"),
-    )
-    register_github_release_mocks(mock_aioclient)
-    mock_aioclient.post(
-        TEST_URL_OVERRIDE,
-        status=404,
-        text="{}",
-    )
-    mock_aioclient.get(
-        TEST_URL_OVERRIDE,
-        status=404,
-        text="{}",
-    )
-    mock_aioclient.get(
-        TEST_URL_CLAIMS_TARGET,
-        status=404,
-        text="{}",
-    )
-    return main.OpenEVSE(TEST_TLD)
 
 
 @pytest.fixture

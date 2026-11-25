@@ -42,6 +42,16 @@ WEEKDAYS = [
     "Sunday",
 ]
 
+RRULE_TO_DAY = {
+    "MO": "Monday",
+    "TU": "Tuesday",
+    "WE": "Wednesday",
+    "TH": "Thursday",
+    "FR": "Friday",
+    "SA": "Saturday",
+    "SU": "Sunday",
+}
+
 
 async def async_setup_entry(
     hass: HomeAssistant,
@@ -237,40 +247,47 @@ class OpenEVSECalendarEntity(CoordinatorEntity, OpenEVSEEntity, CalendarEntity):
         await self._async_get_schedule_data()
         return self._resolve_events(start_date, end_date)
 
-    async def async_create_event(self, **kwargs: Any) -> None:
-        """Add a new schedule event to OpenEVSE."""
-        start_dt = kwargs.get("dtstart")
+    @staticmethod
+    def _extract_event_id(uid: str) -> int:
+        """Extract the integer schedule ID from a calendar event UID."""
+        try:
+            return int(uid.split("_", maxsplit=1)[0])
+        except (ValueError, IndexError) as err:
+            raise HomeAssistantError(
+                f"Invalid event UID '{uid}': cannot extract event ID"
+            ) from err
+
+    def _to_local_datetime(
+        self, dt_or_date: datetime.datetime | datetime.date
+    ) -> datetime.datetime:
+        """Normalize a date or datetime to the configured local timezone."""
+        local_tz = self._local_tz
+        if isinstance(dt_or_date, datetime.date) and not isinstance(
+            dt_or_date, datetime.datetime
+        ):
+            dt_or_date = datetime.datetime.combine(
+                dt_or_date, datetime.time.min, tzinfo=local_tz
+            )
+        return dt_or_date.astimezone(local_tz)
+
+    def _build_schedule_payload(
+        self,
+        event_data: Mapping[str, Any],
+        event_id: int | None = None,
+    ) -> dict[str, Any]:
+        """Build an OpenEVSE schedule payload from Home Assistant event data."""
+        start_dt = event_data.get("dtstart")
         if not start_dt:
             raise HomeAssistantError("Event start time is required")
 
-        local_tz = self._local_tz
-        if isinstance(start_dt, datetime.date) and not isinstance(
-            start_dt, datetime.datetime
-        ):
-            start_dt = datetime.datetime.combine(
-                start_dt, datetime.time.min, tzinfo=local_tz
-            )
+        start_local = self._to_local_datetime(start_dt)
+        days = [WEEKDAYS[start_local.weekday()]]
 
-        start_local = start_dt.astimezone(local_tz)
-        weekday_name = WEEKDAYS[start_local.weekday()]
-
-        rrule_str = kwargs.get("rrule")
-        days = [weekday_name]
-
-        # Parse basic weekly recurrences if provided
+        rrule_str = event_data.get("rrule")
         if rrule_str and "BYDAY=" in rrule_str:
             byday_part = rrule_str.split("BYDAY=")[1].split(";")[0]
-            ha_to_day = {
-                "MO": "Monday",
-                "TU": "Tuesday",
-                "WE": "Wednesday",
-                "TH": "Thursday",
-                "FR": "Friday",
-                "SA": "Saturday",
-                "SU": "Sunday",
-            }
             parsed_days = [
-                ha_to_day[d] for d in byday_part.split(",") if d in ha_to_day
+                RRULE_TO_DAY[d] for d in byday_part.split(",") if d in RRULE_TO_DAY
             ]
             if parsed_days:
                 days = parsed_days
@@ -280,19 +297,20 @@ class OpenEVSECalendarEntity(CoordinatorEntity, OpenEVSEEntity, CalendarEntity):
             "time": start_local.strftime("%H:%M:%S"),
             "days": days,
         }
+        if event_id is not None:
+            event_payload["id"] = event_id
 
-        end_dt = kwargs.get("dtend")
-        if end_dt:
-            if isinstance(end_dt, datetime.date) and not isinstance(
-                end_dt, datetime.datetime
-            ):
-                end_dt = datetime.datetime.combine(
-                    end_dt, datetime.time.min, tzinfo=local_tz
-                )
-            end_local = end_dt.astimezone(local_tz)
+        if end_dt := event_data.get("dtend"):
+            end_local = self._to_local_datetime(end_dt)
             duration_minutes = int((end_local - start_local).total_seconds() // 60)
             if duration_minutes > 0:
                 event_payload["duration"] = duration_minutes
+
+        return event_payload
+
+    async def async_create_event(self, **kwargs: Any) -> None:
+        """Add a new schedule event to OpenEVSE."""
+        event_payload = self._build_schedule_payload(kwargs)
 
         try:
             await self.manager.set_schedule(event_payload)
@@ -314,12 +332,7 @@ class OpenEVSECalendarEntity(CoordinatorEntity, OpenEVSEEntity, CalendarEntity):
         recurrence_range: str | None = None,
     ) -> None:
         """Delete an event on the calendar."""
-        try:
-            event_id = int(uid.split("_", maxsplit=1)[0])
-        except (ValueError, IndexError) as err:
-            raise HomeAssistantError(
-                f"Invalid event UID '{uid}': cannot extract event ID"
-            ) from err
+        event_id = self._extract_event_id(uid)
 
         try:
             await self.manager.delete_schedule(event_id)
@@ -343,66 +356,8 @@ class OpenEVSECalendarEntity(CoordinatorEntity, OpenEVSEEntity, CalendarEntity):
         recurrence_range: str | None = None,
     ) -> None:
         """Update an event on the calendar."""
-        try:
-            event_id = int(uid.split("_", maxsplit=1)[0])
-        except (ValueError, IndexError) as err:
-            raise HomeAssistantError(
-                f"Invalid event UID '{uid}': cannot extract event ID"
-            ) from err
-
-        start_dt = event.get("dtstart")
-        if not start_dt:
-            raise HomeAssistantError("Event start time is required")
-
-        local_tz = self._local_tz
-        if isinstance(start_dt, datetime.date) and not isinstance(
-            start_dt, datetime.datetime
-        ):
-            start_dt = datetime.datetime.combine(
-                start_dt, datetime.time.min, tzinfo=local_tz
-            )
-        start_local = start_dt.astimezone(local_tz)
-
-        weekday_name = WEEKDAYS[start_local.weekday()]
-        days = [weekday_name]
-
-        rrule_str = event.get("rrule")
-        if rrule_str and "BYDAY=" in rrule_str:
-            byday_part = rrule_str.split("BYDAY=")[1].split(";")[0]
-            ha_to_day = {
-                "MO": "Monday",
-                "TU": "Tuesday",
-                "WE": "Wednesday",
-                "TH": "Thursday",
-                "FR": "Friday",
-                "SA": "Saturday",
-                "SU": "Sunday",
-            }
-            parsed_days = [
-                ha_to_day[d] for d in byday_part.split(",") if d in ha_to_day
-            ]
-            if parsed_days:
-                days = parsed_days
-
-        event_payload: dict[str, Any] = {
-            "id": event_id,
-            "state": "active",
-            "time": start_local.strftime("%H:%M:%S"),
-            "days": days,
-        }
-
-        end_dt = event.get("dtend")
-        if end_dt:
-            if isinstance(end_dt, datetime.date) and not isinstance(
-                end_dt, datetime.datetime
-            ):
-                end_dt = datetime.datetime.combine(
-                    end_dt, datetime.time.min, tzinfo=local_tz
-                )
-            end_local = end_dt.astimezone(local_tz)
-            duration_minutes = int((end_local - start_local).total_seconds() // 60)
-            if duration_minutes > 0:
-                event_payload["duration"] = duration_minutes
+        event_id = self._extract_event_id(uid)
+        event_payload = self._build_schedule_payload(event, event_id=event_id)
 
         try:
             await self.manager.set_schedule(event_payload, event_id=event_id)

@@ -76,10 +76,8 @@ class OpenEVSESensor(CoordinatorEntity, OpenEVSEEntity, SensorEntity):
     @property
     def native_value(self) -> Any:
         """Return the state of the sensor."""
-        data = self.coordinator.data if isinstance(self.coordinator.data, dict) else {}
-        if getattr(self.entity_description, "value_fn", None) is not None:
-            return self.entity_description.value_fn(data)
-        return data.get(self._type)
+        _, value = self._get_description_value()
+        return value
 
     @property
     def native_unit_of_measurement(self) -> str | None:
@@ -115,10 +113,4 @@ class OpenEVSESensor(CoordinatorEntity, OpenEVSEEntity, SensorEntity):
         if data is None or self._type not in data:
             return False
 
-        # Check firmware version requirement
-        manager = self._config.runtime_data.manager
-        if self._min_version and not manager.version_check(self._min_version):
-            return False
-        if self._min_controller_version:
-            return manager.controller_version_check(self._min_controller_version)
-        return True
+        return self._check_version_supported(self._config.runtime_data.manager)

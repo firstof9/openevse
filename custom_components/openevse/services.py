@@ -1,6 +1,8 @@
 """OpenEVSE services."""
 
 import logging
+from collections.abc import Iterator
+from typing import Any
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry
@@ -392,271 +394,178 @@ class OpenEVSEServices:
         config_id = next(iter(device_entry.connections))[1]
         return config_id
 
-    def _get_manager(self, config_id: str):
+    def _get_manager(self, config_id: str) -> Any:
         """Retrieve manager from entry runtime_data or fallback."""
         entry = self.hass.config_entries.async_get_entry(config_id)
         if entry and hasattr(entry, "runtime_data") and entry.runtime_data:
             return entry.runtime_data.manager
         raise KeyError(config_id)
 
+    def _iter_target_managers(
+        self,
+        service: ServiceCall,
+        min_version: str | None = None,
+        feature_name: str | None = None,
+    ) -> Iterator[tuple[Any, OpenEVSELoggerAdapter]]:
+        """Yield (manager, logger) for each target device in the service call."""
+        for device_id in self._resolve_target_device_ids(service):
+            logger = self._get_logger(device_id)
+            logger.debug("Device ID: %s", device_id)
+
+            config_id = self._resolve_device_config(device_id)
+            logger.debug("Config ID: %s", config_id)
+            try:
+                manager = self._get_manager(config_id)
+            except KeyError as err:
+                logger.error("Error locating configuration: %s", err)
+                continue
+
+            if min_version and feature_name and not manager.version_check(min_version):
+                logger.warning(FW_VERSION_WARN, feature_name, min_version)
+                continue
+
+            yield manager, logger
+
     # Setup services
     async def _set_override(self, service: ServiceCall) -> None:
         """Set the override."""
         data = service.data
-        for device_id in self._resolve_target_device_ids(service):
-            logger = self._get_logger(device_id)
-            logger.debug("Device ID: %s", device_id)
-
-            config_id = self._resolve_device_config(device_id)
-            logger.debug("Config ID: %s", config_id)
+        for manager, logger in self._iter_target_managers(service):
             try:
-                manager = self._get_manager(config_id)
-                state = data.get(ATTR_STATE)
-                charge_current = data.get(ATTR_CHARGE_CURRENT)
-                max_current = data.get(ATTR_MAX_CURRENT)
-                energy_limit = data.get(ATTR_ENERGY_LIMIT)
-                time_limit = data.get(ATTR_TIME_LIMIT)
-                auto_release = data.get(ATTR_AUTO_RELEASE)
-
-                try:
-                    response = await manager.set_override(
-                        state=state,
-                        charge_current=charge_current,
-                        max_current=max_current,
-                        energy_limit=energy_limit,
-                        time_limit=time_limit,
-                        auto_release=auto_release,
-                    )
-                    logger.debug("Set Override response: %s", response)
-                except CONNECTION_ERRORS as err:
-                    logger.error(CONNECTION_ERROR, err)
-
-            except KeyError as err:
-                logger.error("Error locating configuration: %s", err)
+                response = await manager.set_override(
+                    state=data.get(ATTR_STATE),
+                    charge_current=data.get(ATTR_CHARGE_CURRENT),
+                    max_current=data.get(ATTR_MAX_CURRENT),
+                    energy_limit=data.get(ATTR_ENERGY_LIMIT),
+                    time_limit=data.get(ATTR_TIME_LIMIT),
+                    auto_release=data.get(ATTR_AUTO_RELEASE),
+                )
+                logger.debug("Set Override response: %s", response)
+            except CONNECTION_ERRORS as err:
+                logger.error(CONNECTION_ERROR, err)
 
     async def _clear_override(self, service: ServiceCall) -> None:
         """Clear the manual override."""
         self.logger.debug("Data: %s", service.data)
-        for device_id in self._resolve_target_device_ids(service):
-            logger = self._get_logger(device_id)
-            logger.debug("Device ID: %s", device_id)
-
-            config_id = self._resolve_device_config(device_id)
-            logger.debug("Config ID: %s Type: %s", config_id, type(config_id))
+        for manager, logger in self._iter_target_managers(service):
             try:
-                manager = self._get_manager(config_id)
-                try:
-                    await manager.clear_override()
-                    logger.debug("Override clear command sent.")
-                except CONNECTION_ERRORS as err:
-                    logger.error(CONNECTION_ERROR, err)
-                except (RuntimeError, CommandFailedError) as err:
-                    if "Failed to release manual override" in str(err):
-                        logger.debug("No active override to clear.")
-                    else:
-                        raise HomeAssistantError(
-                            f"Error communicating with device: {err}"
-                        ) from err
-            except KeyError as err:
-                logger.error("Error locating configuration: %s", err)
+                await manager.clear_override()
+                logger.debug("Override clear command sent.")
+            except CONNECTION_ERRORS as err:
+                logger.error(CONNECTION_ERROR, err)
+            except (RuntimeError, CommandFailedError) as err:
+                if "Failed to release manual override" in str(err):
+                    logger.debug("No active override to clear.")
+                else:
+                    raise HomeAssistantError(
+                        f"Error communicating with device: {err}"
+                    ) from err
 
     async def _set_limit(self, service: ServiceCall) -> None:
         """Set the limit."""
         data = service.data
-        for device_id in self._resolve_target_device_ids(service):
-            logger = self._get_logger(device_id)
-            logger.debug("Device ID: %s", device_id)
-
-            config_id = self._resolve_device_config(device_id)
-            logger.debug("Config ID: %s", config_id)
+        for manager, logger in self._iter_target_managers(service):
             try:
-                manager = self._get_manager(config_id)
-                limit_type = data[ATTR_TYPE]
-                value = data[ATTR_VALUE]
-
-                if ATTR_AUTO_RELEASE in data:
-                    auto_release = data[ATTR_AUTO_RELEASE]
-                else:
-                    auto_release = None
-
-                try:
-                    response = await manager.set_limit(
-                        limit_type=limit_type,
-                        value=value,
-                        release=auto_release,
-                    )
-                    logger.debug("Set Limit response: %s", response)
-                except CONNECTION_ERRORS as err:
-                    logger.error(CONNECTION_ERROR, err)
-
-            except KeyError as err:
-                logger.error("Error locating configuration: %s", err)
+                response = await manager.set_limit(
+                    limit_type=data[ATTR_TYPE],
+                    value=data[ATTR_VALUE],
+                    release=data.get(ATTR_AUTO_RELEASE),
+                )
+                logger.debug("Set Limit response: %s", response)
+            except CONNECTION_ERRORS as err:
+                logger.error(CONNECTION_ERROR, err)
 
     async def _clear_limit(self, service: ServiceCall) -> None:
         """Clear the limit."""
         self.logger.debug("Data: %s", service.data)
-        for device_id in self._resolve_target_device_ids(service):
-            logger = self._get_logger(device_id)
-            logger.debug("Device ID: %s", device_id)
-
-            config_id = self._resolve_device_config(device_id)
-            logger.debug("Config ID: %s Type: %s", config_id, type(config_id))
+        for manager, logger in self._iter_target_managers(service):
             try:
-                manager = self._get_manager(config_id)
-                try:
-                    await manager.clear_limit()
-                    logger.debug("Limit clear command sent.")
-                except CONNECTION_ERRORS as err:
-                    logger.error(CONNECTION_ERROR, err)
-            except KeyError as err:
-                logger.error("Error locating configuration: %s", err)
+                await manager.clear_limit()
+                logger.debug("Limit clear command sent.")
+            except CONNECTION_ERRORS as err:
+                logger.error(CONNECTION_ERROR, err)
 
     async def _get_limit(self, service: ServiceCall) -> ServiceResponse:
         """Get the limit."""
         self.logger.debug("Data: %s", service.data)
-        for device_id in self._resolve_target_device_ids(service):
-            logger = self._get_logger(device_id)
-            logger.debug("Device ID: %s", device_id)
-
-            config_id = self._resolve_device_config(device_id)
-            logger.debug("Config ID: %s Type: %s", config_id, type(config_id))
+        for manager, logger in self._iter_target_managers(service):
             try:
-                manager = self._get_manager(config_id)
-                try:
-                    response = await manager.get_limit()
-                    logger.debug("Get limit response %s.", response)
-                    return response
-                except CONNECTION_ERRORS as err:
-                    logger.error(CONNECTION_ERROR, err)
-                    return {}
-            except KeyError as err:
-                logger.error("Error locating configuration: %s", err)
+                response = await manager.get_limit()
+                logger.debug("Get limit response %s.", response)
+                return response
+            except CONNECTION_ERRORS as err:
+                logger.error(CONNECTION_ERROR, err)
                 return {}
         return {}
 
     async def _make_claim(self, service: ServiceCall) -> None:
         """Make a claim."""
         data = service.data
-        for device_id in self._resolve_target_device_ids(service):
-            logger = self._get_logger(device_id)
-            logger.debug("Device ID: %s", device_id)
-
-            config_id = self._resolve_device_config(device_id)
-            logger.debug("Config ID: %s", config_id)
+        for manager, logger in self._iter_target_managers(service):
             try:
-                manager = self._get_manager(config_id)
-                state = data.get(ATTR_STATE)
-                charge_current = data.get(ATTR_CHARGE_CURRENT)
-                max_current = data.get(ATTR_MAX_CURRENT)
-                auto_release = data.get(ATTR_AUTO_RELEASE)
-
-                try:
-                    response = await manager.make_claim(
-                        state=state,
-                        charge_current=charge_current,
-                        max_current=max_current,
-                        auto_release=auto_release,
-                    )
-                    logger.debug("Make claim response: %s", response)
-                except CONNECTION_ERRORS as err:
-                    logger.error(CONNECTION_ERROR, err)
-            except KeyError as err:
-                logger.error("Error locating configuration: %s", err)
+                response = await manager.make_claim(
+                    state=data.get(ATTR_STATE),
+                    charge_current=data.get(ATTR_CHARGE_CURRENT),
+                    max_current=data.get(ATTR_MAX_CURRENT),
+                    auto_release=data.get(ATTR_AUTO_RELEASE),
+                )
+                logger.debug("Make claim response: %s", response)
+            except CONNECTION_ERRORS as err:
+                logger.error(CONNECTION_ERROR, err)
 
     async def _release_claim(self, service: ServiceCall) -> None:
         """Release a claim."""
         self.logger.debug("Data: %s", service.data)
-        for device_id in self._resolve_target_device_ids(service):
-            logger = self._get_logger(device_id)
-            logger.debug("Device ID: %s", device_id)
-
-            config_id = self._resolve_device_config(device_id)
-            logger.debug("Config ID: %s Type: %s", config_id, type(config_id))
+        for manager, logger in self._iter_target_managers(service):
             try:
-                manager = self._get_manager(config_id)
-                try:
-                    await manager.release_claim()
-                    logger.debug("Release claim command sent.")
-                except CONNECTION_ERRORS as err:
-                    logger.error(CONNECTION_ERROR, err)
-            except KeyError as err:
-                logger.error("Error locating configuration: %s", err)
+                await manager.release_claim()
+                logger.debug("Release claim command sent.")
+            except CONNECTION_ERRORS as err:
+                logger.error(CONNECTION_ERROR, err)
 
     async def _list_claims(self, service: ServiceCall) -> ServiceResponse:
         """Get the claims."""
         self.logger.debug("Data: %s", service.data)
-        for device_id in self._resolve_target_device_ids(service):
-            logger = self._get_logger(device_id)
-            logger.debug("Device ID: %s", device_id)
-
-            config_id = self._resolve_device_config(device_id)
-            logger.debug("Config ID: %s Type: %s", config_id, type(config_id))
+        for manager, logger in self._iter_target_managers(service):
             try:
-                manager = self._get_manager(config_id)
-                try:
-                    response = await manager.list_claims()
-                    logger.debug("List claims response %s.", response)
-                except CONNECTION_ERRORS as err:
-                    logger.error(CONNECTION_ERROR, err)
-                    return {}
-                claims = {}
-                for x, claim in enumerate(response):
-                    claims[x] = claim
-                logger.debug("Processed response %s.", claims)
-                return claims
-            except KeyError as err:
-                logger.error("Error locating configuration: %s", err)
+                response = await manager.list_claims()
+                logger.debug("List claims response %s.", response)
+            except CONNECTION_ERRORS as err:
+                logger.error(CONNECTION_ERROR, err)
                 return {}
+            claims = dict(enumerate(response))
+            logger.debug("Processed response %s.", claims)
+            return claims
         return {}
 
     async def _list_overrides(self, service: ServiceCall) -> ServiceResponse:
         """Get the overrides."""
         self.logger.debug("Data: %s", service.data)
-        for device_id in self._resolve_target_device_ids(service):
-            logger = self._get_logger(device_id)
-            logger.debug("Device ID: %s", device_id)
-
-            config_id = self._resolve_device_config(device_id)
-            logger.debug("Config ID: %s Type: %s", config_id, type(config_id))
+        for manager, logger in self._iter_target_managers(service):
             try:
-                manager = self._get_manager(config_id)
-                try:
-                    response = await manager.get_override()
-                    logger.debug("List overrides response %s.", response)
-                    return response
-                except CONNECTION_ERRORS as err:
-                    logger.error(CONNECTION_ERROR, err)
-                    return {}
-            except KeyError as err:
-                logger.error("Error locating configuration: %s", err)
+                response = await manager.get_override()
+                logger.debug("List overrides response %s.", response)
+                return response
+            except CONNECTION_ERRORS as err:
+                logger.error(CONNECTION_ERROR, err)
                 return {}
         return {}
 
     async def _get_time(self, service: ServiceCall) -> ServiceResponse:
         """Get the charger time and NTP synchronization status."""
         self.logger.debug("Data: %s", service.data)
-        for device_id in self._resolve_target_device_ids(service):
-            logger = self._get_logger(device_id)
-            logger.debug("Device ID: %s", device_id)
-
-            config_id = self._resolve_device_config(device_id)
-            logger.debug("Config ID: %s Type: %s", config_id, type(config_id))
+        for manager, logger in self._iter_target_managers(service):
             try:
-                manager = self._get_manager(config_id)
-                try:
-                    response = await manager.get_time()
-                    logger.debug("Get time response %s.", response)
-                    return response
-                except CONNECTION_ERRORS as err:
-                    logger.error(CONNECTION_ERROR, err)
-                    return {}
-                except ParseJSONError as err:
-                    logger.error(
-                        "Error parsing response from charger for get_time: %s", err
-                    )
-                    return {}
-            except KeyError as err:
-                logger.error("Error locating configuration: %s", err)
+                response = await manager.get_time()
+                logger.debug("Get time response %s.", response)
+                return response
+            except CONNECTION_ERRORS as err:
+                logger.error(CONNECTION_ERROR, err)
+                return {}
+            except ParseJSONError as err:
+                logger.error(
+                    "Error parsing response from charger for get_time: %s", err
+                )
                 return {}
         return {}
 
@@ -667,72 +576,44 @@ class OpenEVSEServices:
         timezone_str = data.get(ATTR_TIMEZONE)
         sntp = data.get(ATTR_SNTP)
 
-        for device_id in self._resolve_target_device_ids(service):
-            logger = self._get_logger(device_id)
-            logger.debug("Device ID: %s", device_id)
-
-            config_id = self._resolve_device_config(device_id)
-            logger.debug("Config ID: %s", config_id)
+        for manager, logger in self._iter_target_managers(service):
             try:
-                manager = self._get_manager(config_id)
-                try:
-                    await manager.set_time(
-                        target_time=target_time,
-                        timezone_str=timezone_str,
-                        sntp=sntp,
-                    )
-                    logger.debug("Set time command sent successfully.")
-                except CONNECTION_ERRORS as err:
-                    logger.error(CONNECTION_ERROR, err)
-                except ParseJSONError as err:
-                    logger.error(
-                        "Error parsing response from charger for set_time: %s", err
-                    )
-            except KeyError as err:
-                logger.error("Error locating configuration: %s", err)
+                await manager.set_time(
+                    target_time=target_time,
+                    timezone_str=timezone_str,
+                    sntp=sntp,
+                )
+                logger.debug("Set time command sent successfully.")
+            except CONNECTION_ERRORS as err:
+                logger.error(CONNECTION_ERROR, err)
+            except ParseJSONError as err:
+                logger.error(
+                    "Error parsing response from charger for set_time: %s", err
+                )
 
     async def _sync_time(self, service: ServiceCall) -> None:
         """Trigger an immediate NTP time synchronization on the charger."""
-        for device_id in self._resolve_target_device_ids(service):
-            logger = self._get_logger(device_id)
-            logger.debug("Device ID: %s", device_id)
-
-            config_id = self._resolve_device_config(device_id)
-            logger.debug("Config ID: %s", config_id)
+        for manager, logger in self._iter_target_managers(service):
             try:
-                manager = self._get_manager(config_id)
-                try:
-                    await manager.sync_time()
-                    logger.debug("Sync time command sent successfully.")
-                except CONNECTION_ERRORS as err:
-                    logger.error(CONNECTION_ERROR, err)
-                except ParseJSONError as err:
-                    logger.error(
-                        "Error parsing response from charger for sync_time: %s", err
-                    )
-            except KeyError as err:
-                logger.error("Error locating configuration: %s", err)
+                await manager.sync_time()
+                logger.debug("Sync time command sent successfully.")
+            except CONNECTION_ERRORS as err:
+                logger.error(CONNECTION_ERROR, err)
+            except ParseJSONError as err:
+                logger.error(
+                    "Error parsing response from charger for sync_time: %s", err
+                )
 
     async def _add_rfid_tag(self, service: ServiceCall) -> None:
         """Put the charger into RFID learning/pairing mode."""
-        for device_id in self._resolve_target_device_ids(service):
-            logger = self._get_logger(device_id)
-            logger.debug("Device ID: %s", device_id)
-
-            config_id = self._resolve_device_config(device_id)
-            logger.debug("Config ID: %s", config_id)
+        for manager, logger in self._iter_target_managers(
+            service, min_version="4.0.0", feature_name="RFID tag learning"
+        ):
             try:
-                manager = self._get_manager(config_id)
-                if not manager.version_check("4.0.0"):
-                    logger.warning(FW_VERSION_WARN, "RFID tag learning", "4.0.0")
-                    continue
-                try:
-                    await manager.add_rfid_tag()
-                    logger.debug("Add RFID tag command sent successfully.")
-                except CONNECTION_ERRORS as err:
-                    logger.error(CONNECTION_ERROR, err)
-            except KeyError as err:
-                logger.error("Error locating configuration: %s", err)
+                await manager.add_rfid_tag()
+                logger.debug("Add RFID tag command sent successfully.")
+            except CONNECTION_ERRORS as err:
+                logger.error(CONNECTION_ERROR, err)
 
     async def _set_rfid_user(self, service: ServiceCall) -> None:
         """Assign or update a user name for an RFID tag."""
@@ -748,108 +629,64 @@ class OpenEVSEServices:
             if not name:
                 name = person_entity_id
 
-        for device_id in self._resolve_target_device_ids(service):
-            logger = self._get_logger(device_id)
-            logger.debug("Device ID: %s", device_id)
-
-            config_id = self._resolve_device_config(device_id)
-            logger.debug("Config ID: %s", config_id)
+        for manager, logger in self._iter_target_managers(
+            service, min_version="5.0.0", feature_name="Managing RFID users"
+        ):
             try:
-                manager = self._get_manager(config_id)
-                if not manager.version_check("5.0.0"):
-                    logger.warning(FW_VERSION_WARN, "Managing RFID users", "5.0.0")
-                    continue
-                try:
-                    await manager.set_rfid_user(rfid=rfid, name=name)
-                    logger.debug("Set RFID user command sent successfully.")
-                except CONNECTION_ERRORS as err:
-                    logger.error(CONNECTION_ERROR, err)
-            except KeyError as err:
-                logger.error("Error locating configuration: %s", err)
+                await manager.set_rfid_user(rfid=rfid, name=name)
+                logger.debug("Set RFID user command sent successfully.")
+            except CONNECTION_ERRORS as err:
+                logger.error(CONNECTION_ERROR, err)
 
     async def _delete_rfid_user(self, service: ServiceCall) -> None:
         """Delete an RFID tag mapping."""
         rfid = service.data[ATTR_RFID]
-        for device_id in self._resolve_target_device_ids(service):
-            logger = self._get_logger(device_id)
-            logger.debug("Device ID: %s", device_id)
-
-            config_id = self._resolve_device_config(device_id)
-            logger.debug("Config ID: %s", config_id)
+        for manager, logger in self._iter_target_managers(
+            service, min_version="5.0.0", feature_name="Managing RFID users"
+        ):
             try:
-                manager = self._get_manager(config_id)
-                if not manager.version_check("5.0.0"):
-                    logger.warning(FW_VERSION_WARN, "Managing RFID users", "5.0.0")
-                    continue
-                try:
-                    await manager.delete_rfid_user(rfid=rfid)
-                    logger.debug("Delete RFID user command sent successfully.")
-                except CONNECTION_ERRORS as err:
-                    logger.error(CONNECTION_ERROR, err)
-            except KeyError as err:
-                logger.error("Error locating configuration: %s", err)
+                await manager.delete_rfid_user(rfid=rfid)
+                logger.debug("Delete RFID user command sent successfully.")
+            except CONNECTION_ERRORS as err:
+                logger.error(CONNECTION_ERROR, err)
 
     async def _get_rfid_users(self, service: ServiceCall) -> ServiceResponse:
         """Get the mapping of RFID tags to user names."""
-        for device_id in self._resolve_target_device_ids(service):
-            logger = self._get_logger(device_id)
-            logger.debug("Device ID: %s", device_id)
-
-            config_id = self._resolve_device_config(device_id)
-            logger.debug("Config ID: %s", config_id)
+        for manager, logger in self._iter_target_managers(
+            service, min_version="5.0.0", feature_name="Managing RFID users"
+        ):
             try:
-                manager = self._get_manager(config_id)
-                if not manager.version_check("5.0.0"):
-                    logger.warning(FW_VERSION_WARN, "Managing RFID users", "5.0.0")
-                    return {}
-                try:
-                    users = await manager.get_rfid_users()
-                    logger.debug("Get RFID users response: %s", users)
-                    return {"users": users}
-                except CONNECTION_ERRORS as err:
-                    logger.error(CONNECTION_ERROR, err)
-                    return {}
-            except KeyError as err:
-                logger.error("Error locating configuration: %s", err)
+                users = await manager.get_rfid_users()
+                logger.debug("Get RFID users response: %s", users)
+                return {"users": users}
+            except CONNECTION_ERRORS as err:
+                logger.error(CONNECTION_ERROR, err)
                 return {}
         return {}
 
     async def _get_certificates(self, service: ServiceCall) -> ServiceResponse:
         """Retrieve installed certificates from the charger."""
         certificate_id = service.data.get(ATTR_CERTIFICATE_ID)
-        for device_id in self._resolve_target_device_ids(service):
-            logger = self._get_logger(device_id)
-            logger.debug("Device ID: %s", device_id)
-
-            config_id = self._resolve_device_config(device_id)
-            logger.debug("Config ID: %s", config_id)
+        for manager, logger in self._iter_target_managers(
+            service, min_version="4.0.0", feature_name="Managing certificates"
+        ):
             try:
-                manager = self._get_manager(config_id)
-                if not manager.version_check("4.0.0"):
-                    logger.warning(FW_VERSION_WARN, "Managing certificates", "4.0.0")
-                    return {}
-                try:
-                    certificates = await manager.get_certificates(
-                        certificate_id=certificate_id
-                    )
-                    logger.debug("Get certificates response: %s", certificates)
-                    return {"certificates": certificates}
-                except CONNECTION_ERRORS as err:
-                    logger.error(CONNECTION_ERROR, err)
-                    return {}
-                except (EndpointNotFound, UnsupportedFeature) as err:
-                    logger.warning(
-                        "Certificates not supported on this charger: %s", err
-                    )
-                    return {}
-                except CommandFailedError as err:
-                    logger.error("Error retrieving certificates: %s", err)
-                    raise HomeAssistantError(
-                        f"Error retrieving certificates: {err}"
-                    ) from err
-            except KeyError as err:
-                logger.error("Error locating configuration: %s", err)
+                certificates = await manager.get_certificates(
+                    certificate_id=certificate_id
+                )
+                logger.debug("Get certificates response: %s", certificates)
+                return {"certificates": certificates}
+            except CONNECTION_ERRORS as err:
+                logger.error(CONNECTION_ERROR, err)
                 return {}
+            except (EndpointNotFound, UnsupportedFeature) as err:
+                logger.warning("Certificates not supported on this charger: %s", err)
+                return {}
+            except CommandFailedError as err:
+                logger.error("Error retrieving certificates: %s", err)
+                raise HomeAssistantError(
+                    f"Error retrieving certificates: {err}"
+                ) from err
         return {}
 
     async def _add_certificate(self, service: ServiceCall) -> ServiceResponse:
@@ -859,166 +696,108 @@ class OpenEVSEServices:
         certificate = data[ATTR_CERTIFICATE]
         key = data.get(ATTR_KEY)
 
-        for device_id in self._resolve_target_device_ids(service):
-            logger = self._get_logger(device_id)
-            logger.debug("Device ID: %s", device_id)
-
-            config_id = self._resolve_device_config(device_id)
-            logger.debug("Config ID: %s", config_id)
+        for manager, logger in self._iter_target_managers(
+            service, min_version="4.0.0", feature_name="Managing certificates"
+        ):
             try:
-                manager = self._get_manager(config_id)
-                if not manager.version_check("4.0.0"):
-                    logger.warning(FW_VERSION_WARN, "Managing certificates", "4.0.0")
-                    return {}
-                try:
-                    response = await manager.add_certificate(
-                        name=name, certificate=certificate, key=key
-                    )
-                    logger.debug("Add certificate response: %s", response)
-                    return response
-                except CONNECTION_ERRORS as err:
-                    logger.error(CONNECTION_ERROR, err)
-                    return {}
-                except CommandFailedError as err:
-                    logger.error("Error adding certificate: %s", err)
-                    raise HomeAssistantError(
-                        f"Error adding certificate: {err}"
-                    ) from err
-            except KeyError as err:
-                logger.error("Error locating configuration: %s", err)
+                response = await manager.add_certificate(
+                    name=name, certificate=certificate, key=key
+                )
+                logger.debug("Add certificate response: %s", response)
+                return response
+            except CONNECTION_ERRORS as err:
+                logger.error(CONNECTION_ERROR, err)
                 return {}
+            except CommandFailedError as err:
+                logger.error("Error adding certificate: %s", err)
+                raise HomeAssistantError(f"Error adding certificate: {err}") from err
         return {}
 
     async def _delete_certificate(self, service: ServiceCall) -> None:
         """Delete a certificate from the charger."""
         certificate_id = service.data[ATTR_CERTIFICATE_ID]
 
-        for device_id in self._resolve_target_device_ids(service):
-            logger = self._get_logger(device_id)
-            logger.debug("Device ID: %s", device_id)
-
-            config_id = self._resolve_device_config(device_id)
-            logger.debug("Config ID: %s", config_id)
+        for manager, logger in self._iter_target_managers(
+            service, min_version="4.0.0", feature_name="Managing certificates"
+        ):
             try:
-                manager = self._get_manager(config_id)
-                if not manager.version_check("4.0.0"):
-                    logger.warning(FW_VERSION_WARN, "Managing certificates", "4.0.0")
-                    continue
-                try:
-                    await manager.delete_certificate(certificate_id=certificate_id)
-                    logger.debug("Delete certificate command sent successfully.")
-                except CONNECTION_ERRORS as err:
-                    logger.error(CONNECTION_ERROR, err)
-                except CommandFailedError as err:
-                    logger.error("Error deleting certificate: %s", err)
-                    raise HomeAssistantError(
-                        f"Error deleting certificate: {err}"
-                    ) from err
-            except KeyError as err:
-                logger.error("Error locating configuration: %s", err)
+                await manager.delete_certificate(certificate_id=certificate_id)
+                logger.debug("Delete certificate command sent successfully.")
+            except CONNECTION_ERRORS as err:
+                logger.error(CONNECTION_ERROR, err)
+            except CommandFailedError as err:
+                logger.error("Error deleting certificate: %s", err)
+                raise HomeAssistantError(f"Error deleting certificate: {err}") from err
 
     async def _get_notifications(self, service: ServiceCall) -> ServiceResponse:
         """Retrieve active advisory notifications from the charger."""
-        for device_id in self._resolve_target_device_ids(service):
-            logger = self._get_logger(device_id)
-            logger.debug("Device ID: %s", device_id)
-
-            config_id = self._resolve_device_config(device_id)
-            logger.debug("Config ID: %s", config_id)
+        for manager, logger in self._iter_target_managers(
+            service,
+            min_version="5.1.0",
+            feature_name="Retrieving advisory notifications",
+        ):
             try:
-                manager = self._get_manager(config_id)
-                if not manager.version_check("5.1.0"):
-                    logger.warning(
-                        FW_VERSION_WARN, "Retrieving advisory notifications", "5.1.0"
-                    )
-                    return {}
-                try:
-                    notifications = await manager.get_notifications()
-                    logger.debug("Get notifications response: %s", notifications)
-                    return notifications
-                except CONNECTION_ERRORS as err:
-                    logger.error(CONNECTION_ERROR, err)
-                    return {}
-                except (EndpointNotFound, UnsupportedFeature) as err:
-                    logger.warning(
-                        "Advisory notifications not supported on this charger: %s", err
-                    )
-                    return {}
-                except CommandFailedError as err:
-                    logger.error("Error retrieving notifications: %s", err)
-                    raise HomeAssistantError(
-                        f"Error retrieving notifications: {err}"
-                    ) from err
-            except KeyError as err:
-                logger.error("Error locating configuration: %s", err)
+                notifications = await manager.get_notifications()
+                logger.debug("Get notifications response: %s", notifications)
+                return notifications
+            except CONNECTION_ERRORS as err:
+                logger.error(CONNECTION_ERROR, err)
                 return {}
+            except (EndpointNotFound, UnsupportedFeature) as err:
+                logger.warning(
+                    "Advisory notifications not supported on this charger: %s", err
+                )
+                return {}
+            except CommandFailedError as err:
+                logger.error("Error retrieving notifications: %s", err)
+                raise HomeAssistantError(
+                    f"Error retrieving notifications: {err}"
+                ) from err
         return {}
 
     async def _ack_notification(self, service: ServiceCall) -> None:
         """Acknowledge (mute) an active advisory notification on the charger."""
         notification_id = service.data[ATTR_NOTIFICATION_ID]
 
-        for device_id in self._resolve_target_device_ids(service):
-            logger = self._get_logger(device_id)
-            logger.debug("Device ID: %s", device_id)
-
-            config_id = self._resolve_device_config(device_id)
-            logger.debug("Config ID: %s", config_id)
+        for manager, logger in self._iter_target_managers(
+            service,
+            min_version="5.1.0",
+            feature_name="Acknowledging notification",
+        ):
             try:
-                manager = self._get_manager(config_id)
-                if not manager.version_check("5.1.0"):
-                    logger.warning(
-                        FW_VERSION_WARN, "Acknowledging notification", "5.1.0"
-                    )
-                    continue
-                try:
-                    await manager.acknowledge_notification(
-                        notification_id=notification_id
-                    )
-                    logger.debug(
-                        "Notification %s acknowledged successfully.", notification_id
-                    )
-                except CONNECTION_ERRORS as err:
-                    logger.error(CONNECTION_ERROR, err)
-                except CommandFailedError as err:
-                    logger.error("Error acknowledging notification: %s", err)
-                    raise HomeAssistantError(
-                        f"Error acknowledging notification: {err}"
-                    ) from err
-            except KeyError as err:
-                logger.error("Error locating configuration: %s", err)
+                await manager.acknowledge_notification(notification_id=notification_id)
+                logger.debug(
+                    "Notification %s acknowledged successfully.", notification_id
+                )
+            except CONNECTION_ERRORS as err:
+                logger.error(CONNECTION_ERROR, err)
+            except CommandFailedError as err:
+                logger.error("Error acknowledging notification: %s", err)
+                raise HomeAssistantError(
+                    f"Error acknowledging notification: {err}"
+                ) from err
 
     async def _reset_energy_meter(self, service: ServiceCall) -> None:
         """Reset the charger energy meter."""
         hard = service.data.get(ATTR_HARD, False)
         import_from_evse = service.data.get(ATTR_IMPORT, False)
 
-        for device_id in self._resolve_target_device_ids(service):
-            logger = self._get_logger(device_id)
-            logger.debug("Device ID: %s", device_id)
-
-            config_id = self._resolve_device_config(device_id)
-            logger.debug("Config ID: %s", config_id)
+        for manager, logger in self._iter_target_managers(
+            service, min_version="4.0.0", feature_name="Resetting energy meter"
+        ):
             try:
-                manager = self._get_manager(config_id)
-                if not manager.version_check("4.0.0"):
-                    logger.warning(FW_VERSION_WARN, "Resetting energy meter", "4.0.0")
-                    continue
-                try:
-                    await manager.reset_energy_meter(
-                        hard=hard, import_from_evse=import_from_evse
-                    )
-                    logger.debug(
-                        "Energy meter reset successfully (hard=%s, import=%s).",
-                        hard,
-                        import_from_evse,
-                    )
-                except CONNECTION_ERRORS as err:
-                    logger.error(CONNECTION_ERROR, err)
-                except CommandFailedError as err:
-                    logger.error("Error resetting energy meter: %s", err)
-                    raise HomeAssistantError(
-                        f"Error resetting energy meter: {err}"
-                    ) from err
-            except KeyError as err:
-                logger.error("Error locating configuration: %s", err)
+                await manager.reset_energy_meter(
+                    hard=hard, import_from_evse=import_from_evse
+                )
+                logger.debug(
+                    "Energy meter reset successfully (hard=%s, import=%s).",
+                    hard,
+                    import_from_evse,
+                )
+            except CONNECTION_ERRORS as err:
+                logger.error(CONNECTION_ERROR, err)
+            except CommandFailedError as err:
+                logger.error("Error resetting energy meter: %s", err)
+                raise HomeAssistantError(
+                    f"Error resetting energy meter: {err}"
+                ) from err

@@ -115,6 +115,42 @@ def _parse_power_state(state) -> int | None:
     return round(val)
 
 
+def _get_power_sensor_value(
+    hass: HomeAssistant,
+    entity_id: str,
+    label: str,
+    logger: OpenEVSELoggerAdapter,
+) -> int | None:
+    """Retrieve and parse a power sensor state, logging a warning if non-numeric."""
+    state = hass.states.get(entity_id)
+    val = _parse_power_state(state)
+    if (
+        state
+        and state.state not in [None, "unavailable", "unknown", ""]
+        and val is None
+    ):
+        logger.warning(NON_NUMERIC_WARN, label, state.state)
+    return val
+
+
+def _get_numeric_sensor_value(
+    hass: HomeAssistant,
+    entity_id: str,
+    label: str,
+    logger: OpenEVSELoggerAdapter,
+) -> int | None:
+    """Retrieve and parse a numeric sensor state, logging a warning if non-numeric."""
+    state = hass.states.get(entity_id)
+    raw = state.state if state else None
+    if raw in [None, "unavailable", "unknown", ""]:
+        return None
+    try:
+        return round(float(raw))
+    except (ValueError, TypeError):
+        logger.warning(NON_NUMERIC_WARN, label, raw)
+        return None
+
+
 @callback
 async def handle_state_change(
     hass: HomeAssistant,
@@ -128,188 +164,86 @@ async def handle_state_change(
     manager = config_entry.runtime_data.manager
     options = config_entry.options
     invert = options.get(CONF_INVERT)
-    grid_sensor = options.get(CONF_GRID)
-    solar_sensor = options.get(CONF_SOLAR)
-    voltage_sensor = options.get(CONF_VOLTAGE)
-    shaper_sensor = options.get(CONF_SHAPER)
-    vehicle_soc_sensor = options.get(CONF_VEHICLE_SOC)
-    vehicle_range_sensor = options.get(CONF_VEHICLE_RANGE)
-    vehicle_eta_sensor = options.get(CONF_VEHICLE_ETA)
-    home_battery_soc_sensor = options.get(CONF_HOME_BATTERY_SOC)
-    home_battery_power_sensor = options.get(CONF_HOME_BATTERY_POWER)
     changed_entity = event.data["entity_id"]
 
-    if grid_sensor is not None and changed_entity == grid_sensor:
-        state = hass.states.get(grid_sensor)
-        grid = _parse_power_state(state)
-        if (
-            state
-            and state.state not in [None, "unavailable", "unknown", ""]
-            and grid is None
-        ):
-            logger.warning(NON_NUMERIC_WARN, "grid", state.state)
+    sensor_handlers = (
+        (
+            CONF_GRID,
+            "grid",
+            _get_power_sensor_value,
+            lambda val: manager.self_production(grid=val, solar=None, invert=invert),
+            None,
+        ),
+        (
+            CONF_SOLAR,
+            "solar",
+            _get_power_sensor_value,
+            lambda val: manager.self_production(grid=None, solar=val, invert=False),
+            None,
+        ),
+        (
+            CONF_VOLTAGE,
+            "voltage",
+            _get_numeric_sensor_value,
+            lambda val: manager.grid_voltage(voltage=val),
+            None,
+        ),
+        (
+            CONF_SHAPER,
+            "shaper",
+            _get_power_sensor_value,
+            lambda val: manager.set_shaper_live_pwr(power=val),
+            None,
+        ),
+        (
+            CONF_VEHICLE_SOC,
+            "vehicle SoC",
+            _get_numeric_sensor_value,
+            lambda val: manager.soc(battery_level=val),
+            "Vehicle SoC push not supported by firmware.",
+        ),
+        (
+            CONF_VEHICLE_RANGE,
+            "vehicle range",
+            _get_numeric_sensor_value,
+            lambda val: manager.soc(battery_range=val),
+            "Vehicle range push not supported by firmware.",
+        ),
+        (
+            CONF_VEHICLE_ETA,
+            "vehicle ETA",
+            _get_numeric_sensor_value,
+            lambda val: manager.soc(time_to_full=val),
+            "Vehicle ETA push not supported by firmware.",
+        ),
+        (
+            CONF_HOME_BATTERY_SOC,
+            "home battery SoC",
+            _get_numeric_sensor_value,
+            lambda val: manager.home_battery(soc=val),
+            "Home battery push not supported by firmware.",
+        ),
+        (
+            CONF_HOME_BATTERY_POWER,
+            "home battery power",
+            _get_power_sensor_value,
+            lambda val: manager.home_battery(power=val),
+            "Home battery push not supported by firmware.",
+        ),
+    )
 
-        logger.debug("Sending sensor data to OpenEVSE: (grid: %s)", grid)
-        try:
-            await manager.self_production(grid=grid, solar=None, invert=invert)
-        except CONNECTION_ERRORS as err:
-            logger.warning(CONNECTION_ERROR, err)
-
-    elif solar_sensor is not None and changed_entity == solar_sensor:
-        state = hass.states.get(solar_sensor)
-        solar = _parse_power_state(state)
-        if (
-            state
-            and state.state not in [None, "unavailable", "unknown", ""]
-            and solar is None
-        ):
-            logger.warning(NON_NUMERIC_WARN, "solar", state.state)
-
-        logger.debug("Sending sensor data to OpenEVSE: (solar: %s)", solar)
-        try:
-            await manager.self_production(grid=None, solar=solar, invert=False)
-        except CONNECTION_ERRORS as err:
-            logger.warning(CONNECTION_ERROR, err)
-
-    if voltage_sensor is not None and changed_entity == voltage_sensor:
-        state = hass.states.get(voltage_sensor)
-        voltage = state.state if state else None
-        if voltage in [None, "unavailable", "unknown"]:
-            voltage = None
-        else:
+    for conf_key, warn_label, parser, push_fn, unsupported_msg in sensor_handlers:
+        sensor_entity = options.get(conf_key)
+        if sensor_entity is not None and changed_entity == sensor_entity:
+            val = parser(hass, sensor_entity, warn_label, logger)
+            logger.debug("Sending sensor data to OpenEVSE: (%s: %s)", conf_key, val)
             try:
-                voltage = round(float(voltage))
-            except (ValueError, TypeError):
-                logger.warning(NON_NUMERIC_WARN, "voltage", voltage)
-                voltage = None
-
-        logger.debug("Sending sensor data to OpenEVSE: (voltage: %s)", voltage)
-        try:
-            await manager.grid_voltage(voltage=voltage)
-        except CONNECTION_ERRORS as err:
-            logger.warning(CONNECTION_ERROR, err)
-
-    if shaper_sensor is not None and changed_entity == shaper_sensor:
-        state = hass.states.get(shaper_sensor)
-        power = _parse_power_state(state)
-        if (
-            state
-            and state.state not in [None, "unavailable", "unknown", ""]
-            and power is None
-        ):
-            logger.warning(NON_NUMERIC_WARN, "shaper", state.state)
-
-        logger.debug("Sending sensor data to OpenEVSE: (shaper: %s)", power)
-        try:
-            await manager.set_shaper_live_pwr(power=power)
-        except CONNECTION_ERRORS as err:
-            logger.warning(CONNECTION_ERROR, err)
-
-    if vehicle_soc_sensor is not None and changed_entity == vehicle_soc_sensor:
-        state = hass.states.get(vehicle_soc_sensor)
-        soc = state.state if state else None
-        if soc in [None, "unavailable", "unknown", ""]:
-            soc = None
-        else:
-            try:
-                soc = round(float(soc))
-            except (ValueError, TypeError):
-                logger.warning(NON_NUMERIC_WARN, "vehicle SoC", soc)
-                soc = None
-
-        logger.debug("Sending sensor data to OpenEVSE: (vehicle_soc: %s)", soc)
-        try:
-            await manager.soc(battery_level=soc)
-        except UnsupportedFeature:
-            logger.debug("Vehicle SoC push not supported by firmware.")
-        except CONNECTION_ERRORS as err:
-            logger.warning(CONNECTION_ERROR, err)
-
-    if vehicle_range_sensor is not None and changed_entity == vehicle_range_sensor:
-        state = hass.states.get(vehicle_range_sensor)
-        vrange = state.state if state else None
-        if vrange in [None, "unavailable", "unknown", ""]:
-            vrange = None
-        else:
-            try:
-                vrange = round(float(vrange))
-            except (ValueError, TypeError):
-                logger.warning(NON_NUMERIC_WARN, "vehicle range", vrange)
-                vrange = None
-
-        logger.debug("Sending sensor data to OpenEVSE: (vehicle_range: %s)", vrange)
-        try:
-            await manager.soc(battery_range=vrange)
-        except UnsupportedFeature:
-            logger.debug("Vehicle range push not supported by firmware.")
-        except CONNECTION_ERRORS as err:
-            logger.warning(CONNECTION_ERROR, err)
-
-    if vehicle_eta_sensor is not None and changed_entity == vehicle_eta_sensor:
-        state = hass.states.get(vehicle_eta_sensor)
-        eta = state.state if state else None
-        if eta in [None, "unavailable", "unknown", ""]:
-            eta = None
-        else:
-            try:
-                eta = round(float(eta))
-            except (ValueError, TypeError):
-                logger.warning(NON_NUMERIC_WARN, "vehicle ETA", eta)
-                eta = None
-
-        logger.debug("Sending sensor data to OpenEVSE: (vehicle_eta: %s)", eta)
-        try:
-            await manager.soc(time_to_full=eta)
-        except UnsupportedFeature:
-            logger.debug("Vehicle ETA push not supported by firmware.")
-        except CONNECTION_ERRORS as err:
-            logger.warning(CONNECTION_ERROR, err)
-
-    if (
-        home_battery_soc_sensor is not None
-        and changed_entity == home_battery_soc_sensor
-    ):
-        state = hass.states.get(home_battery_soc_sensor)
-        hb_soc = state.state if state else None
-        if hb_soc in [None, "unavailable", "unknown", ""]:
-            hb_soc = None
-        else:
-            try:
-                hb_soc = round(float(hb_soc))
-            except (ValueError, TypeError):
-                logger.warning(NON_NUMERIC_WARN, "home battery SoC", hb_soc)
-                hb_soc = None
-
-        logger.debug("Sending sensor data to OpenEVSE: (home_battery_soc: %s)", hb_soc)
-        try:
-            await manager.home_battery(soc=hb_soc)
-        except UnsupportedFeature:
-            logger.debug("Home battery push not supported by firmware.")
-        except CONNECTION_ERRORS as err:
-            logger.warning(CONNECTION_ERROR, err)
-
-    if (
-        home_battery_power_sensor is not None
-        and changed_entity == home_battery_power_sensor
-    ):
-        state = hass.states.get(home_battery_power_sensor)
-        hb_power = _parse_power_state(state)
-        if (
-            state
-            and state.state not in [None, "unavailable", "unknown", ""]
-            and hb_power is None
-        ):
-            logger.warning(NON_NUMERIC_WARN, "home battery power", state.state)
-
-        logger.debug(
-            "Sending sensor data to OpenEVSE: (home_battery_power: %s)", hb_power
-        )
-        try:
-            await manager.home_battery(power=hb_power)
-        except UnsupportedFeature:
-            logger.debug("Home battery push not supported by firmware.")
-        except CONNECTION_ERRORS as err:
-            logger.warning(CONNECTION_ERROR, err)
+                await push_fn(val)
+            except UnsupportedFeature:
+                if unsupported_msg:
+                    logger.debug(unsupported_msg)
+            except CONNECTION_ERRORS as err:
+                logger.warning(CONNECTION_ERROR, err)
 
 
 async def homeassistant_started_listener(
@@ -401,28 +335,24 @@ async def async_setup_entry(
             "minimum requirement (4.1.0)"
         )
 
-    sensors = []
     options = config_entry.options
-    if options.get(CONF_GRID):
-        sensors.append(options.get(CONF_GRID))
-    if options.get(CONF_SOLAR):
-        sensors.append(options.get(CONF_SOLAR))
-    if options.get(CONF_VOLTAGE):
-        sensors.append(options.get(CONF_VOLTAGE))
-    if options.get(CONF_SHAPER):
-        sensors.append(options.get(CONF_SHAPER))
-    if options.get(CONF_VEHICLE_SOC):
-        sensors.append(options.get(CONF_VEHICLE_SOC))
-    if options.get(CONF_VEHICLE_RANGE):
-        sensors.append(options.get(CONF_VEHICLE_RANGE))
-    if options.get(CONF_VEHICLE_ETA):
-        sensors.append(options.get(CONF_VEHICLE_ETA))
-    if options.get(CONF_HOME_BATTERY_SOC):
-        sensors.append(options.get(CONF_HOME_BATTERY_SOC))
-    if options.get(CONF_HOME_BATTERY_POWER):
-        sensors.append(options.get(CONF_HOME_BATTERY_POWER))
+    sensors = [
+        options[key]
+        for key in (
+            CONF_GRID,
+            CONF_SOLAR,
+            CONF_VOLTAGE,
+            CONF_SHAPER,
+            CONF_VEHICLE_SOC,
+            CONF_VEHICLE_RANGE,
+            CONF_VEHICLE_ETA,
+            CONF_HOME_BATTERY_SOC,
+            CONF_HOME_BATTERY_POWER,
+        )
+        if options.get(key)
+    ]
 
-    if len(sensors) > 0:
+    if sensors:
         if hass.state == CoreState.running:
             await homeassistant_started_listener(hass, config_entry, sensors)
         else:

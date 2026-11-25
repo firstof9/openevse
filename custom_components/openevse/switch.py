@@ -19,6 +19,12 @@ from .models import OpenEVSEConfigEntry
 _LOGGER = logging.getLogger(__name__)
 SLEEP_STATE = "sleeping"
 ATTR_STATE = "state"
+BOOLEAN_TOGGLE_COMMANDS = {
+    "set_shaper",
+    "set_mqtt_vehicle_range_miles",
+    "set_rfid_enabled",
+    "set_cable_temp_enabled",
+}
 
 
 async def async_setup_entry(
@@ -77,12 +83,7 @@ class OpenEVSESwitch(CoordinatorEntity, OpenEVSEEntity, SwitchEntity):
     @property
     def is_on(self) -> bool | None:
         """Return True if switch is on."""
-        data = self.coordinator.data if isinstance(self.coordinator.data, dict) else {}
-        if getattr(self.entity_description, "value_fn", None) is not None:
-            val = self.entity_description.value_fn(data)
-        else:
-            val = data.get(self._type)
-
+        _, val = self._get_description_value()
         if val is None:
             self.coordinator.logger.warning("switch [%s] not supported.", self._type)
             return None
@@ -95,56 +96,33 @@ class OpenEVSESwitch(CoordinatorEntity, OpenEVSEEntity, SwitchEntity):
     @property
     def available(self) -> bool:
         """Return if entity is available."""
-        if self._min_version and not self._manager.version_check(self._min_version):
-            return False
-        if self._min_controller_version:
-            return self._manager.controller_version_check(self._min_controller_version)
-        return True
+        return self._check_version_supported(self._manager)
+
+    async def _async_set_switch_state(self, turn_on: bool) -> None:
+        """Set the switch state on the charger."""
+        if self.is_on is turn_on:
+            return
+        try:
+            if self.toggle_command == "claim":
+                if turn_on:
+                    await self._manager.release_claim()
+                else:
+                    await self._manager.make_claim(state="active")
+            elif self.toggle_command in BOOLEAN_TOGGLE_COMMANDS:
+                await getattr(self._manager, self.toggle_command)(turn_on)
+            else:
+                await getattr(self._manager, self.toggle_command)()
+        except CONNECTION_ERRORS as err:
+            self.coordinator.logger.error(CONNECTION_ERROR, err)
+            raise HomeAssistantError(
+                f"Error connecting to device: {err}, "
+                "please check your network connection."
+            ) from err
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn the switch on."""
-        if self.is_on is True:
-            return
-        try:
-            if self.toggle_command == "claim":
-                await self._manager.release_claim()
-            elif self.toggle_command == "set_shaper":
-                await self._manager.set_shaper(True)
-            elif self.toggle_command == "set_mqtt_vehicle_range_miles":
-                await self._manager.set_mqtt_vehicle_range_miles(True)
-            elif self.toggle_command == "set_rfid_enabled":
-                await self._manager.set_rfid_enabled(True)
-            elif self.toggle_command == "set_cable_temp_enabled":
-                await self._manager.set_cable_temp_enabled(True)
-            else:
-                await getattr(self._manager, self.toggle_command)()
-        except CONNECTION_ERRORS as err:
-            self.coordinator.logger.error(CONNECTION_ERROR, err)
-            raise HomeAssistantError(
-                f"Error connecting to device: {err}, "
-                "please check your network connection."
-            ) from err
+        await self._async_set_switch_state(True)
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn the switch off."""
-        if self.is_on is False:
-            return
-        try:
-            if self.toggle_command == "claim":
-                await self._manager.make_claim(state="active")
-            elif self.toggle_command == "set_shaper":
-                await self._manager.set_shaper(False)
-            elif self.toggle_command == "set_mqtt_vehicle_range_miles":
-                await self._manager.set_mqtt_vehicle_range_miles(False)
-            elif self.toggle_command == "set_rfid_enabled":
-                await self._manager.set_rfid_enabled(False)
-            elif self.toggle_command == "set_cable_temp_enabled":
-                await self._manager.set_cable_temp_enabled(False)
-            else:
-                await getattr(self._manager, self.toggle_command)()
-        except CONNECTION_ERRORS as err:
-            self.coordinator.logger.error(CONNECTION_ERROR, err)
-            raise HomeAssistantError(
-                f"Error connecting to device: {err}, "
-                "please check your network connection."
-            ) from err
+        await self._async_set_switch_state(False)

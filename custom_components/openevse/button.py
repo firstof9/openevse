@@ -61,12 +61,7 @@ class OpenEVSEButton(CoordinatorEntity, OpenEVSEEntity, ButtonEntity):
     @property
     def available(self) -> bool:
         """Return if entity is available."""
-        if self._min_version and not self.manager.version_check(self._min_version):
-            return False
-        return not (
-            self._min_controller_version
-            and not self.manager.controller_version_check(self._min_controller_version)
-        )
+        return self._check_version_supported(self.manager)
 
     async def async_press(self) -> None:
         """Handle the button press."""

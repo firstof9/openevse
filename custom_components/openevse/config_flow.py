@@ -163,6 +163,34 @@ class OpenEVSEFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
         return await self.async_step_discovery_confirm()
 
+    async def _async_validate_connection(
+        self,
+        config_data: dict[str, Any],
+        error_key: str = CONF_HOST,
+    ) -> None:
+        """Validate connection and credentials against the OpenEVSE charger."""
+        charger = OpenEVSE(
+            config_data[CONF_HOST],
+            user=config_data[CONF_USERNAME],
+            pwd=config_data[CONF_PASSWORD],
+            ssl=config_data.get(CONF_SSL, False),
+            ssl_verify=config_data.get(CONF_VERIFY_SSL, True),
+            session=async_get_clientsession(self.hass),
+        )
+
+        try:
+            await charger.update()
+            await charger.ws_disconnect()
+        except AuthenticationError:
+            self._errors[error_key] = "invalid_auth"
+        except Exception as ex:
+            _LOGGER.exception(
+                "[%s] Error connecting with OpenEVSE: %s",
+                config_data[CONF_HOST],
+                ex,
+            )
+            self._errors[error_key] = "communication"
+
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
@@ -170,27 +198,7 @@ class OpenEVSEFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         self._errors = {}
 
         if user_input is not None:
-            charger = OpenEVSE(
-                user_input[CONF_HOST],
-                user=user_input[CONF_USERNAME],
-                pwd=user_input[CONF_PASSWORD],
-                ssl=user_input.get(CONF_SSL, False),
-                ssl_verify=user_input.get(CONF_VERIFY_SSL, True),
-                session=async_get_clientsession(self.hass),
-            )
-
-            try:
-                await charger.update()
-                await charger.ws_disconnect()
-            except AuthenticationError:
-                self._errors[CONF_HOST] = "invalid_auth"
-            except Exception as ex:
-                _LOGGER.exception(
-                    "[%s] Error connecting with OpenEVSE: %s",
-                    user_input[CONF_HOST],
-                    ex,
-                )
-                self._errors[CONF_HOST] = "communication"
+            await self._async_validate_connection(user_input, CONF_HOST)
 
             if not self._errors:
                 return self.async_create_entry(
@@ -216,28 +224,7 @@ class OpenEVSEFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
         if user_input is not None:
             self._data.update(user_input)
-
-            charger = OpenEVSE(
-                user_input[CONF_HOST],
-                user=user_input[CONF_USERNAME],
-                pwd=user_input[CONF_PASSWORD],
-                ssl=user_input.get(CONF_SSL, False),
-                ssl_verify=user_input.get(CONF_VERIFY_SSL, True),
-                session=async_get_clientsession(self.hass),
-            )
-
-            try:
-                await charger.update()
-                await charger.ws_disconnect()
-            except AuthenticationError:
-                self._errors[CONF_HOST] = "invalid_auth"
-            except Exception as ex:
-                _LOGGER.exception(
-                    "[%s] Error connecting with OpenEVSE: %s",
-                    user_input[CONF_HOST],
-                    ex,
-                )
-                self._errors[CONF_HOST] = "communication"
+            await self._async_validate_connection(user_input, CONF_HOST)
 
             if not self._errors:
                 self.hass.config_entries.async_update_entry(
@@ -274,28 +261,7 @@ class OpenEVSEFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         self._errors = {}
         if user_input is not None:
             self._data.update(user_input)
-
-            charger = OpenEVSE(
-                self._data[CONF_HOST],
-                user=user_input[CONF_USERNAME],
-                pwd=user_input[CONF_PASSWORD],
-                ssl=self._data.get(CONF_SSL, False),
-                ssl_verify=self._data.get(CONF_VERIFY_SSL, True),
-                session=async_get_clientsession(self.hass),
-            )
-
-            try:
-                await charger.update()
-                await charger.ws_disconnect()
-            except AuthenticationError:
-                self._errors["base"] = "invalid_auth"
-            except Exception as ex:
-                _LOGGER.exception(
-                    "[%s] Error connecting with OpenEVSE: %s",
-                    self._data[CONF_HOST],
-                    ex,
-                )
-                self._errors["base"] = "communication"
+            await self._async_validate_connection(self._data, "base")
 
             if not self._errors:
                 self.hass.config_entries.async_update_entry(
@@ -364,41 +330,28 @@ class OpenEVSEOptionsFlowHandler(config_entries.OptionsFlow):
         # default="" is intentional to prevent voluptuous from reverting cleared
         # fields to their previous values. Pre-population is handled via
         # add_suggested_values_to_schema.
-        schema = vol.Schema(
-            {
-                vol.Optional(CONF_GRID, default=""): OptionalEntitySelector(
-                    EntitySelectorConfig(domain="sensor")
-                ),
-                vol.Optional(CONF_SOLAR, default=""): OptionalEntitySelector(
-                    EntitySelectorConfig(domain="sensor")
-                ),
-                vol.Optional(CONF_VOLTAGE, default=""): OptionalEntitySelector(
-                    EntitySelectorConfig(domain="sensor")
-                ),
-                vol.Optional(CONF_SHAPER, default=""): OptionalEntitySelector(
-                    EntitySelectorConfig(domain="sensor")
-                ),
-                vol.Optional(CONF_VEHICLE_SOC, default=""): OptionalEntitySelector(
-                    EntitySelectorConfig(domain="sensor")
-                ),
-                vol.Optional(CONF_VEHICLE_RANGE, default=""): OptionalEntitySelector(
-                    EntitySelectorConfig(domain="sensor")
-                ),
-                vol.Optional(CONF_VEHICLE_ETA, default=""): OptionalEntitySelector(
-                    EntitySelectorConfig(domain="sensor")
-                ),
-                vol.Optional(CONF_HOME_BATTERY_SOC, default=""): OptionalEntitySelector(
-                    EntitySelectorConfig(domain="sensor")
-                ),
-                vol.Optional(
-                    CONF_HOME_BATTERY_POWER, default=""
-                ): OptionalEntitySelector(EntitySelectorConfig(domain="sensor")),
-                vol.Optional(CONF_INVERT, default=False): bool,
-                vol.Optional(CONF_GITHUB_TOKEN, default=""): TextSelector(
-                    TextSelectorConfig(type=TextSelectorType.PASSWORD)
-                ),
-            }
+        sensor_keys = (
+            CONF_GRID,
+            CONF_SOLAR,
+            CONF_VOLTAGE,
+            CONF_SHAPER,
+            CONF_VEHICLE_SOC,
+            CONF_VEHICLE_RANGE,
+            CONF_VEHICLE_ETA,
+            CONF_HOME_BATTERY_SOC,
+            CONF_HOME_BATTERY_POWER,
         )
+        schema_dict: dict[Any, Any] = {
+            vol.Optional(key, default=""): OptionalEntitySelector(
+                EntitySelectorConfig(domain="sensor")
+            )
+            for key in sensor_keys
+        }
+        schema_dict[vol.Optional(CONF_INVERT, default=False)] = bool
+        schema_dict[vol.Optional(CONF_GITHUB_TOKEN, default="")] = TextSelector(
+            TextSelectorConfig(type=TextSelectorType.PASSWORD)
+        )
+        schema = vol.Schema(schema_dict)
 
         return self.async_show_form(
             step_id="sensors",
@@ -413,10 +366,13 @@ class OpenEVSEOptionsFlowHandler(config_entries.OptionsFlow):
         except (ValueError, OSError, UnicodeDecodeError):
             return value
 
-    async def async_step_certificate(
-        self, user_input: dict[str, Any] | None = None
+    async def _async_handle_certificate_step(
+        self,
+        step_id: str,
+        user_input: dict[str, Any] | None,
+        include_key: bool,
     ) -> FlowResult:
-        """Upload a TLS/SSL certificate to the charger."""
+        """Handle certificate or root CA upload step."""
         errors: dict[str, str] = {}
 
         manager = self.config_entry.runtime_data.manager
@@ -430,7 +386,7 @@ class OpenEVSEOptionsFlowHandler(config_entries.OptionsFlow):
                 self._extract_file_content, raw_cert
             )
             key = None
-            if raw_key := user_input.get(ATTR_KEY):
+            if include_key and (raw_key := user_input.get(ATTR_KEY)):
                 key = await self.hass.async_add_executor_job(
                     self._extract_file_content, raw_key
                 )
@@ -446,71 +402,40 @@ class OpenEVSEOptionsFlowHandler(config_entries.OptionsFlow):
             except CommandFailedError:
                 errors["base"] = "command_failed"
             except (OSError, ValueError, RuntimeError):
-                _LOGGER.exception("Unexpected error uploading certificate")
+                _LOGGER.exception("Unexpected error uploading %s", step_id)
                 errors["base"] = "unknown"
 
-        schema = vol.Schema(
-            {
-                vol.Required(CONF_NAME): str,
-                vol.Required(ATTR_CERTIFICATE): OpenEVSEFileSelector(
-                    FileSelectorConfig(accept=".pem,.crt,.cer")
-                ),
-                vol.Optional(ATTR_KEY): OpenEVSEFileSelector(
-                    FileSelectorConfig(accept=".pem,.key")
-                ),
-            }
-        )
+        schema_dict: dict[Any, Any] = {
+            vol.Required(CONF_NAME): str,
+            vol.Required(ATTR_CERTIFICATE): OpenEVSEFileSelector(
+                FileSelectorConfig(accept=".pem,.crt,.cer")
+            ),
+        }
+        if include_key:
+            schema_dict[vol.Optional(ATTR_KEY)] = OpenEVSEFileSelector(
+                FileSelectorConfig(accept=".pem,.key")
+            )
 
         return self.async_show_form(
-            step_id="certificate",
-            data_schema=schema,
+            step_id=step_id,
+            data_schema=vol.Schema(schema_dict),
             errors=errors,
+        )
+
+    async def async_step_certificate(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Upload a TLS/SSL certificate to the charger."""
+        return await self._async_handle_certificate_step(
+            "certificate", user_input, include_key=True
         )
 
     async def async_step_root_ca(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
         """Upload a root CA certificate to the charger without a private key."""
-        errors: dict[str, str] = {}
-
-        manager = self.config_entry.runtime_data.manager
-        if not manager.version_check("4.0.0"):
-            return self.async_abort(reason="firmware_version_unsupported")
-
-        if user_input is not None:
-            name = user_input[CONF_NAME]
-            raw_cert = user_input[ATTR_CERTIFICATE]
-            certificate = await self.hass.async_add_executor_job(
-                self._extract_file_content, raw_cert
-            )
-            try:
-                await manager.add_certificate(
-                    name=name,
-                    certificate=certificate,
-                    key=None,
-                )
-                return self.async_create_entry(title="", data={})
-            except CONNECTION_ERRORS:
-                errors["base"] = "communication"
-            except CommandFailedError:
-                errors["base"] = "command_failed"
-            except (OSError, ValueError, RuntimeError):
-                _LOGGER.exception("Unexpected error uploading root CA certificate")
-                errors["base"] = "unknown"
-
-        schema = vol.Schema(
-            {
-                vol.Required(CONF_NAME): str,
-                vol.Required(ATTR_CERTIFICATE): OpenEVSEFileSelector(
-                    FileSelectorConfig(accept=".pem,.crt,.cer")
-                ),
-            }
-        )
-
-        return self.async_show_form(
-            step_id="root_ca",
-            data_schema=schema,
-            errors=errors,
+        return await self._async_handle_certificate_step(
+            "root_ca", user_input, include_key=False
         )
 
 

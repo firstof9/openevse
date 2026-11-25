@@ -82,17 +82,12 @@ class OpenEVSESelect(CoordinatorEntity, OpenEVSEEntity, SelectEntity):
     @property
     def current_option(self) -> str | None:
         """Return the selected entity option to represent the entity state."""
-        data = self.coordinator.data if isinstance(self.coordinator.data, dict) else {}
-        if getattr(self.entity_description, "value_fn", None) is not None:
-            state = self.entity_description.value_fn(data)
-            return None if state is None else str(state)
-        if self._type in data:
-            state = data[self._type]
+        found, state = self._get_description_value()
+        if getattr(self.entity_description, "value_fn", None) is None and found:
             self.coordinator.logger.debug(
                 "Select [%s] updated value: %s", self._type, state
             )
-            return None if state is None else str(state)
-        return None
+        return None if state is None else str(state)
 
     async def async_select_option(self, option: Any) -> None:
         """Change the selected option."""
@@ -153,19 +148,9 @@ class OpenEVSESelect(CoordinatorEntity, OpenEVSEEntity, SelectEntity):
         if not data or not isinstance(data, dict):
             return False
 
-        manager = self._manager
-        attributes = ("divertmode", "divert_active")
-        if (
-            set(attributes).issubset(data.keys())
-            and self._type == "max_current_soft"
-            and data["divert_active"]
-            and data["divertmode"] == "eco"
-        ):
-            self.coordinator.logger.debug(
-                "Disabling %s due to PV Divert being active.", self._attr_name
-            )
+        if self._is_disabled_by_pv_divert():
             return False
-        if self._min_version and not manager.version_check(self._min_version):
+        if not self._check_version_supported(self._manager):
             return False
         return self.coordinator.last_update_success
 

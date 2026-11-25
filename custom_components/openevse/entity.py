@@ -22,6 +22,11 @@ class OpenEVSEEntity:
     """Base class for OpenEVSE entities."""
 
     _config: ConfigEntry
+    coordinator: Any
+    entity_description: Any
+    _type: str
+    _min_version: str | None = None
+    _min_controller_version: str | None = None
 
     @property
     def device_info(self) -> DeviceInfo:
@@ -31,6 +36,52 @@ class OpenEVSEEntity:
             name=self._config.data.get(CONF_NAME),
             connections={("openevse", self._config.entry_id)},
         )
+
+    @property
+    def coordinator_data(self) -> dict[str, Any]:
+        """Return the coordinator data as a dictionary."""
+        data = self.coordinator.data
+        return data if isinstance(data, dict) else {}
+
+    def _get_description_value(self) -> tuple[bool, Any]:
+        """Return (found, value) from coordinator_data via value_fn or key lookup."""
+        data = self.coordinator_data
+        value_fn = getattr(self.entity_description, "value_fn", None)
+        if value_fn is not None:
+            return True, value_fn(data)
+        if self._type in data:
+            return True, data[self._type]
+        return False, None
+
+    def _check_version_supported(self, manager: Any) -> bool:
+        """Check if firmware and controller versions meet entity requirements."""
+        if (
+            self._min_version
+            and manager is not None
+            and not manager.version_check(self._min_version)
+        ):
+            return False
+        return not (
+            self._min_controller_version
+            and manager is not None
+            and not manager.controller_version_check(self._min_controller_version)
+        )
+
+    def _is_disabled_by_pv_divert(self) -> bool:
+        """Return True if max_current_soft is disabled by active PV Divert."""
+        data = self.coordinator_data
+        if (
+            self._type == "max_current_soft"
+            and {"divertmode", "divert_active"}.issubset(data.keys())
+            and data["divert_active"]
+            and data["divertmode"] == "eco"
+        ):
+            self.coordinator.logger.debug(
+                "Disabling %s due to PV Divert being active.",
+                getattr(self, "_attr_name", self._type),
+            )
+            return True
+        return False
 
 
 @dataclass
