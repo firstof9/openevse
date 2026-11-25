@@ -121,3 +121,9 @@ async def test_binary_sensor_coverage_gaps(hass, test_charger, mock_ws_start):
     bin_sensor = OpenEVSEBinarySensor(description_bin, coordinator, entry)
     coordinator.data = {}
     assert bin_sensor.is_on is None
+
+    # Test is_on property when sensor type is present without value_fn
+    coordinator.data = {"missing_bin": 1}
+    assert bin_sensor.is_on is True
+    coordinator.data = {"missing_bin": 0}
+    assert bin_sensor.is_on is False

@@ -342,6 +342,10 @@ async def test_select_coverage_gaps(hass, test_charger, mock_ws_start):
     select = OpenEVSESelect(hass, entry, coordinator, description, manager)
     assert select.current_option is None
 
+    # Test current_option when data is present without value_fn
+    coordinator.data["missing_type"] = "a"
+    assert select.current_option == "a"
+
     # Test commands starting with $
     description_dollar = OpenEVSESelectEntityDescription(
         key="test", name="Test", command="$SC", options=["1", "2"]
