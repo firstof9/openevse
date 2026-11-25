@@ -15,6 +15,7 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 from custom_components.openevse.binary_sensor import OpenEVSEBinarySensor
 from custom_components.openevse.const import DOMAIN
 
+from .conftest import enable_entities_and_reload
 from .const import CONFIG_DATA
 
 pytestmark = pytest.mark.asyncio
@@ -44,18 +45,10 @@ async def test_binary_sensors(
     assert len(hass.states.async_entity_ids(BINARY_SENSOR_DOMAIN)) == 4
 
     # 1. Test Shaper Updated
-    # Enable disabled sensor
     entity_id = "binary_sensor.openevse_shaper_updated"
-    entity_entry = entity_registry.async_get(entity_id)
-    updated_entry = entity_registry.async_update_entity(
-        entity_entry.entity_id, disabled_by=None
+    await enable_entities_and_reload(
+        hass, entity_registry, entry, BINARY_SENSOR_DOMAIN, entity_id
     )
-    assert updated_entry.disabled is False
-
-    # Reload to apply enabled state
-    await hass.config_entries.async_forward_entry_unload(entry, BINARY_SENSOR_DOMAIN)
-    await hass.config_entries.async_forward_entry_setups(entry, [BINARY_SENSOR_DOMAIN])
-    await hass.async_block_till_done()
 
     state = hass.states.get(entity_id)
     assert state.state == "on"
@@ -71,15 +64,10 @@ async def test_binary_sensors(
     assert state.state == "off"
 
     # 4. Test MQTT Connected
-    # This sensor is disabled by default, so we must enable it to test
     entity_id = "binary_sensor.openevse_mqtt_connected"
-    entity_entry = entity_registry.async_get(entity_id)
-    entity_registry.async_update_entity(entity_entry.entity_id, disabled_by=None)
-
-    # Reload again for the second enabled sensor
-    await hass.config_entries.async_forward_entry_unload(entry, BINARY_SENSOR_DOMAIN)
-    await hass.config_entries.async_forward_entry_setups(entry, [BINARY_SENSOR_DOMAIN])
-    await hass.async_block_till_done()
+    await enable_entities_and_reload(
+        hass, entity_registry, entry, BINARY_SENSOR_DOMAIN, entity_id
+    )
 
     state = hass.states.get(entity_id)
     assert state
@@ -133,3 +121,9 @@ async def test_binary_sensor_coverage_gaps(hass, test_charger, mock_ws_start):
     bin_sensor = OpenEVSEBinarySensor(description_bin, coordinator, entry)
     coordinator.data = {}
     assert bin_sensor.is_on is None
+
+    # Test is_on property when sensor type is present without value_fn
+    coordinator.data = {"missing_bin": 1}
+    assert bin_sensor.is_on is True
+    coordinator.data = {"missing_bin": 0}
+    assert bin_sensor.is_on is False

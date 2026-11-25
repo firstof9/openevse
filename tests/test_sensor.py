@@ -16,6 +16,7 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 from custom_components.openevse.const import DOMAIN
 from custom_components.openevse.sensor import OpenEVSESensor
 
+from .conftest import enable_entities_and_reload
 from .const import CONFIG_DATA
 
 pytestmark = pytest.mark.asyncio
@@ -106,16 +107,9 @@ async def test_sensors(
         assert entity_entry.disabled
         assert entity_entry.disabled_by is er.RegistryEntryDisabler.INTEGRATION
 
-        updated_entry = entity_registry.async_update_entity(
-            entity_entry.entity_id, disabled_by=None
+        await enable_entities_and_reload(
+            hass, entity_registry, entry, SENSOR_DOMAIN, entity_id
         )
-        assert updated_entry != entity_entry
-        assert updated_entry.disabled is False
-
-        # reload the integration
-        assert await hass.config_entries.async_forward_entry_unload(entry, "sensor")
-        await hass.config_entries.async_forward_entry_setups(entry, ["sensor"])
-        await hass.async_block_till_done()
 
         state = hass.states.get("sensor.openevse_vehicle_charge_completion")
         assert state
@@ -240,33 +234,22 @@ async def test_sensors_new(
         assert state
         assert state.state == "28.2"
 
-        # enable disabled sensor
+        # enable disabled sensors
         entity_id = "sensor.openevse_vehicle_charge_completion"
-        entity_entry = entity_registry.async_get(entity_id)
-
-        assert entity_entry
-        assert entity_entry.disabled
-        assert entity_entry.disabled_by is er.RegistryEntryDisabler.INTEGRATION
-
-        updated_entry = entity_registry.async_update_entity(
-            entity_entry.entity_id, disabled_by=None
-        )
-        assert updated_entry != entity_entry
-        assert updated_entry.disabled is False
-
-        # enable disabled cable temperature sensor
         cable_sensor_id = "sensor.openevse_cable_temperature_ev1"
-        cable_entry = entity_registry.async_get(cable_sensor_id)
-        assert cable_entry
-        assert cable_entry.disabled
-        assert cable_entry.disabled_by is er.RegistryEntryDisabler.INTEGRATION
+        for eid in (entity_id, cable_sensor_id):
+            ent = entity_registry.async_get(eid)
+            assert ent
+            assert ent.disabled
+            assert ent.disabled_by is er.RegistryEntryDisabler.INTEGRATION
 
-        entity_registry.async_update_entity(cable_entry.entity_id, disabled_by=None)
-
-        # reload the integration
-        assert await hass.config_entries.async_forward_entry_unload(entry, "sensor")
-        await hass.config_entries.async_forward_entry_setups(entry, ["sensor"])
-        await hass.async_block_till_done()
+        await enable_entities_and_reload(
+            hass,
+            entity_registry,
+            entry,
+            SENSOR_DOMAIN,
+            (entity_id, cable_sensor_id),
+        )
 
         state = hass.states.get("sensor.openevse_vehicle_charge_completion")
         assert state
@@ -312,19 +295,16 @@ async def test_sensors_controller_v9(
         assert len(hass.states.async_entity_ids(SENSOR_DOMAIN)) == 28
 
         # enable disabled cable temperature sensors
-        for sensor_id in (
-            "sensor.openevse_cable_temperature_ev1",
-            "sensor.openevse_cable_temperature_inlet_1",
-        ):
-            cable_entry = entity_registry.async_get(sensor_id)
-            assert cable_entry
-            assert cable_entry.disabled
-            entity_registry.async_update_entity(cable_entry.entity_id, disabled_by=None)
-
-        # reload sensor platform to load enabled sensors
-        assert await hass.config_entries.async_forward_entry_unload(entry, "sensor")
-        await hass.config_entries.async_forward_entry_setups(entry, ["sensor"])
-        await hass.async_block_till_done()
+        await enable_entities_and_reload(
+            hass,
+            entity_registry,
+            entry,
+            SENSOR_DOMAIN,
+            (
+                "sensor.openevse_cable_temperature_ev1",
+                "sensor.openevse_cable_temperature_inlet_1",
+            ),
+        )
 
         # Decoded from fixture status-controller-v9 (425 -> 42.5, 380 -> 38.0)
         state_ev1 = hass.states.get("sensor.openevse_cable_temperature_ev1")
@@ -489,14 +469,9 @@ async def test_vehicle_range_sensor_miles(
 
         # Enable vehicle range sensor (disabled by default)
         entity_id = "sensor.openevse_vehicle_range"
-        entity_entry = entity_registry.async_get(entity_id)
-        assert entity_entry
-        entity_registry.async_update_entity(entity_id, disabled_by=None)
-
-        # reload the integration sensor platform
-        assert await hass.config_entries.async_forward_entry_unload(entry, "sensor")
-        await hass.config_entries.async_forward_entry_setups(entry, ["sensor"])
-        await hass.async_block_till_done()
+        await enable_entities_and_reload(
+            hass, entity_registry, entry, SENSOR_DOMAIN, entity_id
+        )
 
         entity = hass.data["entity_components"]["sensor"].get_entity(entity_id)
         assert entity
@@ -537,13 +512,9 @@ async def test_vehicle_range_sensor_km(
         await hass.async_block_till_done()
 
         entity_id = "sensor.openevse_vehicle_range"
-        entity_entry = entity_registry.async_get(entity_id)
-        assert entity_entry
-        entity_registry.async_update_entity(entity_id, disabled_by=None)
-
-        assert await hass.config_entries.async_forward_entry_unload(entry, "sensor")
-        await hass.config_entries.async_forward_entry_setups(entry, ["sensor"])
-        await hass.async_block_till_done()
+        await enable_entities_and_reload(
+            hass, entity_registry, entry, SENSOR_DOMAIN, entity_id
+        )
 
         entity = hass.data["entity_components"]["sensor"].get_entity(entity_id)
         assert entity

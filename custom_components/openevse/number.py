@@ -73,27 +73,16 @@ class OpenEVSENumberEntity(CoordinatorEntity, OpenEVSEEntity, NumberEntity):
     @property
     def available(self) -> bool:
         """Return if entity is available."""
-        data = self.coordinator.data
-        if not isinstance(data, dict):
+        if not isinstance(self.coordinator.data, dict):
             return self.coordinator.last_update_success
-        attributes = ("divertmode", "divert_active")
-        if (
-            set(attributes).issubset(data.keys())
-            and self._type == "max_current_soft"
-            and data["divert_active"]
-            and data["divertmode"] == "eco"
-        ):
-            self.coordinator.logger.debug(
-                "Disabling %s due to PV Divert being active.", self._attr_name
-            )
+        if self._is_disabled_by_pv_divert():
             return False
         return self.coordinator.last_update_success
 
     @property
     def native_min_value(self) -> float:
         """Return the minimum value."""
-        data = self.coordinator.data
-        min_ = data.get("min_amps") if isinstance(data, dict) else None
+        min_ = self.coordinator_data.get("min_amps")
         if min_ is None:
             min_ = self._min
         return float(min_ if min_ is not None else 6)
@@ -101,8 +90,7 @@ class OpenEVSENumberEntity(CoordinatorEntity, OpenEVSEEntity, NumberEntity):
     @property
     def native_max_value(self) -> float:
         """Return the maximum value."""
-        data = self.coordinator.data
-        max_ = data.get("max_amps") if isinstance(data, dict) else None
+        max_ = self.coordinator_data.get("max_amps")
         if max_ is None:
             max_ = self._max
         return float(max_ if max_ is not None else 48)
@@ -110,16 +98,11 @@ class OpenEVSENumberEntity(CoordinatorEntity, OpenEVSEEntity, NumberEntity):
     @property
     def native_value(self) -> float | None:
         """Return the entity value."""
-        data = self.coordinator.data if isinstance(self.coordinator.data, dict) else {}
-        if getattr(self._description, "value_fn", None) is not None:
-            value = self._description.value_fn(data)
-            return None if value is None else float(value)
-        value = None
-        if self._type in data:
-            value = data[self._type]
-        self.coordinator.logger.debug(
-            "Number [%s] updated value: %s", self._type, value
-        )
+        _, value = self._get_description_value()
+        if getattr(self._description, "value_fn", None) is None:
+            self.coordinator.logger.debug(
+                "Number [%s] updated value: %s", self._type, value
+            )
         return None if value is None else float(value)
 
     @property

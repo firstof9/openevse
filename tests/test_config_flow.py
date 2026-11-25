@@ -667,8 +667,43 @@ async def test_options_flow_github_token(hass, test_charger, mock_ws_start):
     await hass.async_block_till_done()
 
 
-async def test_options_flow_certificate_success(hass, test_charger, mock_ws_start):
-    """Test options flow uploading certificate successfully."""
+@pytest.mark.parametrize(
+    ("step_id", "input_data", "expected_key"),
+    [
+        (
+            "certificate",
+            {
+                "name": "My Cert",
+                "certificate": (
+                    "-----BEGIN CERTIFICATE-----\nMIIC...\n-----END CERTIFICATE-----"
+                ),
+                "key": (
+                    "-----BEGIN PRIVATE KEY-----\nMIIE...\n-----END PRIVATE KEY-----"
+                ),
+            },
+            "-----BEGIN PRIVATE KEY-----\nMIIE...\n-----END PRIVATE KEY-----",
+        ),
+        (
+            "root_ca",
+            {
+                "name": "Root CA",
+                "certificate": (
+                    "-----BEGIN CERTIFICATE-----\nMIIC...\n-----END CERTIFICATE-----"
+                ),
+            },
+            None,
+        ),
+    ],
+)
+async def test_options_flow_certificate_and_root_ca_success(
+    hass,
+    test_charger,
+    mock_ws_start,
+    step_id,
+    input_data,
+    expected_key,
+):
+    """Test options flow uploading certificate or root CA successfully."""
     entry = MockConfigEntry(
         domain=DOMAIN,
         title=CHARGER_NAME,
@@ -689,26 +724,20 @@ async def test_options_flow_certificate_success(hass, test_charger, mock_ws_star
 
     result = await hass.config_entries.options.async_configure(
         result["flow_id"],
-        user_input={"next_step_id": "certificate"},
+        user_input={"next_step_id": step_id},
     )
     assert result["type"] is FlowResultType.FORM
-    assert result["step_id"] == "certificate"
+    assert result["step_id"] == step_id
 
     result = await hass.config_entries.options.async_configure(
         result["flow_id"],
-        user_input={
-            "name": "My Cert",
-            "certificate": (
-                "-----BEGIN CERTIFICATE-----\nMIIC...\n-----END CERTIFICATE-----"
-            ),
-            "key": "-----BEGIN PRIVATE KEY-----\nMIIE...\n-----END PRIVATE KEY-----",
-        },
+        user_input=input_data,
     )
     assert result["type"] is FlowResultType.CREATE_ENTRY
     manager.add_certificate.assert_awaited_once_with(
-        name="My Cert",
-        certificate=("-----BEGIN CERTIFICATE-----\nMIIC...\n-----END CERTIFICATE-----"),
-        key="-----BEGIN PRIVATE KEY-----\nMIIE...\n-----END PRIVATE KEY-----",
+        name=input_data["name"],
+        certificate=input_data["certificate"],
+        key=expected_key,
     )
 
     await hass.async_block_till_done()
@@ -716,10 +745,11 @@ async def test_options_flow_certificate_success(hass, test_charger, mock_ws_star
     await hass.async_block_till_done()
 
 
-async def test_options_flow_certificate_firmware_unsupported(
-    hass, test_charger, mock_ws_start
+@pytest.mark.parametrize("step_id", ["certificate", "root_ca"])
+async def test_options_flow_certificate_and_root_ca_firmware_unsupported(
+    hass, test_charger, mock_ws_start, step_id
 ):
-    """Test options flow aborts certificate step on unsupported firmware."""
+    """Test options flow aborts certificate/root_ca steps on unsupported firmware."""
     entry = MockConfigEntry(
         domain=DOMAIN,
         title=CHARGER_NAME,
@@ -738,7 +768,7 @@ async def test_options_flow_certificate_firmware_unsupported(
 
     result = await hass.config_entries.options.async_configure(
         result["flow_id"],
-        user_input={"next_step_id": "certificate"},
+        user_input={"next_step_id": step_id},
     )
     assert result["type"] is FlowResultType.ABORT
     assert result["reason"] == "firmware_version_unsupported"
@@ -748,8 +778,11 @@ async def test_options_flow_certificate_firmware_unsupported(
     await hass.async_block_till_done()
 
 
-async def test_options_flow_certificate_errors(hass, test_charger, mock_ws_start):
-    """Test options flow error handling when uploading certificate."""
+@pytest.mark.parametrize("step_id", ["certificate", "root_ca"])
+async def test_options_flow_certificate_and_root_ca_errors(
+    hass, test_charger, mock_ws_start, step_id
+):
+    """Test options flow error handling when uploading certificate or root CA."""
     entry = MockConfigEntry(
         domain=DOMAIN,
         title=CHARGER_NAME,
@@ -768,7 +801,7 @@ async def test_options_flow_certificate_errors(hass, test_charger, mock_ws_start
     result = await hass.config_entries.options.async_init(entry.entry_id)
     result = await hass.config_entries.options.async_configure(
         result["flow_id"],
-        user_input={"next_step_id": "certificate"},
+        user_input={"next_step_id": step_id},
     )
     result = await hass.config_entries.options.async_configure(
         result["flow_id"],
@@ -798,147 +831,6 @@ async def test_options_flow_certificate_errors(hass, test_charger, mock_ws_start
         result["flow_id"],
         user_input={
             "name": "Cert",
-            "certificate": "cert-data",
-        },
-    )
-    assert result["type"] is FlowResultType.FORM
-    assert result["errors"] == {"base": "unknown"}
-
-    await hass.async_block_till_done()
-    await hass.config_entries.async_unload(entry.entry_id)
-    await hass.async_block_till_done()
-
-
-async def test_options_flow_root_ca_success(hass, test_charger, mock_ws_start):
-    """Test options flow uploading root CA certificate successfully without a key."""
-    entry = MockConfigEntry(
-        domain=DOMAIN,
-        title=CHARGER_NAME,
-        data=CONFIG_DATA,
-        version=2,
-    )
-    entry.add_to_hass(hass)
-    assert await hass.config_entries.async_setup(entry.entry_id)
-    await hass.async_block_till_done()
-
-    manager = entry.runtime_data.manager
-    manager.version_check = MagicMock(return_value=True)
-    manager.add_certificate = AsyncMock(return_value={"msg": "OK", "id": "4b9c"})
-
-    result = await hass.config_entries.options.async_init(entry.entry_id)
-    assert result["type"] is FlowResultType.MENU
-    assert result["step_id"] == "init"
-
-    result = await hass.config_entries.options.async_configure(
-        result["flow_id"],
-        user_input={"next_step_id": "root_ca"},
-    )
-    assert result["type"] is FlowResultType.FORM
-    assert result["step_id"] == "root_ca"
-
-    result = await hass.config_entries.options.async_configure(
-        result["flow_id"],
-        user_input={
-            "name": "Root CA",
-            "certificate": (
-                "-----BEGIN CERTIFICATE-----\nMIIC...\n-----END CERTIFICATE-----"
-            ),
-        },
-    )
-    assert result["type"] is FlowResultType.CREATE_ENTRY
-    manager.add_certificate.assert_awaited_once_with(
-        name="Root CA",
-        certificate=("-----BEGIN CERTIFICATE-----\nMIIC...\n-----END CERTIFICATE-----"),
-        key=None,
-    )
-
-    await hass.async_block_till_done()
-    await hass.config_entries.async_unload(entry.entry_id)
-    await hass.async_block_till_done()
-
-
-async def test_options_flow_root_ca_firmware_unsupported(
-    hass, test_charger, mock_ws_start
-):
-    """Test options flow aborts root_ca step on unsupported firmware."""
-    entry = MockConfigEntry(
-        domain=DOMAIN,
-        title=CHARGER_NAME,
-        data=CONFIG_DATA,
-        version=2,
-    )
-    entry.add_to_hass(hass)
-    assert await hass.config_entries.async_setup(entry.entry_id)
-    await hass.async_block_till_done()
-
-    manager = entry.runtime_data.manager
-    manager.version_check = MagicMock(return_value=False)
-
-    result = await hass.config_entries.options.async_init(entry.entry_id)
-    assert result["type"] is FlowResultType.MENU
-
-    result = await hass.config_entries.options.async_configure(
-        result["flow_id"],
-        user_input={"next_step_id": "root_ca"},
-    )
-    assert result["type"] is FlowResultType.ABORT
-    assert result["reason"] == "firmware_version_unsupported"
-
-    await hass.async_block_till_done()
-    await hass.config_entries.async_unload(entry.entry_id)
-    await hass.async_block_till_done()
-
-
-async def test_options_flow_root_ca_errors(hass, test_charger, mock_ws_start):
-    """Test options flow error handling when uploading root CA certificate."""
-    entry = MockConfigEntry(
-        domain=DOMAIN,
-        title=CHARGER_NAME,
-        data=CONFIG_DATA,
-        version=2,
-    )
-    entry.add_to_hass(hass)
-    assert await hass.config_entries.async_setup(entry.entry_id)
-    await hass.async_block_till_done()
-
-    manager = entry.runtime_data.manager
-    manager.version_check = MagicMock(return_value=True)
-
-    # 1. Test CONNECTION_ERRORS (TimeoutError)
-    manager.add_certificate = AsyncMock(side_effect=TimeoutError)
-    result = await hass.config_entries.options.async_init(entry.entry_id)
-    result = await hass.config_entries.options.async_configure(
-        result["flow_id"],
-        user_input={"next_step_id": "root_ca"},
-    )
-    result = await hass.config_entries.options.async_configure(
-        result["flow_id"],
-        user_input={
-            "name": "CA Cert",
-            "certificate": "cert-data",
-        },
-    )
-    assert result["type"] is FlowResultType.FORM
-    assert result["errors"] == {"base": "communication"}
-
-    # 2. Test CommandFailedError
-    manager.add_certificate = AsyncMock(side_effect=CommandFailedError("Upload failed"))
-    result = await hass.config_entries.options.async_configure(
-        result["flow_id"],
-        user_input={
-            "name": "CA Cert",
-            "certificate": "cert-data",
-        },
-    )
-    assert result["type"] is FlowResultType.FORM
-    assert result["errors"] == {"base": "command_failed"}
-
-    # 3. Test generic Exception
-    manager.add_certificate = AsyncMock(side_effect=RuntimeError("Boom"))
-    result = await hass.config_entries.options.async_configure(
-        result["flow_id"],
-        user_input={
-            "name": "CA Cert",
             "certificate": "cert-data",
         },
     )

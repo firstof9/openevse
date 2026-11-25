@@ -77,31 +77,19 @@ class OpenEVSELight(CoordinatorEntity, OpenEVSEEntity, LightEntity):
 
         self._attr_name = f"{self._config.data[CONF_NAME]} {self._name}"
         self._attr_unique_id = f"{self._name}_{self._unique_id}"
-        data = coordinator.data if isinstance(coordinator.data, dict) else {}
-        if getattr(light_description, "value_fn", None) is not None:
-            self._attr_brightness = light_description.value_fn(data)
-        elif self._type in data:
-            self._attr_brightness = data[self._type]
-        else:
-            self._attr_brightness = None
+        _, self._attr_brightness = self._get_description_value()
 
     @property
     def available(self) -> bool:
         """Return if entity is available."""
-        if self._min_version and not self.manager.version_check(self._min_version):
+        if not self._check_version_supported(self.manager):
             return False
         return self.coordinator.last_update_success
 
     @callback
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
-        data = self.coordinator.data if isinstance(self.coordinator.data, dict) else {}
-        if getattr(self.entity_description, "value_fn", None) is not None:
-            self._attr_brightness = self.entity_description.value_fn(data)
-        elif self._type in data:
-            self._attr_brightness = data[self._type]
-        else:
-            self._attr_brightness = None
+        _, self._attr_brightness = self._get_description_value()
         self.async_write_ha_state()
 
     @property

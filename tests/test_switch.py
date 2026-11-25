@@ -12,7 +12,7 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 from custom_components.openevse.const import DOMAIN
 from custom_components.openevse.switch import OpenEVSESwitch
 
-from .conftest import TEST_URL_CONFIG
+from .conftest import TEST_URL_CONFIG, enable_entities_and_reload
 from .const import CONFIG_DATA
 
 pytestmark = pytest.mark.asyncio
@@ -41,14 +41,13 @@ async def test_switches(
     await hass.async_block_till_done()
 
     # Enable disabled switches
-    for entity_id in ("switch.openevse_sleep_mode", "switch.openevse_sleep_mode_new"):
-        entity_entry = entity_registry.async_get(entity_id)
-        entity_registry.async_update_entity(entity_entry.entity_id, disabled_by=None)
-
-    # Reload to apply enabled state
-    await hass.config_entries.async_forward_entry_unload(entry, SWITCH_DOMAIN)
-    await hass.config_entries.async_forward_entry_setups(entry, [SWITCH_DOMAIN])
-    await hass.async_block_till_done()
+    await enable_entities_and_reload(
+        hass,
+        entity_registry,
+        entry,
+        SWITCH_DOMAIN,
+        ("switch.openevse_sleep_mode", "switch.openevse_sleep_mode_new"),
+    )
 
     # Ensure all switches are created
     assert len(hass.states.async_entity_ids(SWITCH_DOMAIN)) == 8
@@ -395,19 +394,13 @@ async def test_switches_v2(
         await hass.async_block_till_done()
 
         # Enable disabled switches
-        for entity_id in (
-            "switch.openevse_sleep_mode",
-            "switch.openevse_sleep_mode_new",
-        ):
-            entity_entry = entity_registry.async_get(entity_id)
-            entity_registry.async_update_entity(
-                entity_entry.entity_id, disabled_by=None
-            )
-
-        # Reload to apply enabled state
-        await hass.config_entries.async_forward_entry_unload(entry, SWITCH_DOMAIN)
-        await hass.config_entries.async_forward_entry_setups(entry, [SWITCH_DOMAIN])
-        await hass.async_block_till_done()
+        await enable_entities_and_reload(
+            hass,
+            entity_registry,
+            entry,
+            SWITCH_DOMAIN,
+            ("switch.openevse_sleep_mode", "switch.openevse_sleep_mode_new"),
+        )
 
         assert len(hass.states.async_entity_ids(SWITCH_DOMAIN)) == 8
         entries = hass.config_entries.async_entries(DOMAIN)
@@ -519,13 +512,9 @@ async def test_switch_connection_error(
     await hass.async_block_till_done()
 
     # Enable disabled switch
-    entity_entry = entity_registry.async_get("switch.openevse_sleep_mode")
-    entity_registry.async_update_entity(entity_entry.entity_id, disabled_by=None)
-
-    # Reload to apply enabled state
-    await hass.config_entries.async_forward_entry_unload(entry, SWITCH_DOMAIN)
-    await hass.config_entries.async_forward_entry_setups(entry, [SWITCH_DOMAIN])
-    await hass.async_block_till_done()
+    await enable_entities_and_reload(
+        hass, entity_registry, entry, SWITCH_DOMAIN, "switch.openevse_sleep_mode"
+    )
 
     manager = entry.runtime_data.manager
     manager.toggle_override = AsyncMock(side_effect=TimeoutError)

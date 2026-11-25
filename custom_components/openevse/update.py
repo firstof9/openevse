@@ -21,7 +21,8 @@ from homeassistant.helpers.update_coordinator import (
 )
 from openevsehttp.__main__ import OpenEVSE
 
-from .const import CONF_NAME, DOMAIN
+from .const import CONF_NAME
+from .entity import OpenEVSEEntity
 from .models import OpenEVSEConfigEntry
 
 _LOGGER = logging.getLogger(__name__)
@@ -42,7 +43,7 @@ async def async_setup_entry(
     async_add_entities(entities)
 
 
-class OpenEVSEUpdateEntity(CoordinatorEntity, UpdateEntity):
+class OpenEVSEUpdateEntity(CoordinatorEntity, OpenEVSEEntity, UpdateEntity):
     """Update entity for a OpenEVSE device."""
 
     _attr_device_class = UpdateDeviceClass.FIRMWARE
@@ -64,6 +65,7 @@ class OpenEVSEUpdateEntity(CoordinatorEntity, UpdateEntity):
         self.fw_coordinator = fw_coordinator
         self.coordinator = coordinator
         self.config = config
+        self._config = config
         self._attr_name = f"{config.data[CONF_NAME]} Update"
         self._base_unique_id = config.entry_id
         self._attr_unique_id = f"{self._base_unique_id}.update"
@@ -75,17 +77,6 @@ class OpenEVSEUpdateEntity(CoordinatorEntity, UpdateEntity):
         self.async_on_remove(
             self.coordinator.async_add_listener(self.async_write_ha_state)
         )
-
-    @property
-    def device_info(self) -> dict:
-        """Return a port description for device registry."""
-        info = {
-            "manufacturer": "OpenEVSE",
-            "name": self.config.data[CONF_NAME],
-            "connections": {(DOMAIN, self._base_unique_id)},
-        }
-
-        return info
 
     @property
     def installed_version(self) -> str | None:
